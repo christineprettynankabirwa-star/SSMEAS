@@ -1,3 +1,5 @@
+# Project Design Document
+
 SSMEAS Project Design Document (Version 1.0)
 
 Project Name
@@ -17,7 +19,7 @@ To develop an IoT-based sewage monitoring system that:
 - Schedules maintenance.
 - Optimizes cesspool truck routes.
 
-2. System Architecture
+1. System Architecture
 
 ```text
                   +---------------------------+
@@ -54,7 +56,7 @@ To develop an IoT-based sewage monitoring system that:
   Administrator  Maintenance   Supervisor
 ```
 
-3. Technology Stack
+1. Technology Stack
 
 | Component | Technology |
 | --- | --- |
@@ -69,7 +71,7 @@ To develop an IoT-based sewage monitoring system that:
 | Embedded | ESP32 |
 | Version Control | Git + GitHub |
 
-4. Project Folder Structure
+1. Project Folder Structure
 
 ```text
 SSMEAS/
@@ -112,7 +114,7 @@ dashboard/
 `-- styles/
 ```
 
-5. User Roles
+1. User Roles
 
 We only need three roles.
 
@@ -140,7 +142,7 @@ Supervisor can:
 
 Supervisor cannot modify data.
 
-6. Database Design
+1. Database Design
 
 Users
 
@@ -215,7 +217,7 @@ Truck Routes (Week 3)
 | truck_number | VARCHAR |
 | route_date | DATE |
 
-7. API Design
+1. API Design
 
 Every endpoint starts with `/api`.
 
@@ -255,7 +257,7 @@ Routes
 
 - `GET /api/routes`
 
-8. Dashboard Pages
+1. Dashboard Pages
 
 Login
 
@@ -302,7 +304,7 @@ Settings
 - Users.
 - Alert thresholds.
 
-9. Data Flow
+1. Data Flow
 
 ```text
 ESP32
@@ -318,7 +320,7 @@ Dashboard
 User
 ```
 
-10. AI Module Interfaces (Week 3)
+1. AI Module Interfaces (Week 3)
 
 The prediction engine reads historical sensor data and writes results back to the database.
 
