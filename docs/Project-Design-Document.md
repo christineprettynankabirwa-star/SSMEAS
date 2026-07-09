@@ -177,7 +177,9 @@ Sensor Readings
 | gas_level | FLOAT |
 | temperature | FLOAT |
 | battery | FLOAT |
-| timestamp | TIMESTAMP |
+| latitude | TEXT |
+| longitude | TEXT |
+| createdat | TIMESTAMP |
 
 Alerts
 
