@@ -1,3 +1,4 @@
+// Starts the SSMEAS HTTP server after loading environment configuration.
 import dotenv from "dotenv";
 import { app } from "./app";
 
