@@ -1,0 +1,5 @@
+interface SummaryCardsProps { totalTanks: number; onlineTanks: number; activeAlerts: number; averageFillLevel: number | null; }
+export default function SummaryCards(props: SummaryCardsProps) {
+  const items = [{ label: "Total tanks", value: props.totalTanks.toString(), accent: "bg-cyan-600" }, { label: "Online tanks", value: props.onlineTanks.toString(), accent: "bg-emerald-500" }, { label: "Active alerts", value: props.activeAlerts.toString(), accent: "bg-amber-500" }, { label: "Average tank fill", value: props.averageFillLevel === null ? "No reading" : `${props.averageFillLevel.toFixed(1)}%`, accent: "bg-violet-500" }];
+  return <section aria-label="System summary" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{items.map((item) => <article key={item.label} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><span className={`absolute inset-x-0 top-0 h-1 ${item.accent}`} /><p className="text-sm font-medium text-slate-600">{item.label}</p><p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">{item.value}</p></article>)}</section>;
+}
