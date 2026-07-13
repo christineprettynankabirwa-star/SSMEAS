@@ -1,6 +1,10 @@
 // Isolates PostgreSQL access required by the sensor readings module.
 import { pool } from "../config/database";
-import type { NewSensorReading, SensorReading } from "../types/readings.types";
+import type {
+  HistoricalSensorReading,
+  NewSensorReading,
+  SensorReading,
+} from "../types/readings.types";
 
 export const createOrGetSensorReading = async (
   reading: NewSensorReading,
@@ -30,4 +34,17 @@ export const createOrGetSensorReading = async (
   const storedReading = existing.rows[0];
   if (!storedReading) throw new Error("Sensor reading could not be stored.");
   return storedReading;
+};
+
+export const getHistoricalReadingsByTankId = async (
+  tankId: string,
+): Promise<HistoricalSensorReading[]> => {
+  const result = await pool.query<HistoricalSensorReading>(
+    `SELECT recorded_at, level, gas_level, temperature, battery
+     FROM sensor_readings
+     WHERE tank_id = $1
+     ORDER BY recorded_at ASC`,
+    [tankId],
+  );
+  return result.rows;
 };

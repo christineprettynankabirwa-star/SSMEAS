@@ -1,7 +1,12 @@
 // Handles HTTP requests for sensor readings endpoints.
 import type { Request, Response } from "express";
 import axios from "axios";
-import { ReadingValidationError, getAndStoreLiveReading } from "../services/readings.service";
+import {
+  ReadingNotFoundError,
+  ReadingValidationError,
+  getAndStoreLiveReading,
+  getHistoricalReadings,
+} from "../services/readings.service";
 
 export const getLiveReading = async (_request: Request, response: Response): Promise<void> => {
   try {
@@ -21,6 +26,28 @@ export const getLiveReading = async (_request: Request, response: Response): Pro
       return;
     }
     console.error("Sensor reading request failed:", error);
+    response.status(500).json({ message: "An unexpected server error occurred." });
+  }
+};
+
+export const getReadingHistory = async (request: Request, response: Response): Promise<void> => {
+  try {
+    const { tankId } = request.params;
+    if (typeof tankId !== "string") {
+      response.status(400).json({ message: "tankId is required." });
+      return;
+    }
+    response.status(200).json(await getHistoricalReadings(tankId));
+  } catch (error) {
+    if (error instanceof ReadingValidationError) {
+      response.status(400).json({ message: error.message });
+      return;
+    }
+    if (error instanceof ReadingNotFoundError) {
+      response.status(404).json({ message: error.message });
+      return;
+    }
+    console.error("Sensor reading history request failed:", error);
     response.status(500).json({ message: "An unexpected server error occurred." });
   }
 };

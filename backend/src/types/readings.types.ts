@@ -38,3 +38,11 @@ export interface NewSensorReading {
   battery: number | null;
   recorded_at: Date;
 }
+
+export interface HistoricalSensorReading {
+  recorded_at: Date;
+  level: number | null;
+  gas_level: number | null;
+  temperature: number | null;
+  battery: number | null;
+}

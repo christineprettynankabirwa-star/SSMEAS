@@ -3,6 +3,7 @@ import { getLatestChannelFeed } from "../clients/thingspeak.client";
 import * as readingsModel from "../models/readings.model";
 import * as tankModel from "../models/tank.model";
 import type {
+  HistoricalSensorReading,
   NewSensorReading,
   SensorReading,
   ThingSpeakFeed,
@@ -10,6 +11,9 @@ import type {
 } from "../types/readings.types";
 
 export class ReadingValidationError extends Error {}
+export class ReadingNotFoundError extends Error {}
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const parsePositiveInteger = (value: unknown, field: string): number => {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -31,7 +35,7 @@ const parseTankId = (value: unknown): string => {
     throw new ReadingValidationError("field5 (tank_id) must be a registered tank UUID.");
   }
   const tankId = value.trim();
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tankId)) {
+  if (!uuidPattern.test(tankId)) {
     throw new ReadingValidationError("field5 (tank_id) must be a valid UUID.");
   }
   return tankId;
@@ -79,4 +83,17 @@ export const getAndStoreLiveReading = async (): Promise<SensorReading> => {
     throw new ReadingValidationError("ThingSpeak channel does not match the registered tank.");
   }
   return readingsModel.createOrGetSensorReading(reading);
+};
+
+export const getHistoricalReadings = async (
+  tankId: string,
+): Promise<HistoricalSensorReading[]> => {
+  if (!uuidPattern.test(tankId)) {
+    throw new ReadingValidationError("tankId must be a valid UUID.");
+  }
+
+  const tank = await tankModel.getTankById(tankId);
+  if (!tank) throw new ReadingNotFoundError("Tank not found.");
+
+  return readingsModel.getHistoricalReadingsByTankId(tankId);
 };
