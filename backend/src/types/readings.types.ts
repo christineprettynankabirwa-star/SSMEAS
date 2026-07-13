@@ -1,14 +1,13 @@
 // Defines the sensor-reading contracts used by the ThingSpeak and database layers.
 export interface SensorReading {
   id: string;
+  tank_id: string;
   thingspeak_channel_id: number;
   thingspeak_entry_id: number;
   level: number | null;
   gas_level: number | null;
   temperature: number | null;
   battery: number | null;
-  latitude: number | null;
-  longitude: number | null;
   recorded_at: Date;
   created_at: Date;
 }
@@ -30,13 +29,12 @@ export interface ThingSpeakLatestFeedResponse {
 }
 
 export interface NewSensorReading {
+  tank_id: string;
   thingspeak_channel_id: number;
   thingspeak_entry_id: number;
   level: number | null;
   gas_level: number | null;
   temperature: number | null;
   battery: number | null;
-  latitude: number | null;
-  longitude: number | null;
   recorded_at: Date;
 }

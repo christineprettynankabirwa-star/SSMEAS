@@ -69,8 +69,8 @@ The prediction engine communicates with the backend and database.
                   |      ESP32 Controller     |
                   +---------------------------+
                      |      |        |
-             Ultrasonic   Gas     GPS
-                Sensor    Sensor   Module
+             Ultrasonic   Gas     Battery
+                Sensor    Sensor   Monitor
                      |
                      ▼
                Wi-Fi Internet
@@ -217,7 +217,7 @@ Hardware
 ESP32
 Ultrasonic
 Gas sensor
-GPS
+Battery monitor
 Wi-Fi
 
 AI
@@ -292,7 +292,7 @@ Current status
 Historical graph
 Maintenance history
 Prediction
-GPS
+Registered tank location on a map
 
 11 AI Module
 Input
@@ -315,6 +315,17 @@ PostgreSQL
 Leaflet
 OpenStreetMap
 ESP32 Wi-Fi
+
+ThingSpeak field mapping:
+
+- field1: sewage level
+- field2: gas level
+- field3: temperature
+- field4: battery voltage
+- field5: registered tank UUID
+- field6: optional device status
+
+The ESP32 does not send GPS coordinates. Tank latitude and longitude are entered once during registration, remain in the Tanks table, and are supplied to the dashboard only through the Tanks API.
 
 13 Security Requirements
 JWT
@@ -391,7 +402,7 @@ Week 2
 Dashboard homepage
 Live tank monitoring
 Charts
-GPS map
+Tank location map
 Alerts
 Maintenance history
 

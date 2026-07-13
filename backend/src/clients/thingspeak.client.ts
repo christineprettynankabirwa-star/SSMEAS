@@ -1,4 +1,4 @@
-// Provides the backend-only integration with the ThingSpeak REST API.
+// Provides the backend-only integration with the ThingSpeak REST API; field5 identifies the tank.
 import axios from "axios";
 import type { ThingSpeakLatestFeedResponse } from "../types/readings.types";
 

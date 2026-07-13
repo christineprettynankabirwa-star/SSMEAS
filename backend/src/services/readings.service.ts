@@ -1,6 +1,7 @@
 // Validates ThingSpeak data and coordinates sensor-reading persistence.
 import { getLatestChannelFeed } from "../clients/thingspeak.client";
 import * as readingsModel from "../models/readings.model";
+import * as tankModel from "../models/tank.model";
 import type {
   NewSensorReading,
   SensorReading,
@@ -25,6 +26,17 @@ const parseOptionalNumber = (value: unknown, field: string): number | null => {
   return parsed;
 };
 
+const parseTankId = (value: unknown): string => {
+  if (typeof value !== "string") {
+    throw new ReadingValidationError("field5 (tank_id) must be a registered tank UUID.");
+  }
+  const tankId = value.trim();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tankId)) {
+    throw new ReadingValidationError("field5 (tank_id) must be a valid UUID.");
+  }
+  return tankId;
+};
+
 const getLatestFeed = (payload: ThingSpeakLatestFeedResponse): ThingSpeakFeed => {
   if (!Array.isArray(payload.feeds) || payload.feeds.length === 0 || !payload.feeds[0]) {
     throw new ReadingValidationError("ThingSpeak returned no readings for this channel.");
@@ -42,19 +54,29 @@ const mapFeedToReading = (payload: ThingSpeakLatestFeedResponse): NewSensorReadi
   }
 
   return {
+    tank_id: parseTankId(feed.field5),
     thingspeak_channel_id: channelId,
     thingspeak_entry_id: entryId,
     level: parseOptionalNumber(feed.field1, "field1 (level)"),
     gas_level: parseOptionalNumber(feed.field2, "field2 (gas_level)"),
     temperature: parseOptionalNumber(feed.field3, "field3 (temperature)"),
     battery: parseOptionalNumber(feed.field4, "field4 (battery)"),
-    latitude: parseOptionalNumber(feed.field5, "field5 (latitude)"),
-    longitude: parseOptionalNumber(feed.field6, "field6 (longitude)"),
     recorded_at: recordedAt,
   };
 };
 
 export const getAndStoreLiveReading = async (): Promise<SensorReading> => {
   const latestFeed = await getLatestChannelFeed();
-  return readingsModel.createOrGetSensorReading(mapFeedToReading(latestFeed));
+  const reading = mapFeedToReading(latestFeed);
+  const tank = await tankModel.getTankById(reading.tank_id);
+  if (!tank) {
+    throw new ReadingValidationError("ThingSpeak field5 does not match a registered tank.");
+  }
+  if (
+    typeof tank.thingspeak_channel_id === "number"
+    && tank.thingspeak_channel_id !== reading.thingspeak_channel_id
+  ) {
+    throw new ReadingValidationError("ThingSpeak channel does not match the registered tank.");
+  }
+  return readingsModel.createOrGetSensorReading(reading);
 };
