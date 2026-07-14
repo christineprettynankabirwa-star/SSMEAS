@@ -1,6 +1,7 @@
 import * as alertsModel from "../models/alerts.model";
 import * as tankModel from "../models/tank.model";
 import type { Alert, AlertSeverity, CreateAlertRequest } from "../types/alerts.types";
+import type { SensorReading } from "../types/readings.types";
 
 export class AlertValidationError extends Error {}
 export class AlertTankNotFoundError extends Error {}
@@ -24,4 +25,56 @@ export const addAlert = async (alert: CreateAlertRequest): Promise<Alert> => {
   }
   if (!(await tankModel.getTankById(alert.tank_id))) throw new AlertTankNotFoundError("Tank not found.");
   return alertsModel.createAlert(alert);
+};
+
+const threshold = (environmentName: string, fallback: number): number => {
+  const configuredValue = Number(process.env[environmentName] ?? fallback);
+  return Number.isFinite(configuredValue) ? configuredValue : fallback;
+};
+
+export const alertThresholds = {
+  fillWarning: threshold("FILL_WARNING_THRESHOLD", 80),
+  fillCritical: threshold("FILL_CRITICAL_THRESHOLD", 95),
+  hazardousGas: threshold("GAS_LEVEL_THRESHOLD", 300),
+  lowBattery: threshold("LOW_BATTERY_THRESHOLD", 3.3),
+} as const;
+
+export const createAlertsForReading = async (reading: SensorReading): Promise<void> => {
+  const alerts: CreateAlertRequest[] = [];
+
+  if (reading.level !== null && reading.level >= alertThresholds.fillCritical) {
+    alerts.push({
+      tank_id: reading.tank_id,
+      alert_type: "Critical sewage level",
+      severity: "critical",
+      message: `Fill level is ${reading.level.toFixed(1)}%, at or above the ${alertThresholds.fillCritical}% critical threshold.`,
+    });
+  } else if (reading.level !== null && reading.level >= alertThresholds.fillWarning) {
+    alerts.push({
+      tank_id: reading.tank_id,
+      alert_type: "High sewage level",
+      severity: "warning",
+      message: `Fill level is ${reading.level.toFixed(1)}%, at or above the ${alertThresholds.fillWarning}% warning threshold.`,
+    });
+  }
+
+  if (reading.gas_level !== null && reading.gas_level >= alertThresholds.hazardousGas) {
+    alerts.push({
+      tank_id: reading.tank_id,
+      alert_type: "Hazardous gas",
+      severity: "critical",
+      message: `Gas level is ${reading.gas_level.toFixed(1)}, at or above the ${alertThresholds.hazardousGas} threshold.`,
+    });
+  }
+
+  if (reading.battery !== null && reading.battery <= alertThresholds.lowBattery) {
+    alerts.push({
+      tank_id: reading.tank_id,
+      alert_type: "Low battery",
+      severity: "warning",
+      message: `Battery voltage is ${reading.battery.toFixed(2)}V, at or below the ${alertThresholds.lowBattery}V threshold.`,
+    });
+  }
+
+  await Promise.all(alerts.map((alert) => alertsModel.createAlertUnlessActive(alert)));
 };

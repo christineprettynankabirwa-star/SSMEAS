@@ -14,3 +14,7 @@ CREATE TABLE IF NOT EXISTS alerts (
 
 CREATE INDEX IF NOT EXISTS alerts_status_created_at_idx
     ON alerts (status, created_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS alerts_one_active_type_per_tank_idx
+    ON alerts (tank_id, alert_type)
+    WHERE status = 'ACTIVE';

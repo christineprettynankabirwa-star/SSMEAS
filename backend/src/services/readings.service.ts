@@ -2,6 +2,7 @@
 import { getLatestChannelFeed } from "../clients/thingspeak.client";
 import * as readingsModel from "../models/readings.model";
 import * as tankModel from "../models/tank.model";
+import { createAlertsForReading } from "./alerts.service";
 import type {
   HistoricalSensorReading,
   NewSensorReading,
@@ -82,7 +83,9 @@ export const getAndStoreLiveReading = async (): Promise<SensorReading> => {
   ) {
     throw new ReadingValidationError("ThingSpeak channel does not match the registered tank.");
   }
-  return readingsModel.createOrGetSensorReading(reading);
+  const storedReading = await readingsModel.createOrGetSensorReading(reading);
+  await createAlertsForReading(storedReading);
+  return storedReading;
 };
 
 export const getHistoricalReadings = async (
