@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import { pool } from "./config/database";
+import { authenticate } from "./middleware/auth.middleware";
+import { authorize } from "./middleware/authorize.middleware";
 import apiRoutes from "./routes";
 
 dotenv.config();
@@ -13,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 // Temporary debugging endpoint to confirm PostgreSQL connectivity.
-app.get("/api/db-test", async (_req, res) => {
+app.get("/api/db-test", authenticate, authorize("ADMINISTRATOR"), async (_req, res) => {
   try {
     const result = await pool.query("SELECT NOW() AS current_time");
     res.json(result.rows[0]);

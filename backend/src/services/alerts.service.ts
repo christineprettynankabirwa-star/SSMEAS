@@ -32,49 +32,63 @@ const threshold = (environmentName: string, fallback: number): number => {
   return Number.isFinite(configuredValue) ? configuredValue : fallback;
 };
 
-export const alertThresholds = {
+export interface AlertThresholds {
+  fillWarning: number;
+  fillCritical: number;
+  hazardousGas: number;
+  lowBattery: number;
+}
+
+export const alertThresholds: Readonly<AlertThresholds> = {
   fillWarning: threshold("FILL_WARNING_THRESHOLD", 80),
   fillCritical: threshold("FILL_CRITICAL_THRESHOLD", 95),
   hazardousGas: threshold("GAS_LEVEL_THRESHOLD", 300),
   lowBattery: threshold("LOW_BATTERY_THRESHOLD", 3.3),
-} as const;
+};
 
-export const createAlertsForReading = async (reading: SensorReading): Promise<void> => {
+export const generateAlertsForReading = (
+  reading: SensorReading,
+  thresholds: Readonly<AlertThresholds> = alertThresholds,
+): CreateAlertRequest[] => {
   const alerts: CreateAlertRequest[] = [];
 
-  if (reading.level !== null && reading.level >= alertThresholds.fillCritical) {
+  if (reading.level !== null && reading.level >= thresholds.fillCritical) {
     alerts.push({
       tank_id: reading.tank_id,
       alert_type: "Critical sewage level",
       severity: "critical",
-      message: `Fill level is ${reading.level.toFixed(1)}%, at or above the ${alertThresholds.fillCritical}% critical threshold.`,
+      message: `Fill level is ${reading.level.toFixed(1)}%, at or above the ${thresholds.fillCritical}% critical threshold.`,
     });
-  } else if (reading.level !== null && reading.level >= alertThresholds.fillWarning) {
+  } else if (reading.level !== null && reading.level >= thresholds.fillWarning) {
     alerts.push({
       tank_id: reading.tank_id,
       alert_type: "High sewage level",
       severity: "warning",
-      message: `Fill level is ${reading.level.toFixed(1)}%, at or above the ${alertThresholds.fillWarning}% warning threshold.`,
+      message: `Fill level is ${reading.level.toFixed(1)}%, at or above the ${thresholds.fillWarning}% warning threshold.`,
     });
   }
 
-  if (reading.gas_level !== null && reading.gas_level >= alertThresholds.hazardousGas) {
+  if (reading.gas_level !== null && reading.gas_level >= thresholds.hazardousGas) {
     alerts.push({
       tank_id: reading.tank_id,
       alert_type: "Hazardous gas",
       severity: "critical",
-      message: `Gas level is ${reading.gas_level.toFixed(1)}, at or above the ${alertThresholds.hazardousGas} threshold.`,
+      message: `Gas level is ${reading.gas_level.toFixed(1)}, at or above the ${thresholds.hazardousGas} threshold.`,
     });
   }
 
-  if (reading.battery !== null && reading.battery <= alertThresholds.lowBattery) {
+  if (reading.battery !== null && reading.battery <= thresholds.lowBattery) {
     alerts.push({
       tank_id: reading.tank_id,
       alert_type: "Low battery",
       severity: "warning",
-      message: `Battery voltage is ${reading.battery.toFixed(2)}V, at or below the ${alertThresholds.lowBattery}V threshold.`,
+      message: `Battery voltage is ${reading.battery.toFixed(2)}V, at or below the ${thresholds.lowBattery}V threshold.`,
     });
   }
 
-  await Promise.all(alerts.map((alert) => alertsModel.createAlertUnlessActive(alert)));
+  return alerts;
+};
+
+export const createAlertsForReading = async (reading: SensorReading): Promise<void> => {
+  await Promise.all(generateAlertsForReading(reading).map((alert) => alertsModel.createAlertUnlessActive(alert)));
 };
