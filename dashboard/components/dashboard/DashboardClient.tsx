@@ -1,12 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { getAlerts, getDashboardSummary, getLiveReading, getMaintenance, getTanks } from "@/services/api";
+import { useCallback, useEffect, useState } from "react";
+import { getAlerts, getDashboardSummary, getLiveReading, getMaintenance, getTanks, setAccessToken } from "@/services/api";
 import AlertsPanel from "./AlertsPanel";
 import DashboardHeader from "./DashboardHeader";
 import HistoricalChart from "./HistoricalChart";
 import MaintenanceTable from "./MaintenanceTable";
+import LoginForm from "./LoginForm";
 import SummaryCards from "./SummaryCards";
 import TankStatusCard from "./TankStatusCard";
 import type { AlertItem, DashboardSummary, MaintenanceItem, SensorReading, Tank } from "./types";
@@ -19,6 +20,7 @@ const TankMap = dynamic(() => import("./TankMap"), {
 const emptySummary: DashboardSummary = { totalTanks: 0, onlineTanks: 0, activeAlerts: 0, averageFillLevel: 0 };
 
 export default function DashboardClient() {
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [reading, setReading] = useState<SensorReading | null>(null);
   const [summary, setSummary] = useState<DashboardSummary>(emptySummary);
@@ -52,16 +54,29 @@ export default function DashboardClient() {
   }, []);
 
   useEffect(() => {
+    const authenticationId = window.setTimeout(() => {
+      const token = window.sessionStorage.getItem("ssmeas_access_token");
+      setAccessToken(token);
+      setAuthenticated(Boolean(token));
+    }, 0);
+    return () => window.clearTimeout(authenticationId);
+  }, []);
+
+  useEffect(() => {
+    if (!authenticated) return;
     const initialLoadId = window.setTimeout(() => { void load(); }, 0);
     const refreshId = window.setInterval(() => { void load(); }, 30_000);
     return () => {
       window.clearTimeout(initialLoadId);
       window.clearInterval(refreshId);
     };
-  }, [load]);
+  }, [authenticated, load]);
 
   const historyTankId = reading?.tank_id ?? tanks[0]?.id;
-  const historyTank = useMemo(() => tanks.find((tank) => tank.id === historyTankId), [historyTankId, tanks]);
+  const historyTank = tanks.find((tank) => tank.id === historyTankId);
+
+  if (authenticated === null) return null;
+  if (!authenticated) return <LoginForm onAuthenticated={() => setAuthenticated(true)} />;
 
   return (
     <main className="min-h-screen bg-slate-50">
