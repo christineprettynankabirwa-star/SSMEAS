@@ -412,3 +412,10 @@ Route optimization
 Testing
 Documentation
 Final presentation
+
+Take Note:
+npm run create-user -- "System Administrator" <admin@ssmeas.local> ChangeMe123! ADMINISTRATOR
+
+npm run create-user -- "System Supervisor" <supervisor@ssmeas.local> ChangeMe123! SUPERVISOR
+
+npm run create-user -- "Maintenance Officer" <maintenance@ssmeas.local> ChangeMe123! MAINTENANCE_OFFICER
