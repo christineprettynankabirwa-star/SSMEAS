@@ -71,8 +71,15 @@ const mapFeedToReading = (payload: ThingSpeakLatestFeedResponse): NewSensorReadi
 };
 
 export const getAndStoreLiveReading = async (): Promise<SensorReading> => {
-  const latestFeed = await getLatestChannelFeed();
-  const reading = mapFeedToReading(latestFeed);
+  let reading: NewSensorReading;
+  try {
+    const latestFeed = await getLatestChannelFeed();
+    reading = mapFeedToReading(latestFeed);
+  } catch (error) {
+    const storedReading = await readingsModel.getLatestStoredReading();
+    if (storedReading) return storedReading;
+    throw error;
+  }
   const tank = await tankModel.getTankById(reading.tank_id);
   if (!tank) {
     throw new ReadingValidationError("ThingSpeak field5 does not match a registered tank.");
