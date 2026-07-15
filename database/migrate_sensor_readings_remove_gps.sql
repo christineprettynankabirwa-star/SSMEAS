@@ -19,6 +19,11 @@ BEGIN
     END IF;
 END $$;
 
+-- The backfill is only deterministic when a ThingSpeak channel belongs to one tank.
+CREATE UNIQUE INDEX IF NOT EXISTS tanks_thingspeak_channel_id_unique_idx
+    ON tanks (thingspeak_channel_id)
+    WHERE thingspeak_channel_id IS NOT NULL;
+
 UPDATE sensor_readings AS reading
 SET tank_id = tank.id
 FROM tanks AS tank

@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS tanks (
 
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
 
-    thingspeak_channel_id BIGINT,
+    thingspeak_channel_id BIGINT UNIQUE,
 
     thingspeak_read_api_key VARCHAR(100),
 
