@@ -20,7 +20,8 @@ export default function HistoricalChart({ tankId, tankName }: HistoricalChartPro
       finally { if (isCurrent) setLoading(false); }
     };
     void loadHistory();
-    return () => { isCurrent = false; };
+    const refreshId = window.setInterval(() => { void loadHistory(); }, 30_000);
+    return () => { isCurrent = false; window.clearInterval(refreshId); };
   }, [tankId]);
 
   const chartData = tankId ? readings.map((reading) => ({ ...reading, time: new Date(reading.recorded_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })) : [];

@@ -30,3 +30,27 @@ test("authorization allows a user with a required role", () => {
   authorize("ADMINISTRATOR")(request, mock.response, (() => { called = true; }) as NextFunction);
   assert.equal(called, true);
 });
+
+const roleMatrix = [
+  { role: "ADMINISTRATOR", dashboard: true, readMaintenance: true, createMaintenance: true },
+  { role: "MAINTENANCE_OFFICER", dashboard: false, readMaintenance: true, createMaintenance: true },
+  { role: "SUPERVISOR", dashboard: true, readMaintenance: true, createMaintenance: false },
+] as const;
+
+for (const expected of roleMatrix) {
+  test(`${expected.role} permissions match the acceptance role matrix`, () => {
+    const request = { user: { id: "id", email: "user@example.com", full_name: "User", role: expected.role } } as unknown as Request;
+    const checks = [
+      { allowed: expected.dashboard, middleware: authorize("ADMINISTRATOR", "SUPERVISOR") },
+      { allowed: expected.readMaintenance, middleware: authorize("ADMINISTRATOR", "MAINTENANCE_OFFICER", "SUPERVISOR") },
+      { allowed: expected.createMaintenance, middleware: authorize("ADMINISTRATOR", "MAINTENANCE_OFFICER") },
+    ];
+    for (const check of checks) {
+      const mock = responseMock();
+      let called = false;
+      check.middleware(request, mock.response, (() => { called = true; }) as NextFunction);
+      assert.equal(called, check.allowed);
+      assert.equal(mock.getStatus(), check.allowed ? 200 : 403);
+    }
+  });
+}
