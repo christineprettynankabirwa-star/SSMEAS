@@ -1,0 +1,8 @@
+import { useEffect, useState } from "react";
+const formatDateTime = (date: Date): string => new Intl.DateTimeFormat("en-UG", { dateStyle: "full", timeStyle: "medium" }).format(date);
+const formatUpdatedTime = (date: Date): string => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(date);
+export default function DashboardHeader({ lastUpdated }: { lastUpdated: Date | null }) {
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  useEffect(() => { const update = () => setCurrentTime(new Date()); update(); const timer = window.setInterval(update, 1_000); return () => window.clearInterval(timer); }, []);
+  return <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-700">Operations centre</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">SSMEAS Monitoring Dashboard</h1><p className="mt-1 text-sm text-slate-600">Live sewage tank telemetry, alerts, and maintenance planning.</p><p className="mt-2 text-xs font-medium text-slate-500">Last updated: <time>{lastUpdated ? formatUpdatedTime(lastUpdated) : "--:--:--"}</time></p></div><div className="rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-right shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-cyan-800">Current time</p><time className="mt-1 block text-sm font-medium text-slate-800">{currentTime ? formatDateTime(currentTime) : "Loading current time..."}</time></div></header>;
+}
