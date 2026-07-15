@@ -8,7 +8,9 @@ import DashboardHeader from "./DashboardHeader";
 import HistoricalChart from "./HistoricalChart";
 import MaintenanceTable from "./MaintenanceTable";
 import LoginForm from "./LoginForm";
+import OperationsNav from "./OperationsNav";
 import SummaryCards from "./SummaryCards";
+import TankMonitoringTable from "./TankMonitoringTable";
 import TankStatusCard from "./TankStatusCard";
 import type { AlertItem, DashboardSummary, MaintenanceItem, SensorReading, Tank } from "./types";
 
@@ -29,6 +31,8 @@ export default function DashboardClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTankId, setSelectedTankId] = useState<string | undefined>();
 
   const load = useCallback(async () => {
     setError(null);
@@ -72,24 +76,35 @@ export default function DashboardClient() {
     };
   }, [authenticated, load]);
 
-  const historyTankId = reading?.tank_id ?? tanks[0]?.id;
+  const historyTankId = selectedTankId ?? reading?.tank_id ?? tanks[0]?.id;
   const historyTank = tanks.find((tank) => tank.id === historyTankId);
+
+  const signOut = () => {
+    window.sessionStorage.removeItem("ssmeas_access_token");
+    setAccessToken(null);
+    setAuthenticated(false);
+  };
 
   if (authenticated === null) return null;
   if (!authenticated) return <LoginForm onAuthenticated={() => setAuthenticated(true)} />;
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 lg:flex">
+      <OperationsNav onSignOut={signOut} />
+      <main id="overview" className="min-w-0 flex-1 scroll-mt-6">
+      <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <DashboardHeader lastUpdated={lastUpdated} />
         {error && <div role="alert" className="mt-6 flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><span>{error}</span><button type="button" onClick={() => void load()} className="rounded-lg bg-amber-700 px-3 py-1.5 font-semibold text-white hover:bg-amber-800">Retry</button></div>}
         <div className="mt-6"><SummaryCards totalTanks={summary.totalTanks} onlineTanks={summary.onlineTanks} activeAlerts={summary.activeAlerts} averageFillLevel={summary.averageFillLevel} /></div>
         {loading ? <section className="grid min-h-[360px] place-items-center" aria-label="Loading dashboard"><div className="text-center"><span className="inline-block size-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" aria-hidden="true" /><p className="mt-3 text-sm font-medium text-slate-600">Loading dashboard...</p></div></section> : <>
           <section className="mt-6"><div className="mb-4"><h2 className="text-xl font-bold text-slate-950">Live tank status</h2><p className="mt-1 text-sm text-slate-600">Telemetry refreshes automatically every 30 seconds.</p></div>{tanks.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">No tanks are registered yet. Add a tank through the backend to see its live status.</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{tanks.map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={reading?.tank_id === tank.id ? reading : null} />)}</div>}</section>
-          <section className="mt-6 grid gap-6 xl:grid-cols-2"><HistoricalChart tankId={historyTankId} tankName={historyTank?.tank_name} /><TankMap tanks={tanks} /></section>
-          <section className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.6fr]"><AlertsPanel alerts={alerts} /><MaintenanceTable items={maintenance} /></section>
+          <div className="mt-6"><TankMonitoringTable tanks={tanks} reading={reading} query={searchQuery} onQueryChange={setSearchQuery} onSelect={(tankId) => { setSelectedTankId(tankId); document.querySelector("#analytics")?.scrollIntoView({ behavior: "smooth" }); }} /></div>
+          <section id="analytics" className="mt-6 scroll-mt-6"><HistoricalChart tankId={historyTankId} tankName={historyTank?.tank_name} /></section>
+          <section id="locations" className="mt-6 scroll-mt-6"><TankMap tanks={tanks} /></section>
+          <section id="operations" className="mt-6 grid scroll-mt-6 gap-6 xl:grid-cols-[0.9fr_1.6fr]"><AlertsPanel alerts={alerts} /><MaintenanceTable items={maintenance} /></section>
         </>}
       </div>
-    </main>
+      </main>
+    </div>
   );
 }
