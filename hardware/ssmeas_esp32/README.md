@@ -1,20 +1,20 @@
 # SSMEAS ESP32 telemetry firmware
 
 This Arduino sketch publishes simulated or physical tank telemetry to the
-existing SSMEAS ThingSpeak channel every 30 seconds. It does not call or change
-the backend API. The backend continues to retrieve the latest channel feed and
-map it to the registered tank.
+SSMEAS backend every 30 seconds. The backend validates the device key and writes
+the reading to PostgreSQL; database credentials are never stored on the ESP32.
 
-## ThingSpeak mapping
+## API payload
 
-| ThingSpeak field | Value |
+| JSON property | Value |
 |---|---|
-| `field1` | Sewage fill level (%) |
-| `field2` | Gas level |
-| `field3` | Temperature (C) |
-| `field4` | Battery voltage (V) |
-| `field5` | Registered SSMEAS tank UUID |
-| `field6` | `SIMULATION` or `ONLINE` device status |
+| `level` | Sewage fill level (%) |
+| `gas_level` | Gas level |
+| `temperature` | Temperature (C) |
+| `battery` | Battery voltage (V) |
+| `tank_id` | Registered SSMEAS tank UUID |
+| `reading_id` | Unique UUID generated for idempotency |
+| `status` | `SIMULATION` or `ONLINE` device status |
 
 ## Configure and upload
 
@@ -24,7 +24,8 @@ map it to the registered tank.
 4. Edit `Config.h` and provide:
    - `WIFI_SSID`
    - `WIFI_PASSWORD`
-   - `THINGSPEAK_WRITE_API_KEY`
+   - `SSMEAS_DEVICE_READINGS_URL`
+   - `DEVICE_API_KEY`, matching the backend `DEVICE_API_KEY`
    - `TANK_UUID`, matching a tank already registered in PostgreSQL
 5. Keep `SSMEAS_SIMULATION_MODE` set to `1` for generated telemetry, or set it
    to `0` after wiring and calibrating the physical sensors.

@@ -7,13 +7,14 @@
 
 namespace Config {
 
-// Wi-Fi and ThingSpeak credentials. Replace these before uploading.
+// Wi-Fi and SSMEAS API credentials. Replace these before uploading.
 constexpr char WIFI_SSID[] = "YOUR_WIFI_SSID";
 constexpr char WIFI_PASSWORD[] = "YOUR_WIFI_PASSWORD";
-constexpr char THINGSPEAK_WRITE_API_KEY[] = "YOUR_THINGSPEAK_WRITE_API_KEY";
+constexpr char SSMEAS_DEVICE_READINGS_URL[] = "http://192.168.1.100:4000/api/device/readings";
+constexpr char DEVICE_API_KEY[] = "CHANGE_TO_A_LONG_RANDOM_DEVICE_KEY";
 
 // Must match a UUID already registered in the SSMEAS tanks table. The backend
-// rejects ThingSpeak feeds whose field5 is not a registered tank UUID.
+// rejects uploads for unknown tank UUIDs.
 constexpr char TANK_UUID[] = "00000000-0000-4000-8000-000000000000";
 
 constexpr char THINGSPEAK_UPDATE_URL[] = "https://api.thingspeak.com/update";

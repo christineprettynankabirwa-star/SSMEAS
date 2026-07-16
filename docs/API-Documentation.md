@@ -23,6 +23,11 @@ Except for health and login, send `Authorization: Bearer <JWT>`. Errors use `{ "
 
 ## Readings
 
+- `POST /api/device/readings` — device ingestion endpoint authenticated with
+  `X-Device-API-Key`. The body contains `tank_id`, unique `reading_id`, `level`,
+  `gas_level`, `temperature`, optional `battery`, and optional `recorded_at`.
+  It validates the registered tank and writes the reading to PostgreSQL.
+
 - `GET /api/readings/live` — retrieves the latest ThingSpeak feed through the backend, validates it, resolves `field5` to a registered tank, checks its configured channel when present, stores the idempotent historical reading, and returns it.
 - `GET /api/readings/history/:tankId` — returns stored readings for a tank in chart order.
 

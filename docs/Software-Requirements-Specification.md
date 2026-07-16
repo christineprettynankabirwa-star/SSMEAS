@@ -419,3 +419,5 @@ npm run create-user -- "System Administrator" <admin@ssmeas.local> ChangeMe123! 
 npm run create-user -- "System Supervisor" <supervisor@ssmeas.local> ChangeMe123! SUPERVISOR
 
 npm run create-user -- "Maintenance Officer" <maintenance@ssmeas.local> ChangeMe123! MAINTENANCE_OFFICER
+
+protected endpoint = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYWI1YWNlYi1iMGJmLTQ3OGItYWI0OC05MzRiYzUyNzU1ZTEiLCJlbWFpbCI6ImFkbWluQHNzbWVhcy5sb2NhbCIsInJvbGUiOiJBRE1JTklTVFJBVE9SIiwiaWF0IjoxNzg0MTQ1MDk5LCJleHAiOjE3ODQxNzM4OTl9.G202QySGjboTGl3s7ERu1OsRLBIoWGv5AlN-KL9WR3I"

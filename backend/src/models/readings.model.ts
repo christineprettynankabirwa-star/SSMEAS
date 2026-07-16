@@ -2,6 +2,7 @@
 import { pool } from "../config/database";
 import type {
   HistoricalSensorReading,
+  DeviceReadingInput,
   NewSensorReading,
   SensorReading,
 } from "../types/readings.types";
@@ -33,6 +34,32 @@ export const createOrGetSensorReading = async (
   );
   const storedReading = existing.rows[0];
   if (!storedReading) throw new Error("Sensor reading could not be stored.");
+  return storedReading;
+};
+
+export const createOrGetDeviceReading = async (
+  reading: DeviceReadingInput,
+): Promise<SensorReading> => {
+  const result = await pool.query<SensorReading>(
+    `INSERT INTO sensor_readings (
+      tank_id, device_reading_id, level, gas_level, temperature, battery, recorded_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    ON CONFLICT (device_reading_id) DO NOTHING
+    RETURNING *`,
+    [
+      reading.tank_id, reading.reading_id, reading.level, reading.gas_level,
+      reading.temperature, reading.battery, reading.recorded_at,
+    ],
+  );
+
+  if (result.rows[0]) return result.rows[0];
+
+  const existing = await pool.query<SensorReading>(
+    "SELECT * FROM sensor_readings WHERE device_reading_id = $1 LIMIT 1",
+    [reading.reading_id],
+  );
+  const storedReading = existing.rows[0];
+  if (!storedReading) throw new Error("Device reading could not be stored.");
   return storedReading;
 };
 

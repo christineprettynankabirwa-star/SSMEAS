@@ -6,7 +6,22 @@ import {
   ReadingValidationError,
   getAndStoreLiveReading,
   getHistoricalReadings,
+  storeDeviceReading,
 } from "../services/readings.service";
+
+export const createDeviceReading = async (request: Request, response: Response): Promise<void> => {
+  try {
+    const reading = await storeDeviceReading(request.body as Record<string, unknown>);
+    response.status(201).json(reading);
+  } catch (error) {
+    if (error instanceof ReadingValidationError) {
+      response.status(400).json({ message: error.message });
+      return;
+    }
+    console.error("Device reading upload failed:", error);
+    response.status(500).json({ message: "Unable to store device reading." });
+  }
+};
 
 export const getLiveReading = async (_request: Request, response: Response): Promise<void> => {
   try {

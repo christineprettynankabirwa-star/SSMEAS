@@ -2,14 +2,25 @@
 export interface SensorReading {
   id: string;
   tank_id: string;
-  thingspeak_channel_id: number;
-  thingspeak_entry_id: number;
+  thingspeak_channel_id: number | null;
+  thingspeak_entry_id: number | null;
+  device_reading_id?: string | null;
   level: number | null;
   gas_level: number | null;
   temperature: number | null;
   battery: number | null;
   recorded_at: Date;
   created_at: Date;
+}
+
+export interface DeviceReadingInput {
+  tank_id: string;
+  reading_id: string;
+  level: number | null;
+  gas_level: number | null;
+  temperature: number | null;
+  battery: number | null;
+  recorded_at: Date;
 }
 
 export interface ThingSpeakFeed {

@@ -9,6 +9,7 @@ import type {
   SensorReading,
   ThingSpeakFeed,
   ThingSpeakLatestFeedResponse,
+  DeviceReadingInput,
 } from "../types/readings.types";
 
 export class ReadingValidationError extends Error {}
@@ -106,4 +107,35 @@ export const getHistoricalReadings = async (
   if (!tank) throw new ReadingNotFoundError("Tank not found.");
 
   return readingsModel.getHistoricalReadingsByTankId(tankId);
+};
+
+const parseRequiredUuid = (value: unknown, field: string): string => {
+  if (typeof value !== "string" || !uuidPattern.test(value.trim())) {
+    throw new ReadingValidationError(`${field} must be a valid UUID.`);
+  }
+  return value.trim();
+};
+
+export const storeDeviceReading = async (payload: Record<string, unknown>): Promise<SensorReading> => {
+  const recordedAt = payload.recorded_at === undefined ? new Date() : new Date(String(payload.recorded_at));
+  if (Number.isNaN(recordedAt.getTime())) {
+    throw new ReadingValidationError("recorded_at must be a valid ISO-8601 timestamp.");
+  }
+
+  const reading: DeviceReadingInput = {
+    tank_id: parseRequiredUuid(payload.tank_id, "tank_id"),
+    reading_id: parseRequiredUuid(payload.reading_id, "reading_id"),
+    level: parseOptionalNumber(payload.level, "level"),
+    gas_level: parseOptionalNumber(payload.gas_level, "gas_level"),
+    temperature: parseOptionalNumber(payload.temperature, "temperature"),
+    battery: parseOptionalNumber(payload.battery, "battery"),
+    recorded_at: recordedAt,
+  };
+
+  const tank = await tankModel.getTankById(reading.tank_id);
+  if (!tank) throw new ReadingValidationError("tank_id does not match a registered tank.");
+
+  const stored = await readingsModel.createOrGetDeviceReading(reading);
+  await createAlertsForReading(stored);
+  return stored;
 };

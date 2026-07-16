@@ -4,7 +4,7 @@ Deploy PostgreSQL, the Express backend, and the Next.js dashboard as separate se
 
 ## Backend
 
-Set production database credentials, a long random `JWT_SECRET`, ThingSpeak channel/read key, allowed frontend origin, and alert thresholds in the hosting platform’s secret store. Build with `npm ci && npm run build`; start with `npm start`. Expose the service health endpoint at `/api/health`. Do not commit `.env` files.
+Set production database credentials, a long random `JWT_SECRET`, a separate long random `DEVICE_API_KEY`, any retained ThingSpeak channel/read key, allowed frontend origin, and alert thresholds in the hosting platform’s secret store. Apply `database/add_direct_device_readings.sql`, build with `npm ci && npm run build`, and start with `npm start`. Expose the service health endpoint at `/api/health`. Do not commit `.env` files.
 
 ## Dashboard
 

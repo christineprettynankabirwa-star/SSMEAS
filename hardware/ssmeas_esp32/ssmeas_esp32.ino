@@ -1,6 +1,6 @@
 #include "Config.h"
 #include "Sensors.h"
-#include "ThingSpeakPublisher.h"
+#include "ApiPublisher.h"
 #include "WifiManager.h"
 
 unsigned long lastPublishAt = 0;
@@ -32,12 +32,12 @@ void loop() {
     );
 
     if (!readings.valid) {
-      Serial.println("Sensor reading invalid; ThingSpeak update skipped.");
+      Serial.println("Sensor reading invalid; API upload skipped.");
     } else {
 #if SSMEAS_SIMULATION_MODE
-      ThingSpeakPublisher::publish(readings, "SIMULATION");
+      ApiPublisher::publish(readings, "SIMULATION");
 #else
-      ThingSpeakPublisher::publish(readings, "ONLINE");
+      ApiPublisher::publish(readings, "ONLINE");
 #endif
     }
   }

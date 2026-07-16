@@ -3,6 +3,7 @@ import { Router } from "express";
 import alertsRoutes from "./alerts.routes";
 import authRoutes from "./auth.routes";
 import dashboardRoutes from "./dashboard.routes";
+import deviceRoutes from "./device.routes";
 import healthRoutes from "./health.routes";
 import maintenanceRoutes from "./maintenance.routes";
 import readingsRoutes from "./readings.routes";
@@ -12,6 +13,7 @@ const router = Router();
 
 router.use("/health", healthRoutes);
 router.use(authRoutes);
+router.use("/device", deviceRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/readings", readingsRoutes);
 router.use("/tanks", tankRoutes);
