@@ -31,15 +31,10 @@ To develop an IoT-based sewage monitoring system that:
                Sensor    Sensor    Monitor
                      |
                      v
-               Wi-Fi Internet
+               Wi-Fi Network
                      |
                      v
-              ThingSpeak Cloud
-                     |
-             REST API (Read)
-                     |
-                     v
-         Node.js + Express Backend
+         Node.js + Express Backend API
                      |
        +-------------+-------------+
        |                           |
@@ -64,7 +59,6 @@ To develop an IoT-based sewage monitoring system that:
 | Backend | Express + TypeScript |
 | Database | PostgreSQL |
 | AI | Python |
-| IoT Cloud | ThingSpeak |
 | Maps | Leaflet + OpenStreetMap |
 | Charts | Recharts |
 | Authentication | JWT |

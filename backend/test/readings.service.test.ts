@@ -8,7 +8,7 @@ import {
 const tankId = "00000000-0000-4000-8000-000000000001";
 const readingId = "00000000-0000-4000-8000-000000000002";
 
-test("accepts and normalizes the Wokwi device payload", () => {
+test("accepts and normalizes the ESP32 device payload", () => {
   const reading = parseDeviceReadingPayload({
     tank_id: tankId,
     reading_id: readingId,
@@ -17,7 +17,7 @@ test("accepts and normalizes the Wokwi device payload", () => {
     temperature: null,
     battery: "3.8",
     recorded_at: "2026-07-17T08:00:00.000Z",
-    status: "SIMULATION",
+    status: "ONLINE",
   });
 
   assert.equal(reading.tank_id, tankId);

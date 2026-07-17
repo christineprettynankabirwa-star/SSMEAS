@@ -50,10 +50,8 @@ The system shall:
 ✔ Optimize cesspool truck routes
 
 2 Overall Description
-The system consists of five major components.
+The system consists of four major components.
 ESP32
-↓
-ThingSpeak
 ↓
 Backend API
 ↓
@@ -73,15 +71,10 @@ The prediction engine communicates with the backend and database.
                 Sensor    Sensor   Monitor
                      |
                      ▼
-               Wi-Fi Internet
+               Wi-Fi Network
                      |
                      ▼
-              ThingSpeak Cloud
-                     |
-              ThingSpeak Service
-                     |
-                     ▼
-         Express Backend (TypeScript)
+         Express Backend API (TypeScript)
                      |
        +-------------+--------------+
        |                            |

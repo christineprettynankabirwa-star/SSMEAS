@@ -6,7 +6,7 @@ Open the dashboard, enter the account email and password, and select **Sign in**
 
 ## Administrator
 
-Administrators can view the dashboard, readings, alerts, tanks, and maintenance; add, edit, or delete tanks; and schedule maintenance. Register a tank before configuring its ESP32: copy the tank UUID into `hardware/ssmeas_esp32/Config.h` and assign its ThingSpeak channel.
+Administrators can view the dashboard, readings, alerts, tanks, and maintenance; add, edit, or delete tanks; and schedule maintenance. Register a tank before configuring its ESP32, then copy the tank UUID into `hardware/ssmeas_esp32/SewerGuard_ESP32.ino`.
 
 ## Maintenance officer
 
@@ -27,5 +27,5 @@ Active alerts appear in the alerts panel after telemetry crosses a configured th
 ## Troubleshooting
 
 - “Unable to reach the monitoring API”: confirm the backend and database are running and `NEXT_PUBLIC_API_BASE_URL` is correct.
-- No telemetry: confirm Wi-Fi, ThingSpeak keys/channel, and that ESP32 `TANK_UUID` matches a registered tank.
+- No telemetry: confirm Wi-Fi, backend reachability, `DEVICE_API_KEY`, and that ESP32 `TANK_UUID` matches a registered tank.
 - HTTP 401: sign in again. HTTP 403: the signed-in role is not permitted to perform that operation.

@@ -1,10 +1,9 @@
-// SSMEAS / SewerGuard Wokwi simulation
+// SSMEAS SewerGuard physical ESP32 firmware
 // ESP32 + HC-SR04 + analog gas input + LEDs + buzzer
 // Telemetry path: ESP32 -> SSMEAS API -> PostgreSQL
 
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <WiFiClientSecure.h>
 #include <esp_system.h>
 
 // ---------------- Pins ----------------
@@ -16,31 +15,37 @@
 #define GREEN_LED 27
 #define BUZZER_PIN 14
 
-// ---------------- Wokwi Wi-Fi ----------------
-const char WIFI_SSID[] = "Wokwi-GUEST";
-const char WIFI_PASSWORD[] = "";
+// ---------------- Network and API ----------------
+const char WIFI_SSID[] = "YOUR_WIFI_SSID";
+const char WIFI_PASSWORD[] = "YOUR_WIFI_PASSWORD";
 
-// Use the public HTTPS address of the deployed SSMEAS backend.
-// Wokwi cannot reach localhost or a private 192.168.x.x address.
-const char API_URL[] = "https://YOUR-PUBLIC-BACKEND/api/device/readings";
+// Use the backend's LAN address while developing or its HTTPS URL in production.
+// The ESP32 and a LAN-hosted backend must be reachable on the same network.
+const char API_URL[] = "http://192.168.1.100:4000/api/device/readings";
 const char DEVICE_API_KEY[] = "CHANGE_TO_THE_BACKEND_DEVICE_API_KEY";
 
 // Must be the UUID of an existing row in the PostgreSQL tanks table.
 const char TANK_UUID[] = "00000000-0000-4000-8000-000000000000";
 
-// ---------------- Simulation settings ----------------
-const float TANK_HEIGHT_CM = 100.0F;
-const int GAS_WARNING = 1800;
-const int GAS_DANGER = 2800;
-const unsigned long UPLOAD_INTERVAL_MS = 5000;
+// ---------------- Sensor calibration ----------------
+// Measure these distances in the installed tank before deployment.
+const float TANK_FULL_DISTANCE_CM = 20.0F;
+const float TANK_EMPTY_DISTANCE_CM = 180.0F;
+
+// Calibrate the MQ module after burn-in. This linear scale is an operational
+// gas index, not a laboratory-grade concentration measurement.
+const float GAS_SCALE_MAX = 500.0F;
+const float GAS_WARNING = 200.0F;
+const float GAS_DANGER = 300.0F;
+const unsigned long UPLOAD_INTERVAL_MS = 30000;
 
 unsigned long lastUploadAt = 0;
 
-void connectWiFi() {
-  if (WiFi.status() == WL_CONNECTED) return;
+bool connectWiFi() {
+  if (WiFi.status() == WL_CONNECTED) return true;
 
-  Serial.print("Connecting to Wokwi Wi-Fi");
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD, 6);
+  Serial.print("Connecting to Wi-Fi");
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   const unsigned long startedAt = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - startedAt < 20000) {
@@ -52,8 +57,10 @@ void connectWiFi() {
     Serial.println(" connected");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+    return true;
   } else {
     Serial.println(" connection failed");
+    return false;
   }
 }
 
@@ -100,25 +107,21 @@ void setIndicators(const String& status) {
   digitalWrite(BUZZER_PIN, status == "DANGER");
 }
 
-bool uploadReading(float percentage, int gasValue, const String& status) {
-  connectWiFi();
-  if (WiFi.status() != WL_CONNECTED) return false;
+bool uploadReading(float percentage, float gasValue, const String& status) {
+  if (!connectWiFi()) return false;
 
   const String payload =
     String("{\"tank_id\":\"") + TANK_UUID
     + "\",\"reading_id\":\"" + makeReadingUuid()
     + "\",\"level\":" + String(percentage, 2)
-    + ",\"gas_level\":" + String(gasValue)
+    + ",\"gas_level\":" + String(gasValue, 2)
     + ",\"temperature\":null"
     + ",\"battery\":null"
     + ",\"status\":\"" + status + "\"}";
 
-  WiFiClientSecure secureClient;
-  // Simulation only. Production firmware must validate the server certificate.
-  secureClient.setInsecure();
-
+  WiFiClient client;
   HTTPClient http;
-  if (!http.begin(secureClient, API_URL)) {
+  if (!http.begin(client, API_URL)) {
     Serial.println("Could not initialize API request.");
     return false;
   }
@@ -128,10 +131,14 @@ bool uploadReading(float percentage, int gasValue, const String& status) {
 
   const int responseCode = http.POST(payload);
   const String responseBody = http.getString();
-  http.end();
 
   Serial.print("API response: ");
   Serial.println(responseCode);
+  if (responseCode < 0) {
+    Serial.print("Connection error: ");
+    Serial.println(http.errorToString(responseCode));
+  }
+  http.end();
   if (responseCode < 200 || responseCode >= 300) {
     Serial.println(responseBody);
     return false;
@@ -141,6 +148,8 @@ bool uploadReading(float percentage, int gasValue, const String& status) {
 
 void setup() {
   Serial.begin(115200);
+  delay(250);
+  Serial.println("Starting SSMEAS SewerGuard Device");
 
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
@@ -149,6 +158,7 @@ void setup() {
   pinMode(YELLOW_LED, OUTPUT);
   pinMode(GREEN_LED, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
+  analogSetPinAttenuation(GAS_SENSOR, ADC_11db);
 
   setIndicators("SAFE");
   connectWiFi();
@@ -162,15 +172,18 @@ void loop() {
     return;
   }
 
-  float percentage = ((TANK_HEIGHT_CM - distance) / TANK_HEIGHT_CM) * 100.0F;
+  float percentage =
+    ((TANK_EMPTY_DISTANCE_CM - distance)
+      / (TANK_EMPTY_DISTANCE_CM - TANK_FULL_DISTANCE_CM)) * 100.0F;
   percentage = constrain(percentage, 0.0F, 100.0F);
 
-  const int gasValue = analogRead(GAS_SENSOR);
+  const int gasRaw = analogRead(GAS_SENSOR);
+  const float gasValue = (gasRaw / 4095.0F) * GAS_SCALE_MAX;
   String status;
 
-  if (percentage >= 85.0F || gasValue >= GAS_DANGER) {
+  if (percentage >= 95.0F || gasValue >= GAS_DANGER) {
     status = "DANGER";
-  } else if (percentage >= 60.0F || gasValue >= GAS_WARNING) {
+  } else if (percentage >= 80.0F || gasValue >= GAS_WARNING) {
     status = "WARNING";
   } else {
     status = "SAFE";
@@ -181,7 +194,10 @@ void loop() {
   Serial.print("Level: ");
   Serial.print(percentage, 1);
   Serial.print("% | Gas: ");
-  Serial.print(gasValue);
+  Serial.print(gasValue, 1);
+  Serial.print(" (raw ");
+  Serial.print(gasRaw);
+  Serial.print(")");
   Serial.print(" | Status: ");
   Serial.println(status);
 

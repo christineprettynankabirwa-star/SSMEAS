@@ -6,7 +6,7 @@ Test date: 15 July 2026
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| ESP32 publishes every 30 seconds | PASS (static) | `PUBLISH_INTERVAL_MS = 30 * 1000`; simulator loop publishes on that schedule |
+| ESP32 publishes every 30 seconds | PASS (static) | `PUBLISH_INTERVAL_MS = 30 * 1000`; device loop publishes on that schedule |
 | Dashboard updates automatically | PASS (static/build) | dashboard load interval is 30,000 ms |
 | Historical chart updates | PASS (static/build) | chart reloads immediately and every 30,000 ms |
 | Alerts appear | PASS (unit/static) | alert generation tests pass; active alerts are loaded and rendered |
@@ -30,6 +30,6 @@ Test date: 15 July 2026
 
 ## Manual integration checks still required
 
-Automated tests do not prove external infrastructure is online. In the deployed environment, record tester, timestamp, and screenshot/reference for: real login with all three seeded users; administrator tank CRUD; database-backed maintenance creation/display; ESP32 serial publish; matching ThingSpeak entry; two consecutive automatic dashboard/chart refreshes; threshold alert display; and exact 403 responses for maintenance-officer dashboard and supervisor POST maintenance.
+Automated tests do not prove external infrastructure is online. In the deployed environment, record tester, timestamp, and screenshot/reference for: real login with all three seeded users; administrator tank CRUD; database-backed maintenance creation/display; ESP32 serial publish; matching backend reading; two consecutive automatic dashboard/chart refreshes; threshold alert display; and exact 403 responses for maintenance-officer dashboard and supervisor POST maintenance.
 
 Final acceptance is complete only after those live checks pass. Use `Demonstration-Script.md` as the execution order.

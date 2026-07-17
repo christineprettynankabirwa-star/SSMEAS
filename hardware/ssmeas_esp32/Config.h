@@ -2,9 +2,6 @@
 
 #include <Arduino.h>
 
-// Set to 1 for realistic generated telemetry, or 0 to read physical sensors.
-#define SSMEAS_SIMULATION_MODE 1
-
 namespace Config {
 
 // Wi-Fi and SSMEAS API credentials. Replace these before uploading.
@@ -59,7 +56,7 @@ constexpr unsigned long ULTRASONIC_TIMEOUT_US = 30000UL;
 // actual MQ-135 module and battery divider before deployment.
 constexpr float ADC_REFERENCE_VOLTAGE = 3.3F;
 constexpr float ADC_MAX_READING = 4095.0F;
-constexpr float MQ135_MAX_SIMULATED_PPM = 1000.0F;
+constexpr float MQ135_FULL_SCALE = 1000.0F;
 constexpr float BATTERY_DIVIDER_RATIO = 2.0F;
 
 }  // namespace Config

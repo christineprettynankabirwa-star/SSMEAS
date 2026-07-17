@@ -1,7 +1,7 @@
 # ESP32 sensor wiring
 
-The diagram targets an ESP32 DevKit, HC-SR04 ultrasonic module, MQ-135 module,
-TMP36 temperature sensor, and a monitored battery. All grounds must be common.
+The production sketch targets an ESP32 DevKit, HC-SR04 ultrasonic module,
+MQ-series gas module, three status LEDs, and a buzzer. All grounds must be common.
 
 ```text
                               +----------------------+
@@ -41,6 +41,10 @@ TMP36 temperature sensor, and a monitored battery. All grounds must be common.
 | MQ-135 module | VCC | 5 V/VIN | Heater requires a stable supply; allow warm-up time. |
 | MQ-135 module | GND | Common GND | — |
 | MQ-135 module | AO | GPIO 34 through 10 kΩ/20 kΩ divider | Protects ESP32 ADC if AO reaches 5 V. Do not use DO. |
+| Red LED | Anode | GPIO 25 through a current-limiting resistor | Turns on for danger. Connect cathode to common GND. |
+| Yellow LED | Anode | GPIO 26 through a current-limiting resistor | Turns on for warning. Connect cathode to common GND. |
+| Green LED | Anode | GPIO 27 through a current-limiting resistor | Turns on for safe status. Connect cathode to common GND. |
+| Active buzzer/driver | Signal | GPIO 14 | Use a transistor driver if the buzzer exceeds the GPIO current rating. |
 | TMP36 | `+Vs` | ESP32 3.3 V | Flat face forward: left pin is `+Vs`. |
 | TMP36 | VOUT | GPIO 35 | Flat face forward: centre pin. |
 | TMP36 | GND | Common GND | Flat face forward: right pin. |

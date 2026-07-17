@@ -12,11 +12,11 @@ Real-time tank telemetry, early warnings, maintenance coordination, and role-bas
 
 ## 3 — Solution
 
-ESP32 sensors publish to ThingSpeak every 30 seconds. The backend validates and stores readings, generates alerts, and exposes a secured API. The web dashboard visualizes current and historical conditions.
+Physical ESP32 sensors upload readings to the backend every 30 seconds. The backend authenticates each device, validates and stores readings, generates alerts, and exposes a secured API. The web dashboard visualizes current and historical conditions.
 
 ## 4 — Architecture
 
-ESP32 → ThingSpeak → Express API → PostgreSQL → Next.js dashboard.
+ESP32 → Backend API → PostgreSQL → Dashboard.
 
 ## 5 — Core capabilities
 
@@ -28,11 +28,11 @@ ESP32 → ThingSpeak → Express API → PostgreSQL → Next.js dashboard.
 
 ## 6 — Security and data integrity
 
-JWT authentication, endpoint-level role checks, bcrypt password hashes, validated telemetry, foreign keys, and idempotent ThingSpeak entry storage.
+Device API-key authentication, JWT user authentication, endpoint-level role checks, bcrypt password hashes, validated telemetry, foreign keys, and idempotent reading IDs.
 
 ## 7 — Demonstration
 
-Publish simulated ESP32 data; observe ThingSpeak; watch the dashboard refresh; switch roles; trigger an alert; schedule maintenance.
+Publish physical ESP32 sensor data; observe the backend response; watch the dashboard refresh; switch roles; trigger an alert; schedule maintenance.
 
 ## 8 — Verification
 

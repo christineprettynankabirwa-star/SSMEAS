@@ -100,7 +100,7 @@ export const getAndStoreLiveReading = async (): Promise<SensorReading> => {
 
 // Direct device uploads are already persisted before the dashboard requests
 // them. Keep this read path database-only so a slow or stale ThingSpeak
-// response cannot hide newer Wokwi telemetry.
+// response cannot hide newer ESP32 telemetry.
 export const getLatestStoredLiveReading = async (): Promise<SensorReading> => {
   const reading = await readingsModel.getLatestStoredReading();
   if (!reading) throw new ReadingNotFoundError("No sensor readings have been received yet.");
