@@ -1,9 +1,11 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { CircleMarker, MapContainer, Popup, TileLayer } from "react-leaflet";
 import type { Tank } from "./types";
 interface Props { tanks: Tank[]; }
 const defaultCenter: [number, number] = [0.3476, 32.5825];
 export default function TankMap({ tanks }: Props) {
+  const router = useRouter();
   const mappable = tanks.filter((tank) => Number.isFinite(tank.latitude) && Number.isFinite(tank.longitude));
   const center: [number, number] = mappable.length > 0 ? [mappable[0].latitude, mappable[0].longitude] : defaultCenter;
   return (
@@ -19,8 +21,14 @@ export default function TankMap({ tanks }: Props) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           {mappable.map((tank) => (
-            <CircleMarker key={tank.id} center={[tank.latitude, tank.longitude]} radius={9} pathOptions={{ color: "#0e7490", fillColor: "#06b6d4", fillOpacity: 0.85 }}>
-              <Popup><strong>{tank.tank_name}</strong><br />{tank.location}</Popup>
+            <CircleMarker
+              key={tank.id}
+              center={[tank.latitude, tank.longitude]}
+              radius={11}
+              pathOptions={{ color: "#0e7490", fillColor: "#06b6d4", fillOpacity: 0.85 }}
+              eventHandlers={{ click: () => router.push(`/tanks/${encodeURIComponent(tank.id)}`) }}
+            >
+              <Popup><strong>{tank.tank_name}</strong><br />{tank.location}<br /><span className="font-semibold text-cyan-700">View details</span></Popup>
             </CircleMarker>
           ))}
         </MapContainer>

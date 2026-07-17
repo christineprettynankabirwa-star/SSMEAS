@@ -12,6 +12,8 @@ export const login = async (email: string, password: string): Promise<LoginRespo
 export interface HealthStatus { status: string; timestamp?: string; }
 export const getHealth = async (): Promise<HealthStatus> => (await api.get<HealthStatus>("/health")).data;
 export const getTanks = async (): Promise<Tank[]> => (await api.get<Tank[]>("/tanks")).data;
+export const getTank = async (tankId: string): Promise<Tank> =>
+  (await api.get<Tank>(`/tanks/${encodeURIComponent(tankId)}`)).data;
 export const getLiveReading = async (): Promise<SensorReading> => (await api.get<SensorReading>("/readings/live")).data;
 export const getReadingHistory = async (tankId: string): Promise<HistoricalSensorReading[]> => (await api.get<HistoricalSensorReading[]>(`/readings/history/${encodeURIComponent(tankId)}`)).data;
 export const getDashboardSummary = async (): Promise<DashboardSummary> => (await api.get<DashboardSummary>("/dashboard/summary")).data;
