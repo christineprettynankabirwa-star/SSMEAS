@@ -4,11 +4,12 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { getAlerts, getDashboardSummary, getLiveReading, getMaintenance, getOptimizedRoute, getOverflowPrediction, getTanks, setAccessToken } from "@/services/api";
 import AlertsPanel from "./AlertsPanel";
+import ActivityFeed from "./ActivityFeed";
 import DashboardHeader from "./DashboardHeader";
+import DeviceHealth from "./DeviceHealth";
 import HistoricalChart from "./HistoricalChart";
 import MaintenanceTable from "./MaintenanceTable";
 import LoginForm from "./LoginForm";
-import OperationsNav from "./OperationsNav";
 import OptimizedRoutePanel from "./OptimizedRoutePanel";
 import PredictionPanel from "./PredictionPanel";
 import SummaryCards from "./SummaryCards";
@@ -86,7 +87,7 @@ export default function DashboardClient() {
   const historyTank = tanks.find((tank) => tank.id === historyTankId);
 
   useEffect(() => {
-    if (!authenticated || !historyTankId) { setPrediction(null); return; }
+    if (!authenticated || !historyTankId) return;
     let active = true;
     void getOverflowPrediction(historyTankId).then((value) => { if (active) setPrediction(value); }).catch(() => { if (active) setPrediction(null); });
     return () => { active = false; };
@@ -102,20 +103,29 @@ export default function DashboardClient() {
   if (!authenticated) return <LoginForm onAuthenticated={() => setAuthenticated(true)} />;
 
   return (
-    <div className="min-h-screen bg-[#f4f7fa] lg:flex">
-      <OperationsNav onSignOut={signOut} />
-      <main id="overview" className="min-w-0 flex-1 scroll-mt-6">
-      <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <DashboardHeader lastUpdated={lastUpdated} />
+    <div className="min-h-screen bg-[#F3F4F6]">
+      <DashboardHeader lastUpdated={lastUpdated} onSignOut={signOut} />
+      <main id="overview" className="pt-16">
+      <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
         {error && <div role="alert" className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-3 text-sm text-amber-900"><span>{error}</span><button type="button" onClick={() => void load()} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-800 transition hover:bg-amber-100">Retry</button></div>}
-        <div className="mt-6"><SummaryCards totalTanks={summary.totalTanks} onlineTanks={summary.onlineTanks} activeAlerts={summary.activeAlerts} averageFillLevel={summary.averageFillLevel} /></div>
+        <SummaryCards totalTanks={summary.totalTanks} onlineTanks={summary.onlineTanks} activeAlerts={summary.activeAlerts} averageFillLevel={summary.averageFillLevel} activeJobs={maintenance.filter(item => item.status !== "COMPLETED").length} />
         {loading ? <section className="grid min-h-[360px] place-items-center" aria-label="Loading dashboard"><div className="text-center"><span className="inline-block size-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" aria-hidden="true" /><p className="mt-3 text-sm font-medium text-slate-600">Loading dashboard...</p></div></section> : <>
-          <section className="mt-6"><div className="mb-4"><h2 className="text-xl font-bold text-slate-950">Live tank status</h2><p className="mt-1 text-sm text-slate-600">Telemetry refreshes automatically every 30 seconds.</p></div>{tanks.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">No tanks are registered yet. Add a tank through the backend to see its live status.</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{tanks.map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={reading?.tank_id === tank.id ? reading : null} />)}</div>}</section>
-          <div className="mt-6"><TankMonitoringTable tanks={tanks} reading={reading} query={searchQuery} onQueryChange={setSearchQuery} onSelect={(tankId) => { setSelectedTankId(tankId); document.querySelector("#analytics")?.scrollIntoView({ behavior: "smooth" }); }} /></div>
-          <section id="analytics" className="mt-6 scroll-mt-6"><HistoricalChart tankId={historyTankId} tankName={historyTank?.tank_name} /></section>
-          <section className="mt-6 grid gap-6 xl:grid-cols-2"><PredictionPanel prediction={prediction} /><OptimizedRoutePanel route={optimizedRoute} /></section>
-          <section id="locations" className="mt-6 scroll-mt-6"><TankMap tanks={tanks} /></section>
-          <section id="operations" className="mt-6 grid scroll-mt-6 gap-6 xl:grid-cols-[0.9fr_1.6fr]"><AlertsPanel alerts={alerts} /><MaintenanceTable items={maintenance} /></section>
+          <div className="mt-5 grid items-start gap-5 xl:grid-cols-[3fr_2fr]">
+            <div className="min-w-0 space-y-5">
+              <section id="locations" className="scroll-mt-20"><TankMap tanks={tanks} reading={reading} /></section>
+              <TankMonitoringTable tanks={tanks} reading={reading} query={searchQuery} onQueryChange={setSearchQuery} onSelect={(tankId) => { setSelectedTankId(tankId); document.querySelector("#analytics")?.scrollIntoView({ behavior: "smooth" }); }} />
+              <section id="analytics" className="scroll-mt-20"><HistoricalChart tankId={historyTankId} tankName={historyTank?.tank_name} /></section>
+              <DeviceHealth tanks={tanks} reading={reading} />
+              {tanks.length > 0 && <section className="grid gap-4 md:grid-cols-2">{tanks.slice(0, 2).map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={reading?.tank_id === tank.id ? reading : null} />)}</section>}
+            </div>
+            <aside id="operations" className="min-w-0 space-y-5 scroll-mt-20">
+              <AlertsPanel alerts={alerts} />
+              <PredictionPanel prediction={prediction} />
+              <OptimizedRoutePanel route={optimizedRoute} />
+              <MaintenanceTable items={maintenance} />
+              <ActivityFeed reading={reading} alerts={alerts} maintenance={maintenance} />
+            </aside>
+          </div>
         </>}
       </div>
       </main>
