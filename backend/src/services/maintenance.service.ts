@@ -1,6 +1,8 @@
 import * as maintenanceModel from "../models/maintenance.model";
 import * as tankModel from "../models/tank.model";
+import { generateAlertsForReading } from "./alerts.service";
 import type { CreateMaintenanceRequest, MaintenanceRecord, MaintenanceStatus } from "../types/maintenance.types";
+import type { SensorReading } from "../types/readings.types";
 
 export class MaintenanceValidationError extends Error {}
 export class MaintenanceTankNotFoundError extends Error {}
@@ -26,4 +28,34 @@ export const addMaintenance = async (
   }
   if (!(await tankModel.getTankById(maintenance.tank_id))) throw new MaintenanceTankNotFoundError("Tank not found.");
   return maintenanceModel.createMaintenance({ ...maintenance, scheduled_for: scheduledFor.toISOString() });
+};
+
+const automaticDelayMinutes = (): number => {
+  const configured = Number(process.env.CRITICAL_MAINTENANCE_DELAY_MINUTES ?? 30);
+  return Number.isFinite(configured) && configured >= 0 ? configured : 30;
+};
+
+export const generateAutomaticMaintenanceRequests = (
+  reading: SensorReading,
+  now: Date = new Date(),
+): CreateMaintenanceRequest[] => {
+  const baseTime = Math.max(now.getTime(), new Date(reading.recorded_at).getTime());
+  const scheduledFor = new Date(baseTime + automaticDelayMinutes() * 60_000).toISOString();
+
+  return generateAlertsForReading(reading)
+    .filter((alert) => alert.severity === "critical")
+    .map((alert) => ({
+      tank_id: reading.tank_id,
+      task: `Emergency response: ${alert.alert_type}`,
+      scheduled_for: scheduledFor,
+      status: "SCHEDULED",
+    }));
+};
+
+export const createAutomaticMaintenanceForReading = async (reading: SensorReading): Promise<void> => {
+  await Promise.all(
+    generateAutomaticMaintenanceRequests(reading).map((maintenance) =>
+      maintenanceModel.createMaintenanceUnlessOpen(maintenance),
+    ),
+  );
 };

@@ -34,7 +34,7 @@ export const createAlert = async (alert: CreateAlertRequest): Promise<Alert> => 
 export const createAlertUnlessActive = async (alert: CreateAlertRequest): Promise<void> => {
   await pool.query(
     `INSERT INTO alerts (tank_id, alert_type, severity, message)
-     SELECT $1, $2, COALESCE($3, 'warning'), $4
+     SELECT $1::uuid, $2::varchar, COALESCE($3::varchar, 'warning'), $4::text
      WHERE NOT EXISTS (
        SELECT 1 FROM alerts
        WHERE tank_id = $1 AND alert_type = $2 AND status = 'ACTIVE'

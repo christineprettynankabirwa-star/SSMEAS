@@ -44,7 +44,7 @@ export const createOrGetDeviceReading = async (
     `INSERT INTO sensor_readings (
       tank_id, device_reading_id, level, gas_level, temperature, battery, recorded_at
     ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-    ON CONFLICT (device_reading_id) DO NOTHING
+    ON CONFLICT (device_reading_id) WHERE device_reading_id IS NOT NULL DO NOTHING
     RETURNING *`,
     [
       reading.tank_id, reading.reading_id, reading.level, reading.gas_level,

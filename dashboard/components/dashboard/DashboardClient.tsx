@@ -2,17 +2,19 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
-import { getAlerts, getDashboardSummary, getLiveReading, getMaintenance, getTanks, setAccessToken } from "@/services/api";
+import { getAlerts, getDashboardSummary, getLiveReading, getMaintenance, getOptimizedRoute, getOverflowPrediction, getTanks, setAccessToken } from "@/services/api";
 import AlertsPanel from "./AlertsPanel";
 import DashboardHeader from "./DashboardHeader";
 import HistoricalChart from "./HistoricalChart";
 import MaintenanceTable from "./MaintenanceTable";
 import LoginForm from "./LoginForm";
 import OperationsNav from "./OperationsNav";
+import OptimizedRoutePanel from "./OptimizedRoutePanel";
+import PredictionPanel from "./PredictionPanel";
 import SummaryCards from "./SummaryCards";
 import TankMonitoringTable from "./TankMonitoringTable";
 import TankStatusCard from "./TankStatusCard";
-import type { AlertItem, DashboardSummary, MaintenanceItem, SensorReading, Tank } from "./types";
+import type { AlertItem, DashboardSummary, MaintenanceItem, OptimizedRoute, OverflowPrediction, SensorReading, Tank } from "./types";
 
 const TankMap = dynamic(() => import("./TankMap"), {
   ssr: false,
@@ -28,6 +30,8 @@ export default function DashboardClient() {
   const [summary, setSummary] = useState<DashboardSummary>(emptySummary);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [maintenance, setMaintenance] = useState<MaintenanceItem[]>([]);
+  const [prediction, setPrediction] = useState<OverflowPrediction | null>(null);
+  const [optimizedRoute, setOptimizedRoute] = useState<OptimizedRoute | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -37,8 +41,8 @@ export default function DashboardClient() {
   const load = useCallback(async () => {
     setError(null);
     const [tanksResult, readingResult] = await Promise.allSettled([getTanks(), getLiveReading()]);
-    const [summaryResult, alertsResult, maintenanceResult] = await Promise.allSettled([
-      getDashboardSummary(), getAlerts(), getMaintenance(),
+    const [summaryResult, alertsResult, maintenanceResult, routeResult] = await Promise.allSettled([
+      getDashboardSummary(), getAlerts(), getMaintenance(), getOptimizedRoute(),
     ]);
 
     if (tanksResult.status === "fulfilled") setTanks(tanksResult.value);
@@ -46,11 +50,12 @@ export default function DashboardClient() {
     if (summaryResult.status === "fulfilled") setSummary(summaryResult.value);
     if (alertsResult.status === "fulfilled") setAlerts(alertsResult.value.filter((alert) => alert.status === "ACTIVE"));
     if (maintenanceResult.status === "fulfilled") setMaintenance(maintenanceResult.value);
+    if (routeResult.status === "fulfilled") setOptimizedRoute(routeResult.value);
 
-    const requests = [["tank registry", tanksResult], ["live telemetry", readingResult], ["system summary", summaryResult], ["alerts", alertsResult], ["maintenance", maintenanceResult]] as const;
+    const requests = [["tank registry", tanksResult], ["live telemetry", readingResult], ["system summary", summaryResult], ["alerts", alertsResult], ["maintenance", maintenanceResult], ["route optimization", routeResult]] as const;
     const unavailable = requests.filter(([, result]) => result.status === "rejected").map(([label]) => label);
     const failedRequests = unavailable.length;
-    if (failedRequests === 5) setError("Unable to reach the monitoring API. Confirm the backend is running and the API URL is configured.");
+    if (failedRequests === requests.length) setError("Unable to reach the monitoring API. Confirm the backend is running and the API URL is configured.");
     else {
       if (failedRequests > 0) setError(`Temporarily unavailable: ${unavailable.join(", ")}. Showing the remaining data.`);
       setLastUpdated(new Date());
@@ -80,6 +85,13 @@ export default function DashboardClient() {
   const historyTankId = selectedTankId ?? reading?.tank_id ?? tanks[0]?.id;
   const historyTank = tanks.find((tank) => tank.id === historyTankId);
 
+  useEffect(() => {
+    if (!authenticated || !historyTankId) { setPrediction(null); return; }
+    let active = true;
+    void getOverflowPrediction(historyTankId).then((value) => { if (active) setPrediction(value); }).catch(() => { if (active) setPrediction(null); });
+    return () => { active = false; };
+  }, [authenticated, historyTankId, reading]);
+
   const signOut = () => {
     window.sessionStorage.removeItem("ssmeas_access_token");
     setAccessToken(null);
@@ -101,6 +113,7 @@ export default function DashboardClient() {
           <section className="mt-6"><div className="mb-4"><h2 className="text-xl font-bold text-slate-950">Live tank status</h2><p className="mt-1 text-sm text-slate-600">Telemetry refreshes automatically every 30 seconds.</p></div>{tanks.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">No tanks are registered yet. Add a tank through the backend to see its live status.</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{tanks.map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={reading?.tank_id === tank.id ? reading : null} />)}</div>}</section>
           <div className="mt-6"><TankMonitoringTable tanks={tanks} reading={reading} query={searchQuery} onQueryChange={setSearchQuery} onSelect={(tankId) => { setSelectedTankId(tankId); document.querySelector("#analytics")?.scrollIntoView({ behavior: "smooth" }); }} /></div>
           <section id="analytics" className="mt-6 scroll-mt-6"><HistoricalChart tankId={historyTankId} tankName={historyTank?.tank_name} /></section>
+          <section className="mt-6 grid gap-6 xl:grid-cols-2"><PredictionPanel prediction={prediction} /><OptimizedRoutePanel route={optimizedRoute} /></section>
           <section id="locations" className="mt-6 scroll-mt-6"><TankMap tanks={tanks} /></section>
           <section id="operations" className="mt-6 grid scroll-mt-6 gap-6 xl:grid-cols-[0.9fr_1.6fr]"><AlertsPanel alerts={alerts} /><MaintenanceTable items={maintenance} /></section>
         </>}

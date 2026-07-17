@@ -3,6 +3,7 @@ import { getLatestChannelFeed } from "../clients/thingspeak.client";
 import * as readingsModel from "../models/readings.model";
 import * as tankModel from "../models/tank.model";
 import { createAlertsForReading } from "./alerts.service";
+import { createAutomaticMaintenanceForReading } from "./maintenance.service";
 import type {
   HistoricalSensorReading,
   NewSensorReading,
@@ -93,7 +94,17 @@ export const getAndStoreLiveReading = async (): Promise<SensorReading> => {
   }
   const storedReading = await readingsModel.createOrGetSensorReading(reading);
   await createAlertsForReading(storedReading);
+  await createAutomaticMaintenanceForReading(storedReading);
   return storedReading;
+};
+
+// Direct device uploads are already persisted before the dashboard requests
+// them. Keep this read path database-only so a slow or stale ThingSpeak
+// response cannot hide newer Wokwi telemetry.
+export const getLatestStoredLiveReading = async (): Promise<SensorReading> => {
+  const reading = await readingsModel.getLatestStoredReading();
+  if (!reading) throw new ReadingNotFoundError("No sensor readings have been received yet.");
+  return reading;
 };
 
 export const getHistoricalReadings = async (
@@ -116,13 +127,13 @@ const parseRequiredUuid = (value: unknown, field: string): string => {
   return value.trim();
 };
 
-export const storeDeviceReading = async (payload: Record<string, unknown>): Promise<SensorReading> => {
+export const parseDeviceReadingPayload = (payload: Record<string, unknown>): DeviceReadingInput => {
   const recordedAt = payload.recorded_at === undefined ? new Date() : new Date(String(payload.recorded_at));
   if (Number.isNaN(recordedAt.getTime())) {
     throw new ReadingValidationError("recorded_at must be a valid ISO-8601 timestamp.");
   }
 
-  const reading: DeviceReadingInput = {
+  return {
     tank_id: parseRequiredUuid(payload.tank_id, "tank_id"),
     reading_id: parseRequiredUuid(payload.reading_id, "reading_id"),
     level: parseOptionalNumber(payload.level, "level"),
@@ -131,11 +142,16 @@ export const storeDeviceReading = async (payload: Record<string, unknown>): Prom
     battery: parseOptionalNumber(payload.battery, "battery"),
     recorded_at: recordedAt,
   };
+};
+
+export const storeDeviceReading = async (payload: Record<string, unknown>): Promise<SensorReading> => {
+  const reading = parseDeviceReadingPayload(payload);
 
   const tank = await tankModel.getTankById(reading.tank_id);
   if (!tank) throw new ReadingValidationError("tank_id does not match a registered tank.");
 
   const stored = await readingsModel.createOrGetDeviceReading(reading);
   await createAlertsForReading(stored);
+  await createAutomaticMaintenanceForReading(stored);
   return stored;
 };

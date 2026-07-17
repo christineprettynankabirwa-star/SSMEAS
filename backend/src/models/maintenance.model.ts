@@ -32,3 +32,16 @@ export const createMaintenance = async (
   if (!createdMaintenance) throw new Error("Maintenance record could not be created.");
   return createdMaintenance;
 };
+
+export const createMaintenanceUnlessOpen = async (
+  maintenance: CreateMaintenanceRequest,
+): Promise<void> => {
+  await pool.query(
+    `INSERT INTO maintenance (tank_id, task, scheduled_for, status)
+     VALUES ($1, $2, $3, 'SCHEDULED')
+     ON CONFLICT (tank_id, task)
+       WHERE status IN ('SCHEDULED', 'IN_PROGRESS')
+     DO NOTHING`,
+    [maintenance.tank_id, maintenance.task, maintenance.scheduled_for],
+  );
+};

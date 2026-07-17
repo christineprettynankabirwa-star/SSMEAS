@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { AlertItem, DashboardSummary, HistoricalSensorReading, MaintenanceItem, SensorReading, Tank } from "@/components/dashboard/types";
+import type { AlertItem, DashboardSummary, HistoricalSensorReading, MaintenanceItem, OptimizedRoute, OverflowPrediction, SensorReading, Tank } from "@/components/dashboard/types";
 
 const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api", timeout: 10_000 });
 export interface LoginResponse { token: string; }
@@ -19,4 +19,7 @@ export const getReadingHistory = async (tankId: string): Promise<HistoricalSenso
 export const getDashboardSummary = async (): Promise<DashboardSummary> => (await api.get<DashboardSummary>("/dashboard/summary")).data;
 export const getAlerts = async (): Promise<AlertItem[]> => (await api.get<AlertItem[]>("/alerts")).data;
 export const getMaintenance = async (): Promise<MaintenanceItem[]> => (await api.get<MaintenanceItem[]>("/maintenance")).data;
+export const getOverflowPrediction = async (tankId: string): Promise<OverflowPrediction> =>
+  (await api.get<OverflowPrediction>(`/predictions/${encodeURIComponent(tankId)}`)).data;
+export const getOptimizedRoute = async (): Promise<OptimizedRoute> => (await api.get<OptimizedRoute>("/routes/optimized")).data;
 export default api;

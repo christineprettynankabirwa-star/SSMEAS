@@ -15,6 +15,8 @@ const protectedEndpoints = [
   ["GET", "/api/alerts"],
   ["GET", "/api/maintenance"],
   ["POST", "/api/maintenance"],
+  ["GET", "/api/predictions/00000000-0000-4000-8000-000000000001"],
+  ["GET", "/api/routes/optimized"],
 ] as const;
 
 test("every protected endpoint rejects requests without authentication", async () => {
