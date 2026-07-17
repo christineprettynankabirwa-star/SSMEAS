@@ -1,24 +1,8 @@
 const navItems = [
-  { href: "#overview", label: "Overview", icon: "▦" },
-  { href: "#tanks", label: "Tanks", icon: "◉" },
-  { href: "#analytics", label: "Analytics", icon: "↗" },
-  { href: "#locations", label: "Locations", icon: "⌖" },
-  { href: "#operations", label: "Operations", icon: "≡" },
+  { href: "#overview", label: "Command overview", path: "M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z" },
+  { href: "#tanks", label: "Tank network", path: "M7 4h10v16H7zM7 8h10" },
+  { href: "#analytics", label: "Analytics", path: "m4 17 5-5 4 3 7-8M16 7h4v4" },
+  { href: "#locations", label: "Asset map", path: "M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Zm-8 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" },
+  { href: "#operations", label: "Field operations", path: "M4 6h16M4 12h16M4 18h10" },
 ];
-
-export default function OperationsNav({ onSignOut }: { onSignOut: () => void }) {
-  return (
-    <aside className="border-b border-slate-800 bg-[#07111f] text-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
-      <div className="flex h-full flex-col px-4 py-5 lg:px-5 lg:py-7">
-        <div className="flex items-center justify-between lg:block">
-          <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-cyan-500 text-lg font-black text-slate-950">S</span><div><p className="font-bold tracking-wide">SSMEAS</p><p className="text-xs text-slate-400">Operations Centre</p></div></div>
-          <span className="flex items-center gap-2 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400 lg:mt-7 lg:w-fit"><span className="size-2 rounded-full bg-emerald-400" />System online</span>
-        </div>
-        <nav aria-label="Dashboard sections" className="mt-5 flex gap-2 overflow-x-auto pb-1 lg:mt-8 lg:flex-col lg:overflow-visible">
-          {navItems.map((item, index) => <a key={item.href} href={item.href} className={`flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition hover:bg-white/5 hover:text-white ${index === 0 ? "bg-cyan-400/10 text-cyan-300 ring-1 ring-inset ring-cyan-400/10" : "text-slate-300"}`}><span aria-hidden="true" className="w-5 text-center text-base text-cyan-300">{item.icon}</span>{item.label}</a>)}
-        </nav>
-        <div className="mt-auto hidden border-t border-slate-800 pt-5 lg:block"><button type="button" onClick={onSignOut} className="w-full rounded-lg border border-slate-700 px-3 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-800 hover:text-white">Sign out</button><p className="mt-4 text-xs leading-5 text-slate-500">Smart sewage monitoring and environmental alerts.</p></div>
-      </div>
-    </aside>
-  );
-}
+export default function OperationsNav({ onSignOut }: { onSignOut: () => void }) { return <aside className="border-b border-slate-800 bg-[#071522] text-white lg:sticky lg:top-0 lg:h-screen lg:w-[230px] lg:shrink-0 lg:border-b-0 lg:border-r"><div className="flex h-full flex-col px-4 py-4 lg:px-4 lg:py-6"><div className="flex items-center justify-between lg:block"><div className="flex items-center gap-3 px-2"><span className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 font-black text-slate-950 shadow-lg shadow-cyan-950">S</span><div><p className="font-bold tracking-[0.12em]">SSMEAS</p><p className="text-[10px] uppercase tracking-widest text-slate-500">Control system</p></div></div><span className="flex items-center gap-2 rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] font-bold text-emerald-400 lg:mx-2 lg:mt-7 lg:w-fit"><span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />All systems nominal</span></div><nav aria-label="Dashboard sections" className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:mt-8 lg:flex-col lg:overflow-visible">{navItems.map((item, index) => <a key={item.href} href={item.href} className={`flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${index === 0 ? "bg-cyan-400/10 text-cyan-300 ring-1 ring-inset ring-cyan-400/10" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="size-4.5"><path d={item.path}/></svg>{item.label}</a>)}</nav><div className="mt-auto hidden border-t border-slate-800/80 pt-5 lg:block"><div className="mb-4 rounded-xl bg-slate-900/70 p-3"><p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Platform</p><p className="mt-1 text-xs font-semibold text-slate-300">Smart City · Uganda</p></div><button type="button" onClick={onSignOut} className="w-full rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-400 transition hover:bg-slate-800 hover:text-white">Sign out</button></div></div></aside>; }

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { getAlerts, getDashboardSummary, getLiveReading, getMaintenance, getOptimizedRoute, getOverflowPrediction, getTanks, setAccessToken } from "@/services/api";
 import AlertsPanel from "./AlertsPanel";
+import ActivityFeed from "./ActivityFeed";
 import DashboardHeader from "./DashboardHeader";
 import HistoricalChart from "./HistoricalChart";
 import MaintenanceTable from "./MaintenanceTable";
@@ -86,7 +87,7 @@ export default function DashboardClient() {
   const historyTank = tanks.find((tank) => tank.id === historyTankId);
 
   useEffect(() => {
-    if (!authenticated || !historyTankId) { setPrediction(null); return; }
+    if (!authenticated || !historyTankId) return;
     let active = true;
     void getOverflowPrediction(historyTankId).then((value) => { if (active) setPrediction(value); }).catch(() => { if (active) setPrediction(null); });
     return () => { active = false; };
@@ -102,20 +103,19 @@ export default function DashboardClient() {
   if (!authenticated) return <LoginForm onAuthenticated={() => setAuthenticated(true)} />;
 
   return (
-    <div className="min-h-screen bg-[#f4f7fa] lg:flex">
+    <div className="min-h-screen bg-[#f3f6f9] lg:flex">
       <OperationsNav onSignOut={signOut} />
       <main id="overview" className="min-w-0 flex-1 scroll-mt-6">
-      <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-7 lg:py-6">
         <DashboardHeader lastUpdated={lastUpdated} />
         {error && <div role="alert" className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-3 text-sm text-amber-900"><span>{error}</span><button type="button" onClick={() => void load()} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-800 transition hover:bg-amber-100">Retry</button></div>}
-        <div className="mt-6"><SummaryCards totalTanks={summary.totalTanks} onlineTanks={summary.onlineTanks} activeAlerts={summary.activeAlerts} averageFillLevel={summary.averageFillLevel} /></div>
+        <div className="mt-5"><SummaryCards totalTanks={summary.totalTanks} onlineTanks={summary.onlineTanks} activeAlerts={summary.activeAlerts} averageFillLevel={summary.averageFillLevel} reading={reading} /></div>
         {loading ? <section className="grid min-h-[360px] place-items-center" aria-label="Loading dashboard"><div className="text-center"><span className="inline-block size-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" aria-hidden="true" /><p className="mt-3 text-sm font-medium text-slate-600">Loading dashboard...</p></div></section> : <>
-          <section className="mt-6"><div className="mb-4"><h2 className="text-xl font-bold text-slate-950">Live tank status</h2><p className="mt-1 text-sm text-slate-600">Telemetry refreshes automatically every 30 seconds.</p></div>{tanks.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">No tanks are registered yet. Add a tank through the backend to see its live status.</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{tanks.map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={reading?.tank_id === tank.id ? reading : null} />)}</div>}</section>
+          <section className="mt-6 grid items-start gap-5 2xl:grid-cols-[1.08fr_0.92fr]"><div><div className="mb-4"><p className="eyebrow">Live network</p><h2 className="section-title">Tank status</h2><p className="section-copy">At-a-glance condition of every monitored asset</p></div>{tanks.length === 0 ? <div className="panel-card border-dashed p-8 text-center text-sm text-slate-600">No tanks are registered yet.</div> : <div className="grid gap-3 md:grid-cols-2">{tanks.slice(0, 4).map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={reading?.tank_id === tank.id ? reading : null} />)}</div>}</div><div id="locations" className="scroll-mt-6"><TankMap tanks={tanks} /></div></section>
           <div className="mt-6"><TankMonitoringTable tanks={tanks} reading={reading} query={searchQuery} onQueryChange={setSearchQuery} onSelect={(tankId) => { setSelectedTankId(tankId); document.querySelector("#analytics")?.scrollIntoView({ behavior: "smooth" }); }} /></div>
           <section id="analytics" className="mt-6 scroll-mt-6"><HistoricalChart tankId={historyTankId} tankName={historyTank?.tank_name} /></section>
-          <section className="mt-6 grid gap-6 xl:grid-cols-2"><PredictionPanel prediction={prediction} /><OptimizedRoutePanel route={optimizedRoute} /></section>
-          <section id="locations" className="mt-6 scroll-mt-6"><TankMap tanks={tanks} /></section>
-          <section id="operations" className="mt-6 grid scroll-mt-6 gap-6 xl:grid-cols-[0.9fr_1.6fr]"><AlertsPanel alerts={alerts} /><MaintenanceTable items={maintenance} /></section>
+          <section className="mt-6 grid items-start gap-5 xl:grid-cols-2"><PredictionPanel prediction={prediction} /><OptimizedRoutePanel route={optimizedRoute} /></section>
+          <section id="operations" className="mt-6 grid scroll-mt-6 items-start gap-5 xl:grid-cols-[0.78fr_1.22fr]"><ActivityFeed alerts={alerts} maintenance={maintenance} /><div className="grid gap-5"><AlertsPanel alerts={alerts} /><MaintenanceTable items={maintenance} /></div></section>
         </>}
       </div>
       </main>

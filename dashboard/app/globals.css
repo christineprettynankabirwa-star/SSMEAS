@@ -2,7 +2,7 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #f4f7fa;
+  --background: #f3f6f9;
   --foreground: #0f172a;
 }
 
@@ -14,12 +14,34 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Arial, Helvetica, sans-serif;
+  --font-sans: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
   --font-mono: "Courier New", Courier, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+  background-image: radial-gradient(circle at 75% -10%, rgba(6, 182, 212, 0.07), transparent 28rem);
 }
+
+html { scroll-behavior: smooth; }
+
+@layer components {
+  .panel-card { @apply rounded-2xl border border-slate-200/90 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.055)]; }
+  .eyebrow { @apply mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-700; }
+  .section-title { @apply text-xl font-bold tracking-tight text-slate-950; }
+  .section-copy { @apply mt-1 text-sm text-slate-500; }
+  .live-chip { @apply inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700; }
+  .live-chip > span { @apply size-1.5 animate-pulse rounded-full bg-emerald-500; }
+  .kpi-card { @apply relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_7px_24px_rgba(15,23,42,0.05)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.09)]; }
+  .kpi-card::before { content: ""; @apply absolute inset-x-0 top-0 h-[3px]; }
+  .kpi-icon { @apply grid size-9 place-items-center rounded-xl; }
+  .kpi-cyan::before { @apply bg-cyan-500; } .kpi-cyan .kpi-icon { @apply bg-cyan-50 text-cyan-700; }
+  .kpi-emerald::before { @apply bg-emerald-500; } .kpi-emerald .kpi-icon { @apply bg-emerald-50 text-emerald-700; }
+  .kpi-amber::before { @apply bg-amber-500; } .kpi-amber .kpi-icon { @apply bg-amber-50 text-amber-700; }
+  .kpi-blue::before { @apply bg-blue-500; } .kpi-blue .kpi-icon { @apply bg-blue-50 text-blue-700; }
+  .kpi-violet::before { @apply bg-violet-500; } .kpi-violet .kpi-icon { @apply bg-violet-50 text-violet-700; }
+}
+
+.leaflet-container { font-family: inherit; background: #dce8e8; }
