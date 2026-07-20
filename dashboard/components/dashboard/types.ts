@@ -9,6 +9,7 @@ export interface AnalyticsResponse { range: AnalyticsRange; generatedAt: string;
 export interface DashboardSummary { totalTanks: number; onlineTanks: number; activeAlerts: number; averageFillLevel: number; }
 export interface AlertItem { id: string; tank_id: string; tank_name: string; alert_type: string; severity: "critical" | "warning" | "info"; status: "ACTIVE" | "RESOLVED"; message: string; created_at: string; }
 export interface MaintenanceItem { id: string; tank_id: string; tank_name: string; task: string; scheduled_for: string; status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED"; created_at: string; }
-export interface OverflowPrediction { tankId: string; currentLevel: number | null; trendPercentPerHour: number; predictedOverflowAt: string | null; hoursUntilOverflow: number | null; risk: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"; confidence: number; samples: number; generatedAt: string; }
+export interface OverflowPrediction { tankId: string; currentLevel: number | null; trendPercentPerHour: number; predictedOverflowAt: string | null; hoursUntilOverflow: number | null; risk: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"; riskPercentage: number; confidence: number; samples: number; generatedAt: string; }
+export interface PredictionApiResponse { tank_id: string; predicted_overflow_time: string | null; hours_remaining: number | null; risk: number; confidence: number; }
 export interface OptimizedRouteStop { tankId: string; tankName: string; location: string; latitude: number; longitude: number; task: string; scheduledFor: string; sequence: number; distanceFromPreviousKm: number; }
 export interface OptimizedRoute { depot: { latitude: number; longitude: number }; stops: OptimizedRouteStop[]; totalDistanceKm: number; generatedAt: string; }

@@ -90,9 +90,11 @@ export default function DashboardClient() {
   useEffect(() => {
     if (!authenticated || !historyTankId) return;
     let active = true;
-    void getOverflowPrediction(historyTankId).then((value) => { if (active) setPrediction(value); }).catch(() => { if (active) setPrediction(null); });
-    return () => { active = false; };
-  }, [authenticated, historyTankId, latestReading?.recorded_at]);
+    const loadPrediction = () => void getOverflowPrediction(historyTankId).then((value) => { if (active) setPrediction(value); }).catch(() => { if (active) setPrediction(null); });
+    const initialId = window.setTimeout(loadPrediction, 0);
+    const refreshId = window.setInterval(loadPrediction, 30_000);
+    return () => { active = false; window.clearTimeout(initialId); window.clearInterval(refreshId); };
+  }, [authenticated, historyTankId]);
 
   const signOut = () => {
     window.sessionStorage.removeItem("ssmeas_access_token");

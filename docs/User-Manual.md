@@ -20,6 +20,12 @@ Supervisors can view the dashboard, tank data, readings, alerts, and maintenance
 
 The dashboard refreshes live readings, summary cards, active alerts, maintenance records, and historical telemetry every 30 seconds. Select a tank in the monitoring table to change the historical chart. The “Last updated” time confirms successful refreshes.
 
+## Overflow prediction
+
+The **Overflow prediction** card forecasts when the selected tank may reach 100% fill. It refreshes its PostgreSQL-based forecast every 30 seconds and displays a live countdown, overflow-risk percentage, confidence score, current level, and fill trend.
+
+Risk colours are green for low risk, yellow for medium risk, orange for high risk, and red for critical risk. When the level is stable or falling, the card displays **No active overflow trend** instead of inventing an overflow time. Low confidence generally means there are too few readings, the data is old, or the trend is inconsistent; collect more recent telemetry before relying on that estimate for scheduling field work.
+
 ## Alerts and maintenance
 
 Active alerts appear in the alerts panel after telemetry crosses a configured threshold. Schedule maintenance with a tank, task, and future date/time. Status values are `SCHEDULED`, `IN_PROGRESS`, and `COMPLETED`.

@@ -1,5 +1,14 @@
 import type { Request, Response } from "express";
-import { PredictionTankNotFoundError, PredictionValidationError, predictOverflow } from "../services/prediction.service";
+import { PredictionTankNotFoundError, PredictionValidationError, predictAllOverflows, predictOverflow } from "../services/prediction.service";
+
+export const getOverflowPredictions = async (_request: Request, response: Response): Promise<void> => {
+  try {
+    response.json(await predictAllOverflows());
+  } catch (error) {
+    console.error("Overflow predictions failed:", error);
+    response.status(500).json({ message: "Unable to calculate overflow predictions." });
+  }
+};
 
 export const getOverflowPrediction = async (request: Request, response: Response): Promise<void> => {
   try {

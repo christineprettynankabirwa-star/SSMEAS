@@ -51,6 +51,25 @@ Reading responses contain `tank_id`, telemetry values, the source ThingSpeak ide
 - `GET /api/dashboard/summary` — administrator, supervisor; returns `totalTanks`, `onlineTanks`, `activeAlerts`, and `averageFillLevel`.
 - `GET /api/alerts` — administrator, supervisor; returns alerts. The dashboard displays records whose status is `ACTIVE`.
 
+## Overflow predictions
+
+- `GET /api/predictions` — all three roles; calculates predictions for every registered tank from its latest 100 PostgreSQL fill-level readings.
+- `GET /api/predictions/:tankId` — all three roles; retains the detailed, backward-compatible prediction response for one tank.
+
+The collection endpoint returns an array. Each item follows this contract:
+
+```json
+{
+  "tank_id": "00000000-0000-4000-8000-000000000001",
+  "predicted_overflow_time": "2026-07-20T16:30:00.000Z",
+  "hours_remaining": 4.5,
+  "risk": 92,
+  "confidence": 87
+}
+```
+
+`predicted_overflow_time` and `hours_remaining` are `null` when readings are stable or falling. `risk` and `confidence` are percentages from 0 to 100. The forecast uses least-squares regression over historical fill levels. Risk combines current fill level, positive fill rate, and estimated time to 100%; confidence combines sample count, regression fit, and reading recency.
+
 ## Maintenance
 
 - `GET /api/maintenance` — all three roles; returns maintenance records joined with tank display data.
@@ -62,6 +81,7 @@ Reading responses contain `tank_id`, telemetry values, the source ThingSpeak ide
 | --- | --- | --- | --- |
 | Dashboard summary and alerts | Allow | 403 | Allow |
 | Readings | Allow | Allow | Allow |
+| Overflow predictions | Allow | Allow | Allow |
 | List maintenance | Allow | Allow | Allow |
 | Create maintenance | Allow | Allow | 403 |
 | Read tanks | Allow | 403 | Allow |
