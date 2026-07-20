@@ -4,8 +4,10 @@ import {
   ReadingNotFoundError,
   ReadingValidationError,
   getLatestStoredLiveReading,
+  getLatestStoredReadings,
   getHistoricalReadings,
   storeDeviceReading,
+  getAnalytics,
 } from "../services/readings.service";
 
 export const createDeviceReading = async (request: Request, response: Response): Promise<void> => {
@@ -22,6 +24,19 @@ export const createDeviceReading = async (request: Request, response: Response):
   }
 };
 
+export const getReadingAnalytics = async (request: Request, response: Response): Promise<void> => {
+  try {
+    response.status(200).json(await getAnalytics(request.query.tankIds, request.query.range));
+  } catch (error) {
+    if (error instanceof ReadingValidationError) {
+      response.status(400).json({ message: error.message });
+      return;
+    }
+    console.error("Sensor analytics request failed:", error);
+    response.status(500).json({ message: "Unable to load analytics." });
+  }
+};
+
 export const getLiveReading = async (_request: Request, response: Response): Promise<void> => {
   try {
     response.status(200).json(await getLatestStoredLiveReading());
@@ -31,6 +46,15 @@ export const getLiveReading = async (_request: Request, response: Response): Pro
       return;
     }
     console.error("Sensor reading request failed:", error);
+    response.status(500).json({ message: "An unexpected server error occurred." });
+  }
+};
+
+export const getLatestReadings = async (_request: Request, response: Response): Promise<void> => {
+  try {
+    response.status(200).json(await getLatestStoredReadings());
+  } catch (error) {
+    console.error("Latest sensor readings request failed:", error);
     response.status(500).json({ message: "An unexpected server error occurred." });
   }
 };

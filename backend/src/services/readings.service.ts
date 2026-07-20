@@ -11,6 +11,8 @@ import type {
   ThingSpeakFeed,
   ThingSpeakLatestFeedResponse,
   DeviceReadingInput,
+  AnalyticsRange,
+  AnalyticsResponse,
 } from "../types/readings.types";
 
 export class ReadingValidationError extends Error {}
@@ -107,6 +109,9 @@ export const getLatestStoredLiveReading = async (): Promise<SensorReading> => {
   return reading;
 };
 
+export const getLatestStoredReadings = async (): Promise<SensorReading[]> =>
+  readingsModel.getLatestStoredReadingsByTank();
+
 export const getHistoricalReadings = async (
   tankId: string,
 ): Promise<HistoricalSensorReading[]> => {
@@ -118,6 +123,34 @@ export const getHistoricalReadings = async (
   if (!tank) throw new ReadingNotFoundError("Tank not found.");
 
   return readingsModel.getHistoricalReadingsByTankId(tankId);
+};
+
+const analyticsRanges = new Set<AnalyticsRange>(["1h", "24h", "7d", "30d", "all"]);
+
+export const parseAnalyticsRange = (value: unknown): AnalyticsRange => {
+  if (typeof value !== "string" || !analyticsRanges.has(value as AnalyticsRange)) {
+    throw new ReadingValidationError("range must be one of: 1h, 24h, 7d, 30d, all.");
+  }
+  return value as AnalyticsRange;
+};
+
+export const parseAnalyticsTankIds = (value: unknown): string[] => {
+  if (typeof value !== "string") throw new ReadingValidationError("tankIds is required.");
+  const ids = [...new Set(value.split(",").map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0 || ids.length > 20 || ids.some((id) => !uuidPattern.test(id))) {
+    throw new ReadingValidationError("tankIds must contain between 1 and 20 valid UUIDs.");
+  }
+  return ids;
+};
+
+export const getAnalytics = async (tankIdsValue: unknown, rangeValue: unknown): Promise<AnalyticsResponse> => {
+  const tankIds = parseAnalyticsTankIds(tankIdsValue);
+  const range = parseAnalyticsRange(rangeValue ?? "24h");
+  const [readings, summary] = await Promise.all([
+    readingsModel.getAnalyticsReadings(tankIds, range),
+    readingsModel.getAnalyticsSummary(tankIds, range),
+  ]);
+  return { range, generatedAt: new Date().toISOString(), readings, summary };
 };
 
 const parseRequiredUuid = (value: unknown, field: string): string => {

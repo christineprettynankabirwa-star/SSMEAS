@@ -1,5 +1,10 @@
 import type { SensorReading, Tank } from "./types";
-export default function DeviceHealth({ tanks, reading }: { tanks: Tank[]; reading: SensorReading | null }) {
-  return <section className="panel"><div className="panel-heading"><div><h2>Device health</h2><p>Controller and network availability.</p></div></div><div className="overflow-x-auto"><table className="data-table"><thead><tr><th>Tank</th><th>ESP32</th><th>Network</th><th>Battery</th></tr></thead><tbody>{tanks.length === 0 ? <tr><td colSpan={4} className="text-center text-slate-500">No devices registered.</td></tr> : tanks.map(tank => { const live = reading?.tank_id === tank.id; return <tr key={tank.id}><td className="font-semibold text-slate-800">{tank.tank_name}</td><td><HealthDot ok={live} /></td><td><HealthDot ok={live} /></td><td className="text-slate-600">{live && reading?.battery != null ? `${reading.battery.toFixed(1)} V` : "—"}</td></tr>; })}</tbody></table></div></section>;
+
+export default function DeviceHealth({ tanks, readings }: { tanks: Tank[]; readings: SensorReading[] }) {
+  const readingsByTank = new Map(readings.map((reading) => [reading.tank_id, reading]));
+  return <section className="panel"><div className="panel-heading"><div><h2>Device health</h2><p>Controller and network availability.</p></div></div><div className="overflow-x-auto"><table className="data-table"><thead><tr><th>Tank</th><th>ESP32</th><th>Network</th><th>Battery</th></tr></thead><tbody>{tanks.length === 0 ? <tr><td colSpan={4} className="text-center text-slate-500">No devices registered.</td></tr> : tanks.map((tank) => { const reading = readingsByTank.get(tank.id); const live = Boolean(reading); return <tr key={tank.id}><td className="font-semibold text-slate-800">{tank.tank_name}</td><td><HealthDot ok={live} /></td><td><HealthDot ok={live} /></td><td className="text-slate-600">{reading?.battery == null ? "—" : `${reading.battery.toFixed(1)} V`}</td></tr>; })}</tbody></table></div></section>;
 }
-function HealthDot({ ok }: { ok: boolean }) { return <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${ok ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}><span className={`size-2 rounded-full ${ok ? "bg-green-500" : "bg-slate-400"}`} />{ok ? "Online" : "Unknown"}</span>; }
+
+function HealthDot({ ok }: { ok: boolean }) {
+  return <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${ok ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}><span className={`size-2 rounded-full ${ok ? "bg-green-500" : "bg-slate-400"}`} />{ok ? "Online" : "Unknown"}</span>;
+}

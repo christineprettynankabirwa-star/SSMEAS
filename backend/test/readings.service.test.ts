@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   ReadingValidationError,
   parseDeviceReadingPayload,
+  parseAnalyticsRange,
+  parseAnalyticsTankIds,
 } from "../src/services/readings.service";
 
 const tankId = "00000000-0000-4000-8000-000000000001";
@@ -27,6 +29,13 @@ test("accepts and normalizes the ESP32 device payload", () => {
   assert.equal(reading.temperature, null);
   assert.equal(reading.battery, 3.8);
   assert.equal(reading.recorded_at.toISOString(), "2026-07-17T08:00:00.000Z");
+});
+
+test("validates analytics ranges and deduplicates tank ids", () => {
+  assert.equal(parseAnalyticsRange("7d"), "7d");
+  assert.deepEqual(parseAnalyticsTankIds(`${tankId},${tankId},${readingId}`), [tankId, readingId]);
+  assert.throws(() => parseAnalyticsRange("year"), ReadingValidationError);
+  assert.throws(() => parseAnalyticsTankIds("not-a-uuid"), ReadingValidationError);
 });
 
 test("rejects a device payload without idempotency and tank UUIDs", () => {

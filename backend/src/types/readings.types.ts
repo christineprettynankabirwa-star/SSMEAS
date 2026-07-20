@@ -57,3 +57,26 @@ export interface HistoricalSensorReading {
   temperature: number | null;
   battery: number | null;
 }
+
+export type AnalyticsRange = "1h" | "24h" | "7d" | "30d" | "all";
+
+export interface AnalyticsReading extends HistoricalSensorReading {
+  tank_id: string;
+}
+
+export interface AnalyticsSummary {
+  highestFill: number | null;
+  averageFill: number | null;
+  highestGas: number | null;
+  averageTemperature: number | null;
+  latestBatteryVoltage: number | null;
+  reportingDeviceCount: number;
+  offlineDeviceCount: number;
+}
+
+export interface AnalyticsResponse {
+  range: AnalyticsRange;
+  generatedAt: string;
+  readings: AnalyticsReading[];
+  summary: AnalyticsSummary;
+}

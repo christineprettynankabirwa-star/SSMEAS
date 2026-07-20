@@ -2,12 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
-import { getAlerts, getDashboardSummary, getLiveReading, getMaintenance, getOptimizedRoute, getOverflowPrediction, getTanks, setAccessToken } from "@/services/api";
+import { getAlerts, getDashboardSummary, getLatestReadings, getMaintenance, getOptimizedRoute, getOverflowPrediction, getTanks, setAccessToken } from "@/services/api";
 import AlertsPanel from "./AlertsPanel";
 import ActivityFeed from "./ActivityFeed";
 import DashboardHeader from "./DashboardHeader";
 import DeviceHealth from "./DeviceHealth";
-import HistoricalChart from "./HistoricalChart";
+import AnalyticsDashboard from "./AnalyticsDashboard";
 import MaintenanceTable from "./MaintenanceTable";
 import LoginForm from "./LoginForm";
 import OptimizedRoutePanel from "./OptimizedRoutePanel";
@@ -27,7 +27,7 @@ const emptySummary: DashboardSummary = { totalTanks: 0, onlineTanks: 0, activeAl
 export default function DashboardClient() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [tanks, setTanks] = useState<Tank[]>([]);
-  const [reading, setReading] = useState<SensorReading | null>(null);
+  const [readings, setReadings] = useState<SensorReading[]>([]);
   const [summary, setSummary] = useState<DashboardSummary>(emptySummary);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [maintenance, setMaintenance] = useState<MaintenanceItem[]>([]);
@@ -41,13 +41,13 @@ export default function DashboardClient() {
 
   const load = useCallback(async () => {
     setError(null);
-    const [tanksResult, readingResult] = await Promise.allSettled([getTanks(), getLiveReading()]);
+    const [tanksResult, readingResult] = await Promise.allSettled([getTanks(), getLatestReadings()]);
     const [summaryResult, alertsResult, maintenanceResult, routeResult] = await Promise.allSettled([
       getDashboardSummary(), getAlerts(), getMaintenance(), getOptimizedRoute(),
     ]);
 
     if (tanksResult.status === "fulfilled") setTanks(tanksResult.value);
-    if (readingResult.status === "fulfilled") setReading(readingResult.value);
+    if (readingResult.status === "fulfilled") setReadings(readingResult.value);
     if (summaryResult.status === "fulfilled") setSummary(summaryResult.value);
     if (alertsResult.status === "fulfilled") setAlerts(alertsResult.value.filter((alert) => alert.status === "ACTIVE"));
     if (maintenanceResult.status === "fulfilled") setMaintenance(maintenanceResult.value);
@@ -83,15 +83,16 @@ export default function DashboardClient() {
     };
   }, [authenticated, load]);
 
-  const historyTankId = selectedTankId ?? reading?.tank_id ?? tanks[0]?.id;
-  const historyTank = tanks.find((tank) => tank.id === historyTankId);
+  const latestReading = readings.reduce<SensorReading | null>((latest, item) =>
+    !latest || new Date(item.recorded_at) > new Date(latest.recorded_at) ? item : latest, null);
+  const historyTankId = selectedTankId ?? latestReading?.tank_id ?? tanks[0]?.id;
 
   useEffect(() => {
     if (!authenticated || !historyTankId) return;
     let active = true;
     void getOverflowPrediction(historyTankId).then((value) => { if (active) setPrediction(value); }).catch(() => { if (active) setPrediction(null); });
     return () => { active = false; };
-  }, [authenticated, historyTankId, reading]);
+  }, [authenticated, historyTankId, latestReading?.recorded_at]);
 
   const signOut = () => {
     window.sessionStorage.removeItem("ssmeas_access_token");
@@ -112,18 +113,18 @@ export default function DashboardClient() {
         {loading ? <section className="grid min-h-[360px] place-items-center" aria-label="Loading dashboard"><div className="text-center"><span className="inline-block size-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" aria-hidden="true" /><p className="mt-3 text-sm font-medium text-slate-600">Loading dashboard...</p></div></section> : <>
           <div className="mt-5 grid items-start gap-5 xl:grid-cols-[3fr_2fr]">
             <div className="min-w-0 space-y-5">
-              <section id="locations" className="scroll-mt-20"><TankMap tanks={tanks} reading={reading} /></section>
-              <TankMonitoringTable tanks={tanks} reading={reading} query={searchQuery} onQueryChange={setSearchQuery} onSelect={(tankId) => { setSelectedTankId(tankId); document.querySelector("#analytics")?.scrollIntoView({ behavior: "smooth" }); }} />
-              <section id="analytics" className="scroll-mt-20"><HistoricalChart tankId={historyTankId} tankName={historyTank?.tank_name} /></section>
-              <DeviceHealth tanks={tanks} reading={reading} />
-              {tanks.length > 0 && <section className="grid gap-4 md:grid-cols-2">{tanks.slice(0, 2).map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={reading?.tank_id === tank.id ? reading : null} />)}</section>}
+              <section id="locations" className="scroll-mt-20"><TankMap tanks={tanks} reading={latestReading} /></section>
+              <TankMonitoringTable tanks={tanks} readings={readings} query={searchQuery} onQueryChange={setSearchQuery} onSelect={(tankId) => { setSelectedTankId(tankId); document.querySelector("#analytics")?.scrollIntoView({ behavior: "smooth" }); }} />
+              <section id="analytics" className="scroll-mt-20"><AnalyticsDashboard tanks={tanks} initialTankId={historyTankId} /></section>
+              <DeviceHealth tanks={tanks} readings={readings} />
+              {tanks.length > 0 && <section className="grid gap-4 md:grid-cols-2">{tanks.slice(0, 2).map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={readings.find((item) => item.tank_id === tank.id) ?? null} />)}</section>}
             </div>
             <aside id="operations" className="min-w-0 space-y-5 scroll-mt-20">
               <AlertsPanel alerts={alerts} />
               <PredictionPanel prediction={prediction} />
               <OptimizedRoutePanel route={optimizedRoute} />
               <MaintenanceTable items={maintenance} />
-              <ActivityFeed reading={reading} alerts={alerts} maintenance={maintenance} />
+              <ActivityFeed reading={latestReading} alerts={alerts} maintenance={maintenance} />
             </aside>
           </div>
         </>}
