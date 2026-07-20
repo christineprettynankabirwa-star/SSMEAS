@@ -6,6 +6,9 @@ export interface RouteCandidate {
   longitude: number;
   task: string;
   scheduledFor: Date;
+  fillLevel: number | null;
+  priority: "CRITICAL" | "HIGH" | "MEDIUM";
+  priorityScore: number;
 }
 
 export interface OptimizedRouteStop extends RouteCandidate {
@@ -17,5 +20,8 @@ export interface OptimizedRoute {
   depot: { latitude: number; longitude: number };
   stops: OptimizedRouteStop[];
   totalDistanceKm: number;
+  estimatedDurationMinutes: number;
+  tankCount: number;
+  priorityScore: number;
   generatedAt: string;
 }

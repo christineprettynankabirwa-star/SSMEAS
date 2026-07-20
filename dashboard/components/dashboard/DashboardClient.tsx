@@ -16,6 +16,8 @@ import SummaryCards from "./SummaryCards";
 import TankMonitoringTable from "./TankMonitoringTable";
 import TankStatusCard from "./TankStatusCard";
 import type { AlertItem, DashboardSummary, MaintenanceItem, OptimizedRoute, OverflowPrediction, SensorReading, Tank } from "./types";
+import AppShell from "@/components/ui/AppShell";
+import HighlightsCarousel from "./HighlightsCarousel";
 
 const TankMap = dynamic(() => import("./TankMap"), {
   ssr: false,
@@ -106,32 +108,33 @@ export default function DashboardClient() {
   if (!authenticated) return <LoginForm onAuthenticated={() => setAuthenticated(true)} />;
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6]">
+    <AppShell>
       <DashboardHeader lastUpdated={lastUpdated} onSignOut={signOut} />
       <main id="overview" className="pt-16">
       <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
         {error && <div role="alert" className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-3 text-sm text-amber-900"><span>{error}</span><button type="button" onClick={() => void load()} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-800 transition hover:bg-amber-100">Retry</button></div>}
         <SummaryCards totalTanks={summary.totalTanks} onlineTanks={summary.onlineTanks} activeAlerts={summary.activeAlerts} averageFillLevel={summary.averageFillLevel} activeJobs={maintenance.filter(item => item.status !== "COMPLETED").length} />
+        <HighlightsCarousel tanks={tanks} readings={readings} alerts={alerts} maintenance={maintenance} route={optimizedRoute} />
         {loading ? <section className="grid min-h-[360px] place-items-center" aria-label="Loading dashboard"><div className="text-center"><span className="inline-block size-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" aria-hidden="true" /><p className="mt-3 text-sm font-medium text-slate-600">Loading dashboard...</p></div></section> : <>
           <div className="mt-5 grid items-start gap-5 xl:grid-cols-[3fr_2fr]">
             <div className="min-w-0 space-y-5">
-              <section id="locations" className="scroll-mt-20"><TankMap tanks={tanks} reading={latestReading} /></section>
+              <section id="locations" className="scroll-mt-20"><TankMap tanks={tanks} reading={latestReading} route={optimizedRoute} /></section>
               <TankMonitoringTable tanks={tanks} readings={readings} query={searchQuery} onQueryChange={setSearchQuery} onSelect={(tankId) => { setSelectedTankId(tankId); document.querySelector("#analytics")?.scrollIntoView({ behavior: "smooth" }); }} />
               <section id="analytics" className="scroll-mt-20"><AnalyticsDashboard tanks={tanks} initialTankId={historyTankId} /></section>
               <DeviceHealth tanks={tanks} readings={readings} />
               {tanks.length > 0 && <section className="grid gap-4 md:grid-cols-2">{tanks.slice(0, 2).map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={readings.find((item) => item.tank_id === tank.id) ?? null} />)}</section>}
             </div>
             <aside id="operations" className="min-w-0 space-y-5 scroll-mt-20">
-              <AlertsPanel alerts={alerts} />
+              <div id="alerts" className="scroll-mt-20"><AlertsPanel alerts={alerts} /></div>
               <PredictionPanel prediction={prediction} />
-              <OptimizedRoutePanel route={optimizedRoute} />
-              <MaintenanceTable items={maintenance} />
+              <div id="route" className="scroll-mt-20"><OptimizedRoutePanel route={optimizedRoute} /></div>
+              <div id="maintenance" className="scroll-mt-20"><MaintenanceTable items={maintenance} /></div>
               <ActivityFeed reading={latestReading} alerts={alerts} maintenance={maintenance} />
             </aside>
           </div>
         </>}
       </div>
       </main>
-    </div>
+    </AppShell>
   );
 }

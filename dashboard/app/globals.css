@@ -25,6 +25,20 @@ body {
 }
 
 button, a, input { font: inherit; }
+.ui-button, .ui-nav-link { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
+.ui-button:hover { transform: translateY(-1px); }
+.ui-button:active, .ui-nav-link:active { transform: scale(.97); }
+.ui-interactive-card { transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease; }
+.ui-interactive-card:hover { transform: translateY(-3px); border-color: #a5f3fc; box-shadow: 0 12px 28px rgb(15 23 42 / .1); }
+.ui-interactive-card:active { transform: translateY(-1px) scale(.995); }
+.ui-page-enter { animation: ui-page-enter 240ms ease-out both; }
+.ui-slide-enter { animation: ui-slide-enter 240ms ease-out both; }
+@keyframes ui-page-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ui-slide-enter { from { opacity: .35; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .ui-button:hover, .ui-interactive-card:hover { transform: none; }
+}
 .panel { overflow: hidden; border: 1px solid #e5e7eb; border-radius: 0.75rem; background: white; box-shadow: 0 1px 3px rgb(15 23 42 / 0.07); }
 .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1.25rem; }
 .panel-heading h2 { font-size: 1.125rem; font-weight: 700; color: #111827; }
@@ -35,3 +49,5 @@ button, a, input { font: inherit; }
 .data-table th { font-weight: 700; }
 .data-table tbody tr:nth-child(even) { background: #f9fafb; }
 .data-table tbody tr { border-top: 1px solid #f3f4f6; }
+.leaflet-tooltip.route-sequence-tooltip { margin: 0; border: 0; background: transparent; box-shadow: none; color: white; font-size: 11px; font-weight: 800; line-height: 1; }
+.leaflet-tooltip.route-sequence-tooltip::before { display: none; }

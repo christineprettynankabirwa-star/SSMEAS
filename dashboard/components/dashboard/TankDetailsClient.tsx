@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getTank, setAccessToken } from "@/services/api";
 import HistoricalChart from "./HistoricalChart";
 import type { Tank } from "./types";
+import AppShell from "@/components/ui/AppShell";
 
 export default function TankDetailsClient({ tankId }: { tankId: string }) {
   const [tank, setTank] = useState<Tank | null>(null);
@@ -37,9 +38,9 @@ export default function TankDetailsClient({ tankId }: { tankId: string }) {
   }, [tankId]);
 
   return (
-    <main className="min-h-screen bg-[#f4f7fa] px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+    <AppShell><main className="min-h-screen bg-[#f4f7fa] px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
       <div className="mx-auto max-w-5xl">
-        <Link href="/#locations" className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-700 hover:text-cyan-900">← Back to tank map</Link>
+        <div className="flex flex-wrap gap-2"><Link href="/#tanks" className="ui-button inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-cyan-500 hover:text-cyan-800">← Back to tanks</Link><Link href="/#locations" className="ui-button rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-cyan-500 hover:text-cyan-800">View on map</Link><Link href="/#analytics" className="ui-button rounded-lg bg-cyan-700 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-800">View analytics</Link></div>
         {loading ? (
           <div className="mt-8 grid min-h-72 place-items-center rounded-2xl bg-white"><p className="text-sm font-medium text-slate-600">Loading tank details...</p></div>
         ) : error || !tank ? (
@@ -62,6 +63,6 @@ export default function TankDetailsClient({ tankId }: { tankId: string }) {
           </>
         )}
       </div>
-    </main>
+    </main></AppShell>
   );
 }

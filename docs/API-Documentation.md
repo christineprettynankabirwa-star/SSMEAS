@@ -70,6 +70,12 @@ The collection endpoint returns an array. Each item follows this contract:
 
 `predicted_overflow_time` and `hours_remaining` are `null` when readings are stable or falling. `risk` and `confidence` are percentages from 0 to 100. The forecast uses least-squares regression over historical fill levels. Risk combines current fill level, positive fill rate, and estimated time to 100%; confidence combines sample count, regression fit, and reading recency.
 
+## Collection route optimization
+
+- `GET /api/routes/optimized` — all three roles; returns a critical-first, distance-optimized collection route.
+
+Candidates include tanks at or above the configured fill warning threshold, tanks with active warning or critical alerts, and tanks with open maintenance work. Critical tanks are routed before high- and medium-priority tanks; nearest-neighbour distance optimization is applied within each tier. The response retains `depot`, `stops`, `totalDistanceKm`, and `generatedAt`, and also includes `estimatedDurationMinutes`, `tankCount`, and the route-wide `priorityScore`. Each stop includes its collection sequence, distance from the previous stop, fill level, priority category, and priority score.
+
 ## Maintenance
 
 - `GET /api/maintenance` — all three roles; returns maintenance records joined with tank display data.

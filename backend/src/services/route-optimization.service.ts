@@ -20,9 +20,12 @@ export const optimizeMaintenanceRoute = (
   const stops: OptimizedRoute["stops"] = [];
   let current = depot;
   let totalDistanceKm = 0;
+  const priorityRank = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 } as const;
 
   while (remaining.length > 0) {
     remaining.sort((left, right) => {
+      const priorityDifference = priorityRank[left.priority] - priorityRank[right.priority];
+      if (priorityDifference !== 0) return priorityDifference;
       const distanceDifference = haversineDistanceKm(current, left) - haversineDistanceKm(current, right);
       return Math.abs(distanceDifference) > 0.001
         ? distanceDifference
@@ -35,7 +38,11 @@ export const optimizeMaintenanceRoute = (
     current = next;
   }
 
-  return { depot, stops, totalDistanceKm: Number(totalDistanceKm.toFixed(2)), generatedAt: now.toISOString() };
+  const averageSpeedKph = configuredCoordinate("ROUTE_AVERAGE_SPEED_KPH", 30);
+  const serviceMinutes = configuredCoordinate("ROUTE_SERVICE_MINUTES_PER_TANK", 20);
+  const estimatedDurationMinutes = Math.round((totalDistanceKm / Math.max(1, averageSpeedKph)) * 60 + stops.length * serviceMinutes);
+  const priorityScore = stops.length === 0 ? 0 : Math.round(stops.reduce((sum, stop) => sum + stop.priorityScore, 0) / stops.length);
+  return { depot, stops, totalDistanceKm: Number(totalDistanceKm.toFixed(2)), estimatedDurationMinutes, tankCount: stops.length, priorityScore, generatedAt: now.toISOString() };
 };
 
 const configuredCoordinate = (name: string, fallback: number): number => {

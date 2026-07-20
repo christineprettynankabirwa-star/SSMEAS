@@ -22,7 +22,25 @@ export const getAnalytics = (tankIds: string[], range: AnalyticsRange, force = f
   const key = `${[...tankIds].sort().join(",")}:${range}`;
   const cached = analyticsCache.get(key);
   if (!force && cached && cached.expires > Date.now()) return cached.promise;
-  const promise = api.get<AnalyticsResponse>("/readings/analytics", { params: { tankIds: tankIds.join(","), range } }).then(({ data }) => data);
+  const promise = api.get<AnalyticsResponse>("/readings/analytics", { params: { tankIds: tankIds.join(","), range } }).then(({ data }) => data).catch(async (error: unknown) => {
+    if (!axios.isAxiosError(error) || error.response?.status !== 404) throw error;
+    const histories = await Promise.all(tankIds.map(async (tankId) => (await getReadingHistory(tankId)).map((reading) => ({ ...reading, tank_id: tankId }))));
+    const cutoff = range === "all" ? 0 : Date.now() - ({ "1h": 1, "24h": 24, "7d": 168, "30d": 720 }[range] * 3_600_000);
+    const readings = histories.flat().filter((reading) => new Date(reading.recorded_at).getTime() >= cutoff);
+    const numbers = (key: "level" | "gas_level" | "temperature" | "battery") => readings.map((reading) => reading[key]).filter((value): value is number => value !== null);
+    const fills = numbers("level"); const gases = numbers("gas_level"); const temperatures = numbers("temperature");
+    const latestBattery = histories.flat().filter((reading) => reading.battery !== null).sort((a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime())[0]?.battery ?? null;
+    const latestByTank = histories.map((items) => items.at(-1));
+    return { range, generatedAt: new Date().toISOString(), readings, summary: {
+      highestFill: fills.length ? Math.max(...fills) : null,
+      averageFill: fills.length ? fills.reduce((sum, value) => sum + value, 0) / fills.length : null,
+      highestGas: gases.length ? Math.max(...gases) : null,
+      averageTemperature: temperatures.length ? temperatures.reduce((sum, value) => sum + value, 0) / temperatures.length : null,
+      latestBatteryVoltage: latestBattery,
+      reportingDeviceCount: new Set(readings.map((reading) => reading.tank_id)).size,
+      offlineDeviceCount: latestByTank.filter((reading) => !reading || new Date(reading.recorded_at).getTime() < Date.now() - 300_000).length,
+    } };
+  });
   analyticsCache.set(key, { expires: Date.now() + 15_000, promise });
   promise.catch(() => analyticsCache.delete(key));
   return promise;
@@ -34,5 +52,9 @@ export const getOverflowPrediction = async (tankId: string): Promise<OverflowPre
   (await api.get<OverflowPrediction>(`/predictions/${encodeURIComponent(tankId)}`)).data;
 export const getOverflowPredictions = async (): Promise<PredictionApiResponse[]> =>
   (await api.get<PredictionApiResponse[]>("/predictions")).data;
-export const getOptimizedRoute = async (): Promise<OptimizedRoute> => (await api.get<OptimizedRoute>("/routes/optimized")).data;
+export const getOptimizedRoute = async (): Promise<OptimizedRoute> => {
+  const route = (await api.get<OptimizedRoute>("/routes/optimized")).data;
+  const stops = route.stops.map((stop) => ({ ...stop, fillLevel: stop.fillLevel ?? null, priority: stop.priority ?? "MEDIUM" as const, priorityScore: stop.priorityScore ?? 35 }));
+  return { ...route, stops, tankCount: route.tankCount ?? stops.length, estimatedDurationMinutes: route.estimatedDurationMinutes ?? Math.round(route.totalDistanceKm * 2 + stops.length * 20), priorityScore: route.priorityScore ?? (stops.length ? Math.round(stops.reduce((sum, stop) => sum + stop.priorityScore, 0) / stops.length) : 0) };
+};
 export default api;

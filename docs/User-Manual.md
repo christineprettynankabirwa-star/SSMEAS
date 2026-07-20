@@ -30,6 +30,10 @@ Risk colours are green for low risk, yellow for medium risk, orange for high ris
 
 Active alerts appear in the alerts panel after telemetry crosses a configured threshold. Schedule maintenance with a tank, task, and future date/time. Status values are `SCHEDULED`, `IN_PROGRESS`, and `COMPLETED`.
 
+## Optimized collection route
+
+The optimized route includes tanks needing collection and tanks with open work. Critical tanks are placed first, followed by high- and medium-priority stops arranged to reduce travel distance. The route panel shows estimated distance, duration, tank count, priority score, and ordered stops. On the operations map, the dashed cyan line starts at the depot and follows the numbered collection markers. Marker colours indicate collection priority: red is critical, orange is high, and yellow is medium.
+
 ## Troubleshooting
 
 - “Unable to reach the monitoring API”: confirm the backend and database are running and `NEXT_PUBLIC_API_BASE_URL` is correct.
