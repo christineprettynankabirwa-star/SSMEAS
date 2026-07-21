@@ -25,10 +25,10 @@ To develop an IoT-based sewage monitoring system that:
                   +---------------------------+
                   |      ESP32 Controller     |
                   +---------------------------+
-                     |      |        |
-                     |      |        |
-             Ultrasonic   Gas     Battery
-               Sensor    Sensor    Monitor
+                     |      |
+                     |      |
+             Ultrasonic   Gas
+               Sensor    Sensor
                      |
                      v
                Wi-Fi Network
@@ -169,8 +169,6 @@ Sensor Readings
 | tank_id | UUID |
 | level | FLOAT |
 | gas_level | FLOAT |
-| temperature | FLOAT |
-| battery | FLOAT |
 | recorded_at | TIMESTAMP |
 
 Tank coordinates are fixed registration data. `sensor_readings.tank_id` references `tanks.id`; latitude and longitude are stored only in `tanks`.
@@ -316,7 +314,7 @@ Dashboard
 User
 ```
 
-ThingSpeak field mapping is: `field1` sewage level, `field2` gas level, `field3` temperature, `field4` battery voltage, `field5` registered tank UUID, and optional `field6` device status. The backend validates `field5`, resolves it against `tanks`, and persists telemetry with that `tank_id`. GPS is not sent by ESP32 or stored in ThingSpeak.
+ThingSpeak field mapping is: `field1` sewage level, `field2` gas level, `field5` registered tank UUID, and `field6` device status. The backend validates `field5`, resolves it against `tanks`, and persists telemetry with that `tank_id`. GPS is not sent by ESP32 or stored in ThingSpeak.
 
 1. AI Module Interfaces (Week 3)
 

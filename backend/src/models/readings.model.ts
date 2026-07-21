@@ -16,13 +16,13 @@ export const createOrGetSensorReading = async (
   const result = await pool.query<SensorReading>(
     `INSERT INTO sensor_readings (
       tank_id, thingspeak_channel_id, thingspeak_entry_id, level, gas_level,
-      temperature, battery, recorded_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      recorded_at
+    ) VALUES ($1, $2, $3, $4, $5, $6)
     ON CONFLICT DO NOTHING
     RETURNING *`,
     [
       reading.tank_id, reading.thingspeak_channel_id, reading.thingspeak_entry_id,
-      reading.level, reading.gas_level, reading.temperature, reading.battery, reading.recorded_at,
+      reading.level, reading.gas_level, reading.recorded_at,
     ],
   );
 
@@ -45,13 +45,13 @@ export const createOrGetDeviceReading = async (
 ): Promise<SensorReading> => {
   const result = await pool.query<SensorReading>(
     `INSERT INTO sensor_readings (
-      tank_id, device_reading_id, level, gas_level, temperature, battery, recorded_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      tank_id, device_reading_id, level, gas_level, recorded_at
+    ) VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT (device_reading_id) WHERE device_reading_id IS NOT NULL DO NOTHING
     RETURNING *`,
     [
       reading.tank_id, reading.reading_id, reading.level, reading.gas_level,
-      reading.temperature, reading.battery, reading.recorded_at,
+      reading.recorded_at,
     ],
   );
 
@@ -70,7 +70,7 @@ export const getHistoricalReadingsByTankId = async (
   tankId: string,
 ): Promise<HistoricalSensorReading[]> => {
   const result = await pool.query<HistoricalSensorReading>(
-    `SELECT recorded_at, level, gas_level, temperature, battery
+    `SELECT recorded_at, level, gas_level
      FROM sensor_readings
      WHERE tank_id = $1
      ORDER BY recorded_at ASC`,
@@ -94,7 +94,7 @@ export const getAnalyticsReadings = async (
   range: AnalyticsRange,
 ): Promise<AnalyticsReading[]> => {
   const result = await pool.query<AnalyticsReading>(
-    `SELECT tank_id, recorded_at, level, gas_level, temperature, battery
+    `SELECT tank_id, recorded_at, level, gas_level
      FROM sensor_readings sr
      WHERE tank_id = ANY($1::uuid[])
        ${datePredicate(range)}
@@ -110,14 +110,13 @@ export const getAnalyticsSummary = async (
 ): Promise<AnalyticsSummary> => {
   const result = await pool.query<{
     highest_fill: number | null; average_fill: number | null; highest_gas: number | null;
-    average_temperature: number | null; latest_battery_voltage: number | null;
     reporting_device_count: number; offline_device_count: number;
   }>(
     `WITH selected_readings AS (
        SELECT * FROM sensor_readings sr
        WHERE tank_id = ANY($1::uuid[]) ${datePredicate(range)}
-     ), latest AS (
-       SELECT DISTINCT ON (tank_id) tank_id, battery, recorded_at
+    ), latest AS (
+       SELECT DISTINCT ON (tank_id) tank_id, recorded_at
        FROM sensor_readings
        WHERE tank_id = ANY($1::uuid[])
        ORDER BY tank_id, recorded_at DESC
@@ -126,10 +125,6 @@ export const getAnalyticsSummary = async (
        MAX(sr.level)::float AS highest_fill,
        AVG(sr.level)::float AS average_fill,
        MAX(sr.gas_level)::float AS highest_gas,
-       AVG(sr.temperature)::float AS average_temperature,
-       (SELECT battery::float FROM sensor_readings
-        WHERE tank_id = ANY($1::uuid[]) AND battery IS NOT NULL
-        ORDER BY recorded_at DESC LIMIT 1) AS latest_battery_voltage,
        COUNT(DISTINCT sr.tank_id)::int AS reporting_device_count,
        (SELECT COUNT(*)::int FROM unnest($1::uuid[]) selected(id)
         LEFT JOIN latest l ON l.tank_id = selected.id
@@ -142,8 +137,6 @@ export const getAnalyticsSummary = async (
     highestFill: row.highest_fill,
     averageFill: row.average_fill,
     highestGas: row.highest_gas,
-    averageTemperature: row.average_temperature,
-    latestBatteryVoltage: row.latest_battery_voltage,
     reportingDeviceCount: row.reporting_device_count,
     offlineDeviceCount: row.offline_device_count,
   };

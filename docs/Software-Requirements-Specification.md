@@ -66,9 +66,9 @@ The prediction engine communicates with the backend and database.
                   +---------------------------+
                   |      ESP32 Controller     |
                   +---------------------------+
-                     |      |        |
-             Ultrasonic   Gas     Battery
-                Sensor    Sensor   Monitor
+                     |      |
+             Ultrasonic   Gas
+                Sensor    Sensor
                      |
                      ▼
                Wi-Fi Network
@@ -106,7 +106,6 @@ Live Monitoring
 The system shall:
 Display current fill level
 Display gas concentration
-Display battery level
 Display last update time
 
 Historical Monitoring
@@ -210,7 +209,6 @@ Hardware
 ESP32
 Ultrasonic
 Gas sensor
-Battery monitor
 Wi-Fi
 
 AI
@@ -313,8 +311,6 @@ ThingSpeak field mapping:
 
 - field1: sewage level
 - field2: gas level
-- field3: temperature
-- field4: battery voltage
 - field5: registered tank UUID
 - field6: optional device status
 

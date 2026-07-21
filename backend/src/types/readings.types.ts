@@ -7,8 +7,6 @@ export interface SensorReading {
   device_reading_id?: string | null;
   level: number | null;
   gas_level: number | null;
-  temperature: number | null;
-  battery: number | null;
   recorded_at: Date;
   created_at: Date;
 }
@@ -16,10 +14,9 @@ export interface SensorReading {
 export interface DeviceReadingInput {
   tank_id: string;
   reading_id: string;
-  level: number | null;
-  gas_level: number | null;
-  temperature: number | null;
-  battery: number | null;
+  level: number;
+  gas_level: number;
+  status: DeviceStatus;
   recorded_at: Date;
 }
 
@@ -28,8 +25,6 @@ export interface ThingSpeakFeed {
   created_at: string;
   field1?: string | null;
   field2?: string | null;
-  field3?: string | null;
-  field4?: string | null;
   field5?: string | null;
   field6?: string | null;
 }
@@ -45,8 +40,6 @@ export interface NewSensorReading {
   thingspeak_entry_id: number;
   level: number | null;
   gas_level: number | null;
-  temperature: number | null;
-  battery: number | null;
   recorded_at: Date;
 }
 
@@ -54,8 +47,6 @@ export interface HistoricalSensorReading {
   recorded_at: Date;
   level: number | null;
   gas_level: number | null;
-  temperature: number | null;
-  battery: number | null;
 }
 
 export type AnalyticsRange = "1h" | "24h" | "7d" | "30d" | "all";
@@ -68,11 +59,11 @@ export interface AnalyticsSummary {
   highestFill: number | null;
   averageFill: number | null;
   highestGas: number | null;
-  averageTemperature: number | null;
-  latestBatteryVoltage: number | null;
   reportingDeviceCount: number;
   offlineDeviceCount: number;
 }
+
+export type DeviceStatus = "SAFE" | "WARNING" | "DANGER";
 
 export interface AnalyticsResponse {
   range: AnalyticsRange;

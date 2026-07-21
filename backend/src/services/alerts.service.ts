@@ -36,14 +36,12 @@ export interface AlertThresholds {
   fillWarning: number;
   fillCritical: number;
   hazardousGas: number;
-  lowBattery: number;
 }
 
 export const alertThresholds: Readonly<AlertThresholds> = {
   fillWarning: threshold("FILL_WARNING_THRESHOLD", 80),
   fillCritical: threshold("FILL_CRITICAL_THRESHOLD", 95),
   hazardousGas: threshold("GAS_LEVEL_THRESHOLD", 300),
-  lowBattery: threshold("LOW_BATTERY_THRESHOLD", 3.3),
 };
 
 export const generateAlertsForReading = (
@@ -74,15 +72,6 @@ export const generateAlertsForReading = (
       alert_type: "Hazardous gas",
       severity: "critical",
       message: `Gas level is ${reading.gas_level.toFixed(1)}, at or above the ${thresholds.hazardousGas} threshold.`,
-    });
-  }
-
-  if (reading.battery !== null && reading.battery <= thresholds.lowBattery) {
-    alerts.push({
-      tank_id: reading.tank_id,
-      alert_type: "Low battery",
-      severity: "warning",
-      message: `Battery voltage is ${reading.battery.toFixed(2)}V, at or below the ${thresholds.lowBattery}V threshold.`,
     });
   }
 

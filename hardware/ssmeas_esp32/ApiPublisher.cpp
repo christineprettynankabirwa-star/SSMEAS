@@ -37,8 +37,6 @@ bool ApiPublisher::publish(const SensorReadings& readings, const char* deviceSta
     + "\",\"reading_id\":\"" + makeReadingId()
     + "\",\"level\":" + String(readings.sewageLevelPercent, 2)
     + ",\"gas_level\":" + String(readings.gasLevel, 2)
-    + ",\"temperature\":" + String(readings.temperatureCelsius, 2)
-    + ",\"battery\":" + String(readings.batteryVoltage, 2)
     + ",\"status\":\"" + deviceStatus + "\"}";
 
   HTTPClient http;

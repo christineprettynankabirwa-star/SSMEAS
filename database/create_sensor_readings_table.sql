@@ -8,8 +8,6 @@ CREATE TABLE IF NOT EXISTS sensor_readings (
     thingspeak_entry_id BIGINT NOT NULL,
     level DOUBLE PRECISION,
     gas_level DOUBLE PRECISION,
-    temperature DOUBLE PRECISION,
-    battery DOUBLE PRECISION,
     recorded_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT sensor_readings_thingspeak_entry_unique

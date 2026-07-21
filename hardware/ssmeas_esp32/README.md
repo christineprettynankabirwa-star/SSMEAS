@@ -10,11 +10,9 @@ the reading to PostgreSQL; database credentials are never stored on the ESP32.
 |---|---|
 | `level` | Sewage fill level (%) |
 | `gas_level` | Gas level |
-| `temperature` | Temperature (C) |
-| `battery` | Battery voltage (V) |
 | `tank_id` | Registered SSMEAS tank UUID |
 | `reading_id` | Unique UUID generated for idempotency |
-| `status` | `ONLINE` device status |
+| `status` | `SAFE`, `WARNING`, or `DANGER` derived from level and gas thresholds |
 
 ## Configure and upload
 

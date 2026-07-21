@@ -27,16 +27,13 @@ export const getAnalytics = (tankIds: string[], range: AnalyticsRange, force = f
     const histories = await Promise.all(tankIds.map(async (tankId) => (await getReadingHistory(tankId)).map((reading) => ({ ...reading, tank_id: tankId }))));
     const cutoff = range === "all" ? 0 : Date.now() - ({ "1h": 1, "24h": 24, "7d": 168, "30d": 720 }[range] * 3_600_000);
     const readings = histories.flat().filter((reading) => new Date(reading.recorded_at).getTime() >= cutoff);
-    const numbers = (key: "level" | "gas_level" | "temperature" | "battery") => readings.map((reading) => reading[key]).filter((value): value is number => value !== null);
-    const fills = numbers("level"); const gases = numbers("gas_level"); const temperatures = numbers("temperature");
-    const latestBattery = histories.flat().filter((reading) => reading.battery !== null).sort((a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime())[0]?.battery ?? null;
+    const numbers = (key: "level" | "gas_level") => readings.map((reading) => reading[key]).filter((value): value is number => value !== null);
+    const fills = numbers("level"); const gases = numbers("gas_level");
     const latestByTank = histories.map((items) => items.at(-1));
     return { range, generatedAt: new Date().toISOString(), readings, summary: {
       highestFill: fills.length ? Math.max(...fills) : null,
       averageFill: fills.length ? fills.reduce((sum, value) => sum + value, 0) / fills.length : null,
       highestGas: gases.length ? Math.max(...gases) : null,
-      averageTemperature: temperatures.length ? temperatures.reduce((sum, value) => sum + value, 0) / temperatures.length : null,
-      latestBatteryVoltage: latestBattery,
       reportingDeviceCount: new Set(readings.map((reading) => reading.tank_id)).size,
       offlineDeviceCount: latestByTank.filter((reading) => !reading || new Date(reading.recorded_at).getTime() < Date.now() - 300_000).length,
     } };

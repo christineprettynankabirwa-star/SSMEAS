@@ -8,7 +8,7 @@ import type { AnalyticsRange, AnalyticsResponse, Tank } from "./types";
 
 const ranges: Array<{ value: AnalyticsRange; label: string }> = [{ value: "1h", label: "Last Hour" }, { value: "24h", label: "Last 24 Hours" }, { value: "7d", label: "Last 7 Days" }, { value: "30d", label: "Last 30 Days" }, { value: "all", label: "All Time" }];
 const colors = ["#2563eb", "#0891b2", "#7c3aed", "#ea580c", "#16a34a", "#db2777", "#475569"];
-const empty: AnalyticsResponse = { range: "24h", generatedAt: "", readings: [], summary: { highestFill: null, averageFill: null, highestGas: null, averageTemperature: null, latestBatteryVoltage: null, reportingDeviceCount: 0, offlineDeviceCount: 0 } };
+const empty: AnalyticsResponse = { range: "24h", generatedAt: "", readings: [], summary: { highestFill: null, averageFill: null, highestGas: null, reportingDeviceCount: 0, offlineDeviceCount: 0 } };
 
 export default function AnalyticsDashboard({ tanks, initialTankId }: { tanks: Tank[]; initialTankId?: string }) {
   const [selected, setSelected] = useState<string[]>(initialTankId ? [initialTankId] : []);
@@ -36,7 +36,7 @@ export default function AnalyticsDashboard({ tanks, initialTankId }: { tanks: Ta
   }, [analytics.readings]);
   const selectedTanks = effectiveSelected.map((id) => tanks.find((tank) => tank.id === id)).filter((tank): tank is Tank => Boolean(tank));
   const toggleTank = (id: string) => setSelected(effectiveSelected.includes(id) ? (effectiveSelected.length === 1 ? effectiveSelected : effectiveSelected.filter((item) => item !== id)) : [...effectiveSelected, id]);
-  const metricCharts = [{ key: "level", label: "Fill level", unit: "%", color: "#2563eb" }, { key: "gas_level", label: "Gas level", unit: " ppm", color: "#d97706" }, { key: "temperature", label: "Temperature", unit: "°C", color: "#ea580c" }, { key: "battery", label: "Battery voltage", unit: " V", color: "#16a34a" }] as const;
+  const metricCharts = [{ key: "level", label: "Sewage level history", unit: "%", color: "#2563eb" }, { key: "gas_level", label: "Gas level history", unit: " ppm", color: "#d97706" }] as const;
 
   return <div className="rounded-3xl bg-slate-950 p-4 shadow-xl shadow-slate-300/50 sm:p-6">
     <div className="flex flex-col gap-5 border-b border-slate-800 pb-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-cyan-400">Network intelligence</p><h2 className="mt-2 text-2xl font-bold tracking-tight text-white">Historical analytics</h2><p className="mt-1 max-w-2xl text-sm text-slate-400">Explore sensor performance, compare tank trends, and drag the navigator beneath any chart to zoom or pan.</p></div><div className="flex flex-wrap gap-2" aria-label="Analytics time range">{ranges.map((item) => <button key={item.value} type="button" onClick={() => setRange(item.value)} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${range === item.value ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>{item.label}</button>)}</div></div>

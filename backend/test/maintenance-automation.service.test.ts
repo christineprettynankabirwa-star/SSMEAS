@@ -11,8 +11,6 @@ const reading = (overrides: Partial<SensorReading>): SensorReading => ({
   device_reading_id: "00000000-0000-4000-8000-000000000002",
   level: null,
   gas_level: null,
-  temperature: null,
-  battery: null,
   recorded_at: new Date("2026-07-17T08:00:00.000Z"),
   created_at: new Date("2026-07-17T08:00:00.000Z"),
   ...overrides,

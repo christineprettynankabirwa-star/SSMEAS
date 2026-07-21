@@ -68,8 +68,6 @@ const mapFeedToReading = (payload: ThingSpeakLatestFeedResponse): NewSensorReadi
     thingspeak_entry_id: entryId,
     level: parseOptionalNumber(feed.field1, "field1 (level)"),
     gas_level: parseOptionalNumber(feed.field2, "field2 (gas_level)"),
-    temperature: parseOptionalNumber(feed.field3, "field3 (temperature)"),
-    battery: parseOptionalNumber(feed.field4, "field4 (battery)"),
     recorded_at: recordedAt,
   };
 };
@@ -160,6 +158,21 @@ const parseRequiredUuid = (value: unknown, field: string): string => {
   return value.trim();
 };
 
+const parseRequiredNumber = (value: unknown, field: string): number => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (value === null || value === undefined || value === "" || !Number.isFinite(parsed)) {
+    throw new ReadingValidationError(`${field} is required and must be numeric.`);
+  }
+  return parsed;
+};
+
+const parseDeviceStatus = (value: unknown): DeviceReadingInput["status"] => {
+  if (value !== "SAFE" && value !== "WARNING" && value !== "DANGER") {
+    throw new ReadingValidationError("status must be SAFE, WARNING, or DANGER.");
+  }
+  return value;
+};
+
 export const parseDeviceReadingPayload = (payload: Record<string, unknown>): DeviceReadingInput => {
   const recordedAt = payload.recorded_at === undefined ? new Date() : new Date(String(payload.recorded_at));
   if (Number.isNaN(recordedAt.getTime())) {
@@ -169,10 +182,9 @@ export const parseDeviceReadingPayload = (payload: Record<string, unknown>): Dev
   return {
     tank_id: parseRequiredUuid(payload.tank_id, "tank_id"),
     reading_id: parseRequiredUuid(payload.reading_id, "reading_id"),
-    level: parseOptionalNumber(payload.level, "level"),
-    gas_level: parseOptionalNumber(payload.gas_level, "gas_level"),
-    temperature: parseOptionalNumber(payload.temperature, "temperature"),
-    battery: parseOptionalNumber(payload.battery, "battery"),
+    level: parseRequiredNumber(payload.level, "level"),
+    gas_level: parseRequiredNumber(payload.gas_level, "gas_level"),
+    status: parseDeviceStatus(payload.status),
     recorded_at: recordedAt,
   };
 };

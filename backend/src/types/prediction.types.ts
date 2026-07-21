@@ -5,6 +5,7 @@ export interface OverflowPrediction {
   currentLevel: number | null;
   trendPercentPerHour: number;
   predictedOverflowAt: string | null;
+  recommendedMaintenanceAt: string | null;
   hoursUntilOverflow: number | null;
   risk: OverflowRisk;
   riskPercentage: number;
@@ -19,4 +20,5 @@ export interface PredictionApiResponse {
   hours_remaining: number | null;
   risk: number;
   confidence: number;
+  recommended_maintenance_date: string | null;
 }

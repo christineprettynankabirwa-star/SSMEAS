@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
-import { getAlerts, getDashboardSummary, getLatestReadings, getMaintenance, getOptimizedRoute, getOverflowPrediction, getTanks, setAccessToken } from "@/services/api";
+import { getAlerts, getLatestReadings, getMaintenance, getOptimizedRoute, getOverflowPrediction, getTanks, setAccessToken } from "@/services/api";
 import AlertsPanel from "./AlertsPanel";
 import ActivityFeed from "./ActivityFeed";
 import DashboardHeader from "./DashboardHeader";
@@ -15,7 +15,7 @@ import PredictionPanel from "./PredictionPanel";
 import SummaryCards from "./SummaryCards";
 import TankMonitoringTable from "./TankMonitoringTable";
 import TankStatusCard from "./TankStatusCard";
-import type { AlertItem, DashboardSummary, MaintenanceItem, OptimizedRoute, OverflowPrediction, SensorReading, Tank } from "./types";
+import type { AlertItem, MaintenanceItem, OptimizedRoute, OverflowPrediction, SensorReading, Tank } from "./types";
 import AppShell from "@/components/ui/AppShell";
 import HighlightsCarousel from "./HighlightsCarousel";
 
@@ -24,13 +24,10 @@ const TankMap = dynamic(() => import("./TankMap"), {
   loading: () => <div className="h-[386px] animate-pulse rounded-2xl bg-slate-200" />,
 });
 
-const emptySummary: DashboardSummary = { totalTanks: 0, onlineTanks: 0, activeAlerts: 0, averageFillLevel: 0 };
-
 export default function DashboardClient() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [readings, setReadings] = useState<SensorReading[]>([]);
-  const [summary, setSummary] = useState<DashboardSummary>(emptySummary);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [maintenance, setMaintenance] = useState<MaintenanceItem[]>([]);
   const [prediction, setPrediction] = useState<OverflowPrediction | null>(null);
@@ -44,18 +41,17 @@ export default function DashboardClient() {
   const load = useCallback(async () => {
     setError(null);
     const [tanksResult, readingResult] = await Promise.allSettled([getTanks(), getLatestReadings()]);
-    const [summaryResult, alertsResult, maintenanceResult, routeResult] = await Promise.allSettled([
-      getDashboardSummary(), getAlerts(), getMaintenance(), getOptimizedRoute(),
+    const [alertsResult, maintenanceResult, routeResult] = await Promise.allSettled([
+      getAlerts(), getMaintenance(), getOptimizedRoute(),
     ]);
 
     if (tanksResult.status === "fulfilled") setTanks(tanksResult.value);
     if (readingResult.status === "fulfilled") setReadings(readingResult.value);
-    if (summaryResult.status === "fulfilled") setSummary(summaryResult.value);
     if (alertsResult.status === "fulfilled") setAlerts(alertsResult.value.filter((alert) => alert.status === "ACTIVE"));
     if (maintenanceResult.status === "fulfilled") setMaintenance(maintenanceResult.value);
     if (routeResult.status === "fulfilled") setOptimizedRoute(routeResult.value);
 
-    const requests = [["tank registry", tanksResult], ["live telemetry", readingResult], ["system summary", summaryResult], ["alerts", alertsResult], ["maintenance", maintenanceResult], ["route optimization", routeResult]] as const;
+    const requests = [["tank registry", tanksResult], ["live telemetry", readingResult], ["alerts", alertsResult], ["maintenance", maintenanceResult], ["route optimization", routeResult]] as const;
     const unavailable = requests.filter(([, result]) => result.status === "rejected").map(([label]) => label);
     const failedRequests = unavailable.length;
     if (failedRequests === requests.length) setError("Unable to reach the monitoring API. Confirm the backend is running and the API URL is configured.");
@@ -113,7 +109,7 @@ export default function DashboardClient() {
       <main id="overview" className="pt-16">
       <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
         {error && <div role="alert" className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-3 text-sm text-amber-900"><span>{error}</span><button type="button" onClick={() => void load()} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-800 transition hover:bg-amber-100">Retry</button></div>}
-        <SummaryCards totalTanks={summary.totalTanks} onlineTanks={summary.onlineTanks} activeAlerts={summary.activeAlerts} averageFillLevel={summary.averageFillLevel} activeJobs={maintenance.filter(item => item.status !== "COMPLETED").length} />
+        <SummaryCards reading={latestReading} lastUpdated={lastUpdated} />
         <HighlightsCarousel tanks={tanks} readings={readings} alerts={alerts} maintenance={maintenance} route={optimizedRoute} />
         {loading ? <section className="grid min-h-[360px] place-items-center" aria-label="Loading dashboard"><div className="text-center"><span className="inline-block size-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" aria-hidden="true" /><p className="mt-3 text-sm font-medium text-slate-600">Loading dashboard...</p></div></section> : <>
           <div className="mt-5 grid items-start gap-5 xl:grid-cols-[3fr_2fr]">

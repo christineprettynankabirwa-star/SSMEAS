@@ -30,8 +30,6 @@ erDiagram
         bigint thingspeak_entry_id
         double level
         double gas_level
-        double temperature
-        double battery
         timestamptz recorded_at
     }
     MAINTENANCE {

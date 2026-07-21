@@ -44,8 +44,6 @@ constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 20UL * 1000UL;
 constexpr uint8_t ULTRASONIC_TRIGGER_PIN = 5;
 constexpr uint8_t ULTRASONIC_ECHO_PIN = 18;
 constexpr uint8_t MQ135_ANALOG_PIN = 34;
-constexpr uint8_t TEMPERATURE_ANALOG_PIN = 35;
-constexpr uint8_t BATTERY_ANALOG_PIN = 32;
 
 // Tank calibration: sensor-to-liquid distances at empty and full states.
 constexpr float TANK_EMPTY_DISTANCE_CM = 180.0F;
@@ -53,10 +51,8 @@ constexpr float TANK_FULL_DISTANCE_CM = 20.0F;
 constexpr unsigned long ULTRASONIC_TIMEOUT_US = 30000UL;
 
 // Analog conversion/calibration constants. Calibrate these values against the
-// actual MQ-135 module and battery divider before deployment.
-constexpr float ADC_REFERENCE_VOLTAGE = 3.3F;
+// actual MQ-135 module before deployment.
 constexpr float ADC_MAX_READING = 4095.0F;
 constexpr float MQ135_FULL_SCALE = 1000.0F;
-constexpr float BATTERY_DIVIDER_RATIO = 2.0F;
 
 }  // namespace Config

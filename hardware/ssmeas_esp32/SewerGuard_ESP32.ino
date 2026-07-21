@@ -115,8 +115,6 @@ bool uploadReading(float percentage, float gasValue, const String& status) {
     + "\",\"reading_id\":\"" + makeReadingUuid()
     + "\",\"level\":" + String(percentage, 2)
     + ",\"gas_level\":" + String(gasValue, 2)
-    + ",\"temperature\":null"
-    + ",\"battery\":null"
     + ",\"status\":\"" + status + "\"}";
 
   WiFiClient client;

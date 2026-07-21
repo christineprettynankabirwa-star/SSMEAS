@@ -37,3 +37,13 @@ test("reduces confidence for stale or sparse telemetry", () => {
   })), now);
   assert.ok(sparse.confidence < recent.confidence);
 });
+
+test("uses gas history and alert history for maintenance recommendations", () => {
+  const now = new Date("2026-07-18T12:00:00Z");
+  const prediction = calculateOverflowPrediction("tank", [
+    { level: 45, gasLevel: 350, recordedAt: new Date("2026-07-18T11:00:00Z") },
+    { level: 45, gasLevel: 380, recordedAt: now },
+  ], now, 3);
+  assert.equal(prediction.risk, "CRITICAL");
+  assert.equal(prediction.recommendedMaintenanceAt, now.toISOString());
+});

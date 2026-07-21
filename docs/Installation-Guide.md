@@ -12,7 +12,7 @@ Create a database, then apply the SQL files in `database/` in this order: users,
 
 ## Backend
 
-From `backend/`, run `npm install`. Create `.env` with PostgreSQL connection settings, `JWT_SECRET`, a long random `DEVICE_API_KEY`, and alert thresholds used by the service. Apply `database/add_direct_device_readings.sql`, run `npm run build`, then create accounts:
+From `backend/`, run `npm install`. Create `.env` with PostgreSQL connection settings, `JWT_SECRET`, a long random `DEVICE_API_KEY`, and alert thresholds used by the service. Apply `database/add_direct_device_readings.sql` and `database/remove_temperature_and_battery.sql`, run `npm run build`, then create accounts:
 
 ```text
 npm run create-user -- "System Administrator" admin@example.com StrongPassword ADMINISTRATOR

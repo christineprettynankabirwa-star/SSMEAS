@@ -25,7 +25,7 @@ Except for health and login, send `Authorization: Bearer <JWT>`. Errors use `{ "
 
 - `POST /api/device/readings` — device ingestion endpoint authenticated with
   `X-Device-API-Key`. The body contains `tank_id`, unique `reading_id`, `level`,
-  `gas_level`, `temperature`, optional `battery`, and optional `recorded_at`.
+  `gas_level`, required `status`, and optional `recorded_at`.
   It validates the registered tank and writes the reading to PostgreSQL.
 
 - `GET /api/readings/live` — retrieves the latest ThingSpeak feed through the backend, validates it, resolves `field5` to a registered tank, checks its configured channel when present, stores the idempotent historical reading, and returns it.
@@ -39,8 +39,6 @@ ThingSpeak mapping:
 | --- | --- |
 | field1 | sewage level |
 | field2 | gas level |
-| field3 | temperature |
-| field4 | battery voltage |
 | field5 | registered tank UUID |
 | field6 | optional device status (not persisted) |
 
@@ -64,11 +62,12 @@ The collection endpoint returns an array. Each item follows this contract:
   "predicted_overflow_time": "2026-07-20T16:30:00.000Z",
   "hours_remaining": 4.5,
   "risk": 92,
-  "confidence": 87
+  "confidence": 87,
+  "recommended_maintenance_date": "2026-07-20T10:30:00.000Z"
 }
 ```
 
-`predicted_overflow_time` and `hours_remaining` are `null` when readings are stable or falling. `risk` and `confidence` are percentages from 0 to 100. The forecast uses least-squares regression over historical fill levels. Risk combines current fill level, positive fill rate, and estimated time to 100%; confidence combines sample count, regression fit, and reading recency.
+`predicted_overflow_time` and `hours_remaining` are `null` when readings are stable or falling. `risk` and `confidence` are percentages from 0 to 100. The forecast uses historical sewage and gas readings. Risk combines current fill level, positive fill rate, gas conditions, recent alert history, and estimated time to 100%. The recommended maintenance date is scheduled ahead of predicted overflow or immediately when gas/alert history indicates urgent intervention.
 
 ## Collection route optimization
 

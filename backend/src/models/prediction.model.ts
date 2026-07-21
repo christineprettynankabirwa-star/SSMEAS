@@ -3,12 +3,13 @@ import { pool } from "../config/database";
 export interface PredictionReading {
   tank_id?: string;
   level: number;
+  gas_level: number | null;
   recorded_at: Date;
 }
 
 export const getPredictionReadings = async (tankId: string): Promise<PredictionReading[]> => {
   const result = await pool.query<PredictionReading>(
-    `SELECT level, recorded_at
+    `SELECT level, gas_level, recorded_at
      FROM sensor_readings
      WHERE tank_id = $1 AND level IS NOT NULL
      ORDER BY recorded_at DESC
@@ -20,9 +21,9 @@ export const getPredictionReadings = async (tankId: string): Promise<PredictionR
 
 export const getAllPredictionReadings = async (): Promise<PredictionReading[]> => {
   const result = await pool.query<PredictionReading>(
-    `SELECT tank_id, level, recorded_at
+    `SELECT tank_id, level, gas_level, recorded_at
      FROM (
-       SELECT tank_id, level, recorded_at,
+       SELECT tank_id, level, gas_level, recorded_at,
               ROW_NUMBER() OVER (PARTITION BY tank_id ORDER BY recorded_at DESC) AS position
        FROM sensor_readings
        WHERE level IS NOT NULL
@@ -31,4 +32,14 @@ export const getAllPredictionReadings = async (): Promise<PredictionReading[]> =
      ORDER BY tank_id, recorded_at ASC`,
   );
   return result.rows;
+};
+
+export const getRecentAlertCounts = async (): Promise<Map<string, number>> => {
+  const result = await pool.query<{ tank_id: string; count: number }>(
+    `SELECT tank_id, COUNT(*)::int AS count
+     FROM alerts
+     WHERE created_at >= NOW() - INTERVAL '30 days'
+     GROUP BY tank_id`,
+  );
+  return new Map(result.rows.map((row) => [row.tank_id, row.count]));
 };

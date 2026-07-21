@@ -25,10 +25,6 @@ float readUltrasonicDistanceCm() {
   return duration == 0 ? NAN : static_cast<float>(duration) * 0.0343F / 2.0F;
 }
 
-float adcVoltage(uint8_t pin) {
-  return static_cast<float>(analogRead(pin)) / Config::ADC_MAX_READING * Config::ADC_REFERENCE_VOLTAGE;
-}
-
 SensorReadings readHardwareSensors() {
   const float distance = readUltrasonicDistanceCm();
   const float usableDepth = Config::TANK_EMPTY_DISTANCE_CM - Config::TANK_FULL_DISTANCE_CM;
@@ -39,12 +35,9 @@ SensorReadings readHardwareSensors() {
   const float gas = static_cast<float>(analogRead(Config::MQ135_ANALOG_PIN))
     / Config::ADC_MAX_READING * Config::MQ135_FULL_SCALE;
 
-  // TMP36 output is 500 mV at 0 C and changes by 10 mV per degree Celsius.
-  const float temperature = (adcVoltage(Config::TEMPERATURE_ANALOG_PIN) - 0.5F) * 100.0F;
-  const float battery = adcVoltage(Config::BATTERY_ANALOG_PIN) * Config::BATTERY_DIVIDER_RATIO;
   const bool valid = !isnan(distance) && usableDepth > 0.0F;
 
-  return {clampValue(level, 0.0F, 100.0F), gas, temperature, battery, valid};
+  return {clampValue(level, 0.0F, 100.0F), gas, valid};
 }
 
 }  // namespace
@@ -56,8 +49,6 @@ void begin() {
   pinMode(Config::ULTRASONIC_ECHO_PIN, INPUT);
   digitalWrite(Config::ULTRASONIC_TRIGGER_PIN, LOW);
   analogSetPinAttenuation(Config::MQ135_ANALOG_PIN, ADC_11db);
-  analogSetPinAttenuation(Config::TEMPERATURE_ANALOG_PIN, ADC_11db);
-  analogSetPinAttenuation(Config::BATTERY_ANALOG_PIN, ADC_11db);
 }
 
 SensorReadings read() {

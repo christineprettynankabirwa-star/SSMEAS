@@ -16,18 +16,15 @@ test("accepts and normalizes the ESP32 device payload", () => {
     reading_id: readingId,
     level: "72.5",
     gas_level: 210,
-    temperature: null,
-    battery: "3.8",
     recorded_at: "2026-07-17T08:00:00.000Z",
-    status: "ONLINE",
+    status: "WARNING",
   });
 
   assert.equal(reading.tank_id, tankId);
   assert.equal(reading.reading_id, readingId);
   assert.equal(reading.level, 72.5);
   assert.equal(reading.gas_level, 210);
-  assert.equal(reading.temperature, null);
-  assert.equal(reading.battery, 3.8);
+  assert.equal(reading.status, "WARNING");
   assert.equal(reading.recorded_at.toISOString(), "2026-07-17T08:00:00.000Z");
 });
 
@@ -49,13 +46,17 @@ test("rejects a device payload without idempotency and tank UUIDs", () => {
   );
 });
 
-test("rejects non-numeric telemetry and invalid timestamps", () => {
+test("rejects missing telemetry, invalid status, and invalid timestamps", () => {
   assert.throws(
-    () => parseDeviceReadingPayload({ tank_id: tankId, reading_id: readingId, level: "full" }),
+    () => parseDeviceReadingPayload({ tank_id: tankId, reading_id: readingId, level: "full", gas_level: 1, status: "SAFE" }),
     ReadingValidationError,
   );
   assert.throws(
-    () => parseDeviceReadingPayload({ tank_id: tankId, reading_id: readingId, recorded_at: "yesterday-ish" }),
+    () => parseDeviceReadingPayload({ tank_id: tankId, reading_id: readingId, level: 1, gas_level: 1, status: "ONLINE" }),
+    ReadingValidationError,
+  );
+  assert.throws(
+    () => parseDeviceReadingPayload({ tank_id: tankId, reading_id: readingId, level: 1, gas_level: 1, status: "SAFE", recorded_at: "yesterday-ish" }),
     ReadingValidationError,
   );
 });

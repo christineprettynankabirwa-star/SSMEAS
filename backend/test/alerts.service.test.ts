@@ -10,25 +10,22 @@ const reading = (overrides: Partial<SensorReading>): SensorReading => ({
   thingspeak_entry_id: 1,
   level: null,
   gas_level: null,
-  temperature: null,
-  battery: null,
   recorded_at: new Date(0),
   created_at: new Date(0),
   ...overrides,
 });
 
-const thresholds: AlertThresholds = { fillWarning: 72, fillCritical: 88, hazardousGas: 240, lowBattery: 3.55 };
+const thresholds: AlertThresholds = { fillWarning: 72, fillCritical: 88, hazardousGas: 240 };
 
 test("generates alerts using the configured values in both decisions and messages", () => {
-  const alerts = generateAlertsForReading(reading({ level: 88, gas_level: 240, battery: 3.55 }), thresholds);
-  assert.deepEqual(alerts.map(({ alert_type }) => alert_type), ["Critical sewage level", "Hazardous gas", "Low battery"]);
+  const alerts = generateAlertsForReading(reading({ level: 88, gas_level: 240 }), thresholds);
+  assert.deepEqual(alerts.map(({ alert_type }) => alert_type), ["Critical sewage level", "Hazardous gas"]);
   assert.match(alerts[0]?.message ?? "", /88% critical threshold/);
   assert.match(alerts[1]?.message ?? "", /240 threshold/);
-  assert.match(alerts[2]?.message ?? "", /3\.55V threshold/);
 });
 
 test("generates no alerts when readings are within configured limits", () => {
-  assert.deepEqual(generateAlertsForReading(reading({ level: 71.9, gas_level: 239.9, battery: 3.56 }), thresholds), []);
+  assert.deepEqual(generateAlertsForReading(reading({ level: 71.9, gas_level: 239.9 }), thresholds), []);
 });
 
 test("uses warning rather than critical severity between fill thresholds", () => {
