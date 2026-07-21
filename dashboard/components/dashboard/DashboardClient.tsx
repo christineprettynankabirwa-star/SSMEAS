@@ -109,24 +109,28 @@ export default function DashboardClient() {
       <main id="overview" className="pt-16">
       <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
         {error && <div role="alert" className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-3 text-sm text-amber-900"><span>{error}</span><button type="button" onClick={() => void load()} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-800 transition hover:bg-amber-100">Retry</button></div>}
-        <SummaryCards reading={latestReading} lastUpdated={lastUpdated} />
+        <SummaryCards reading={latestReading} lastUpdated={latestReading ? new Date(latestReading.recorded_at) : null} />
         <HighlightsCarousel tanks={tanks} readings={readings} alerts={alerts} maintenance={maintenance} route={optimizedRoute} />
         {loading ? <section className="grid min-h-[360px] place-items-center" aria-label="Loading dashboard"><div className="text-center"><span className="inline-block size-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-600" aria-hidden="true" /><p className="mt-3 text-sm font-medium text-slate-600">Loading dashboard...</p></div></section> : <>
-          <div className="mt-5 grid items-start gap-5 xl:grid-cols-[3fr_2fr]">
-            <div className="min-w-0 space-y-5">
-              <section id="locations" className="scroll-mt-20"><TankMap tanks={tanks} reading={latestReading} route={optimizedRoute} /></section>
-              <TankMonitoringTable tanks={tanks} readings={readings} query={searchQuery} onQueryChange={setSearchQuery} onSelect={(tankId) => { setSelectedTankId(tankId); document.querySelector("#analytics")?.scrollIntoView({ behavior: "smooth" }); }} />
-              <section id="analytics" className="scroll-mt-20"><AnalyticsDashboard tanks={tanks} initialTankId={historyTankId} /></section>
-              <DeviceHealth tanks={tanks} readings={readings} />
-              {tanks.length > 0 && <section className="grid gap-4 md:grid-cols-2">{tanks.slice(0, 2).map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={readings.find((item) => item.tank_id === tank.id) ?? null} />)}</section>}
+          <div id="operations" className="mt-5 space-y-5 scroll-mt-20">
+            <div className="grid items-stretch gap-5 xl:grid-cols-[3fr_2fr]">
+              <section id="locations" className="scroll-mt-20 [&>*]:h-full"><TankMap tanks={tanks} readings={readings} route={optimizedRoute} /></section>
+              <div id="alerts" className="scroll-mt-20 [&>*]:h-full"><AlertsPanel alerts={alerts} /></div>
             </div>
-            <aside id="operations" className="min-w-0 space-y-5 scroll-mt-20">
-              <div id="alerts" className="scroll-mt-20"><AlertsPanel alerts={alerts} /></div>
+            <div className="grid items-stretch gap-5 xl:grid-cols-[3fr_2fr]">
+              <div className="min-w-0 [&>*]:h-full"><TankMonitoringTable tanks={tanks} readings={readings} query={searchQuery} onQueryChange={setSearchQuery} onSelect={(tankId) => { setSelectedTankId(tankId); document.querySelector("#analytics")?.scrollIntoView({ behavior: "smooth" }); }} /></div>
               <PredictionPanel prediction={prediction} />
-              <div id="route" className="scroll-mt-20"><OptimizedRoutePanel route={optimizedRoute} /></div>
-              <div id="maintenance" className="scroll-mt-20"><MaintenanceTable items={maintenance} /></div>
-              <ActivityFeed reading={latestReading} alerts={alerts} maintenance={maintenance} />
-            </aside>
+            </div>
+            <section id="analytics" className="scroll-mt-20"><AnalyticsDashboard tanks={tanks} initialTankId={historyTankId} /></section>
+            <div className="grid items-stretch gap-5 xl:grid-cols-[3fr_2fr]">
+              <div className="min-w-0 [&>*]:h-full"><DeviceHealth tanks={tanks} readings={readings} /></div>
+              <div id="route" className="scroll-mt-20 [&>*]:h-full"><OptimizedRoutePanel route={optimizedRoute} /></div>
+            </div>
+            <div className="grid items-stretch gap-5 xl:grid-cols-[3fr_2fr]">
+              <div id="maintenance" className="min-w-0 scroll-mt-20 [&>*]:h-full"><MaintenanceTable items={maintenance} /></div>
+              <div className="[&>*]:h-full"><ActivityFeed reading={latestReading} alerts={alerts} maintenance={maintenance} /></div>
+            </div>
+            {tanks.length > 0 && <section id="tanks" className="grid scroll-mt-20 gap-4 md:grid-cols-2 xl:grid-cols-3">{tanks.map((tank) => <TankStatusCard key={tank.id} tank={tank} reading={readings.find((item) => item.tank_id === tank.id) ?? null} />)}</section>}
           </div>
         </>}
       </div>

@@ -21,7 +21,7 @@ export const getDashboardSummary = async (): Promise<DashboardSummary> => {
         FROM tanks AS tank
         INNER JOIN latest_readings AS reading ON reading.tank_id = tank.id
         WHERE tank.status = 'ACTIVE'
-          AND reading.recorded_at >= CURRENT_TIMESTAMP - INTERVAL '15 minutes') AS online_tanks,
+          AND reading.recorded_at >= CURRENT_TIMESTAMP - INTERVAL '5 minutes') AS online_tanks,
        (SELECT COUNT(*) FROM alerts WHERE status = 'ACTIVE') AS active_alerts,
        (SELECT AVG(level) FROM latest_readings WHERE level IS NOT NULL) AS average_fill_level`,
   );
