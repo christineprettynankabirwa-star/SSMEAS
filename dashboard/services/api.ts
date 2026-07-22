@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { AlertItem, AnalyticsRange, AnalyticsResponse, DashboardSummary, HistoricalSensorReading, MaintenanceItem, OptimizedRoute, OverflowPrediction, PredictionApiResponse, SensorReading, Tank } from "@/components/dashboard/types";
+import type { AlertItem, AnalyticsRange, AnalyticsResponse, DashboardSummary, HistoricalSensorReading, MaintenanceItem, MaintenanceOfficer, MaintenancePriority, MaintenanceStatus, OptimizedRoute, OverflowPrediction, PredictionApiResponse, SensorReading, Tank } from "@/components/dashboard/types";
 
 const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api", timeout: 10_000 });
 export interface LoginResponse { token: string; }
@@ -44,7 +44,11 @@ export const getAnalytics = (tankIds: string[], range: AnalyticsRange, force = f
 };
 export const getDashboardSummary = async (): Promise<DashboardSummary> => (await api.get<DashboardSummary>("/dashboard/summary")).data;
 export const getAlerts = async (): Promise<AlertItem[]> => (await api.get<AlertItem[]>("/alerts")).data;
+export const acknowledgeAlert = async (id: string): Promise<AlertItem> => (await api.patch<AlertItem>(`/alerts/${encodeURIComponent(id)}/acknowledge`)).data;
 export const getMaintenance = async (): Promise<MaintenanceItem[]> => (await api.get<MaintenanceItem[]>("/maintenance")).data;
+export const createMaintenance = async (input: { tank_id: string; task: string; scheduled_for: string; status?: MaintenanceStatus; priority?: MaintenancePriority; assigned_to?: string | null; notes?: string | null }): Promise<MaintenanceItem> => (await api.post<MaintenanceItem>("/maintenance", input)).data;
+export const updateMaintenance = async (id: string, input: Partial<{ status: MaintenanceStatus; priority: MaintenancePriority; assigned_to: string | null; scheduled_for: string; notes: string | null }>): Promise<MaintenanceItem> => (await api.patch<MaintenanceItem>(`/maintenance/${encodeURIComponent(id)}`, input)).data;
+export const getMaintenanceOfficers = async (): Promise<MaintenanceOfficer[]> => (await api.get<MaintenanceOfficer[]>("/maintenance-officers")).data;
 export const getOverflowPrediction = async (tankId: string): Promise<OverflowPrediction> =>
   (await api.get<OverflowPrediction>(`/predictions/${encodeURIComponent(tankId)}`)).data;
 export const getOverflowPredictions = async (): Promise<PredictionApiResponse[]> =>

@@ -43,3 +43,11 @@ export const createAlertUnlessActive = async (alert: CreateAlertRequest): Promis
     [alert.tank_id, alert.alert_type, alert.severity ?? null, alert.message],
   );
 };
+
+export const acknowledgeAlert = async (id: string): Promise<Alert | null> => {
+  const result = await pool.query<Alert>(
+    `WITH updated AS (UPDATE alerts SET status = 'ACKNOWLEDGED' WHERE id = $1 AND status = 'ACTIVE' RETURNING *)
+     SELECT ${alertColumns} FROM updated alert JOIN tanks tank ON tank.id = alert.tank_id`, [id],
+  );
+  return result.rows[0] ?? null;
+};

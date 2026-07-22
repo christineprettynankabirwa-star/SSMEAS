@@ -1,4 +1,5 @@
-export type MaintenanceStatus = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED";
+export type MaintenanceStatus = "SCHEDULED" | "ASSIGNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type MaintenancePriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export interface MaintenanceRecord {
   id: string;
@@ -8,6 +9,11 @@ export interface MaintenanceRecord {
   scheduled_for: Date;
   status: MaintenanceStatus;
   created_at: Date;
+  priority: MaintenancePriority;
+  assigned_to: string | null;
+  assigned_officer: string | null;
+  completed_at: Date | null;
+  notes: string | null;
 }
 
 export interface CreateMaintenanceRequest {
@@ -15,4 +21,15 @@ export interface CreateMaintenanceRequest {
   task: string;
   scheduled_for: string;
   status?: MaintenanceStatus;
+  priority?: MaintenancePriority;
+  assigned_to?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateMaintenanceRequest {
+  status?: MaintenanceStatus;
+  priority?: MaintenancePriority;
+  assigned_to?: string | null;
+  scheduled_for?: string;
+  notes?: string | null;
 }

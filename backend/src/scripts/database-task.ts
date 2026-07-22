@@ -15,6 +15,7 @@ const runSqlFile = async (fileName: string): Promise<void> => {
 
 const applySeedPrerequisites = async (): Promise<void> => {
   await runSqlFile("add_demo_status_support.sql");
+  await runSqlFile("expand_maintenance_workflow.sql");
 };
 
 const resetDemoRecords = async (): Promise<void> => {
@@ -53,6 +54,7 @@ const demo = async (): Promise<void> => {
     "create_sensor_readings_table.sql",
     "create_maintenance_table.sql",
     "create_alerts_table.sql",
+    "expand_maintenance_workflow.sql",
     "add_direct_device_readings.sql",
     "add_demo_status_support.sql",
   ]) await runSqlFile(migration);

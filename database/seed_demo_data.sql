@@ -134,4 +134,18 @@ SELECT id, full_name, email, '$2b$12$uFj4a3jBC4053ZH551mh2O4KUPizUZW1e.Kw4qfE/MQ
 FROM demo_users
 ON CONFLICT DO NOTHING;
 
+-- Enrich demo jobs after users exist; resolve officers by email to coexist with prior demo accounts.
+UPDATE maintenance job SET
+  priority = CASE WHEN job.task LIKE 'Emergency%' OR job.tank_id IN ('d0000000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-000000000002') THEN 'CRITICAL'
+                  WHEN job.status IN ('IN_PROGRESS','SCHEDULED') THEN 'HIGH' ELSE 'MEDIUM' END,
+  assigned_to = officer.id,
+  completed_at = CASE WHEN job.status = 'COMPLETED' THEN job.scheduled_for + INTERVAL '3 hours' ELSE NULL END,
+  notes = CASE WHEN job.status = 'COMPLETED' THEN 'Field team completed the work and verified normal operation.'
+               ELSE 'Coordinate access with the campus estates office before arrival.' END
+FROM users officer
+WHERE job.tank_id::text LIKE 'd0000000-0000-4000-8000-00000000000_'
+  AND officer.email = CASE (RIGHT(job.tank_id::text, 1)::integer % 3)
+    WHEN 1 THEN 'david.kato@ssmeas.local' WHEN 2 THEN 'grace.nansubuga@ssmeas.local'
+    ELSE 'michael.okello@ssmeas.local' END;
+
 COMMIT;

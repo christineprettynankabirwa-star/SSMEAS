@@ -39,3 +39,10 @@ export const getUserById = async (id: string): Promise<UserRecord | null> => {
   );
   return result.rows[0] ?? null;
 };
+
+export const getMaintenanceOfficers = async (): Promise<Array<Pick<UserRecord, "id" | "full_name" | "email" | "role">>> => {
+  const result = await pool.query<Pick<UserRecord, "id" | "full_name" | "email" | "role">>(
+    `SELECT id, full_name, email, role FROM users WHERE role = 'MAINTENANCE_OFFICER' ORDER BY full_name`,
+  );
+  return result.rows;
+};

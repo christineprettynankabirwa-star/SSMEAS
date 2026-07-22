@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { MaintenanceTankNotFoundError, MaintenanceValidationError, addMaintenance, listMaintenance } from "../services/maintenance.service";
+import { MaintenanceTankNotFoundError, MaintenanceValidationError, addMaintenance, changeMaintenance, listMaintenance } from "../services/maintenance.service";
 import type { CreateMaintenanceRequest } from "../types/maintenance.types";
 
 const handleError = (error: unknown, response: Response): void => {
@@ -21,4 +21,9 @@ export const postMaintenance = async (request: Request, response: Response): Pro
     }
     response.status(201).json(await addMaintenance(request.body as CreateMaintenanceRequest));
   } catch (error) { handleError(error, response); }
+};
+
+export const patchMaintenance = async (request: Request, response: Response): Promise<void> => {
+  try { response.status(200).json(await changeMaintenance(String(request.params.id ?? ""), request.body)); }
+  catch (error) { handleError(error, response); }
 };

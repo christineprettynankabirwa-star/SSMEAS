@@ -16,7 +16,7 @@ export const getOpenMaintenanceStops = async (): Promise<RouteCandidate[]> => {
      ), open_work AS (
        SELECT DISTINCT ON (tank_id) tank_id, task, scheduled_for
        FROM maintenance
-       WHERE status IN ('SCHEDULED', 'IN_PROGRESS')
+       WHERE status IN ('SCHEDULED', 'ASSIGNED', 'IN_PROGRESS')
        ORDER BY tank_id, scheduled_for ASC
      ), active_alert AS (
        SELECT tank_id,

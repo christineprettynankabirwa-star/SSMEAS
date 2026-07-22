@@ -15,6 +15,12 @@ const validateText = (value: unknown, field: string, maxLength: number): void =>
 };
 
 export const listAlerts = async (): Promise<Alert[]> => alertsModel.getAllAlerts();
+export const acknowledge = async (id: string): Promise<Alert> => {
+  if (!uuidPattern.test(id)) throw new AlertValidationError("alert id must be a valid UUID.");
+  const alert = await alertsModel.acknowledgeAlert(id);
+  if (!alert) throw new AlertTankNotFoundError("Active alert not found.");
+  return alert;
+};
 
 export const addAlert = async (alert: CreateAlertRequest): Promise<Alert> => {
   if (!uuidPattern.test(alert.tank_id)) throw new AlertValidationError("tank_id must be a valid UUID.");
