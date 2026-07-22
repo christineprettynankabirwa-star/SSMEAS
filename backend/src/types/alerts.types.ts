@@ -1,5 +1,5 @@
 export type AlertSeverity = "critical" | "warning" | "info";
-export type AlertStatus = "ACTIVE" | "RESOLVED";
+export type AlertStatus = "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED";
 
 export interface Alert {
   id: string;

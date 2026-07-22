@@ -7,6 +7,7 @@ export interface SensorReading {
   device_reading_id?: string | null;
   level: number | null;
   gas_level: number | null;
+  status?: "SAFE" | "WARNING" | "CRITICAL" | null;
   recorded_at: Date;
   created_at: Date;
 }

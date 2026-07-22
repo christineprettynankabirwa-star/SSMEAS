@@ -22,6 +22,12 @@ npm run create-user -- "Supervisor" supervisor@example.com StrongPassword SUPERV
 
 Start with `npm run dev` for development or `npm start` after a build.
 
+For a complete local demonstration dataset, run `npm run demo` from `backend/`.
+Later, use `npm run seed` to idempotently refresh the sample timestamps and values,
+or `npm run reset-db` to remove and recreate only records in the reserved demo UUID range.
+All demo accounts use the password `ChangeMe123!`; the administrator login is
+`admin@ssmeas.local`.
+
 ## Dashboard
 
 From `dashboard/`, run `npm install`. Set `NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api` in `.env.local`, then use `npm run dev`. For production, run `npm run build` and `npm start`.

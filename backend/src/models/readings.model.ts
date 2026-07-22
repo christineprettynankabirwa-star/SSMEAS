@@ -45,13 +45,14 @@ export const createOrGetDeviceReading = async (
 ): Promise<SensorReading> => {
   const result = await pool.query<SensorReading>(
     `INSERT INTO sensor_readings (
-      tank_id, device_reading_id, level, gas_level, recorded_at
-    ) VALUES ($1, $2, $3, $4, $5)
+      tank_id, device_reading_id, level, gas_level, status, recorded_at
+    ) VALUES ($1, $2, $3, $4,
+      CASE WHEN $5 = 'DANGER' THEN 'CRITICAL' ELSE $5 END, $6)
     ON CONFLICT (device_reading_id) WHERE device_reading_id IS NOT NULL DO NOTHING
     RETURNING *`,
     [
       reading.tank_id, reading.reading_id, reading.level, reading.gas_level,
-      reading.recorded_at,
+      reading.status, reading.recorded_at,
     ],
   );
 

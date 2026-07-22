@@ -8,6 +8,9 @@
     "build": "tsc",
     "test": "node --test --require ./test/register.cjs \"test/**/*.test.ts\"",
     "create-user": "ts-node src/scripts/create-user.ts",
+    "seed": "ts-node src/scripts/database-task.ts seed",
+    "reset-db": "ts-node src/scripts/database-task.ts reset",
+    "demo": "ts-node src/scripts/database-task.ts demo",
     "start": "node dist/server.js"
   },
   "keywords": [],
