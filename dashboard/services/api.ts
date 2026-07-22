@@ -3,12 +3,14 @@ import type { AlertItem, AnalyticsRange, AnalyticsResponse, DashboardSummary, Hi
 
 const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api", timeout: 10_000 });
 export interface LoginResponse { token: string; }
+export interface UserProfile { id: string; full_name: string; email: string; role: "ADMINISTRATOR" | "MAINTENANCE_OFFICER" | "SUPERVISOR"; }
 export const setAccessToken = (token: string | null): void => {
   if (token) api.defaults.headers.common.Authorization = `Bearer ${token}`;
   else delete api.defaults.headers.common.Authorization;
 };
 export const login = async (email: string, password: string): Promise<LoginResponse> =>
   (await api.post<LoginResponse>("/login", { email, password })).data;
+export const getProfile = async (): Promise<UserProfile> => (await api.get<UserProfile>("/profile")).data;
 export interface HealthStatus { status: string; timestamp?: string; }
 export const getHealth = async (): Promise<HealthStatus> => (await api.get<HealthStatus>("/health")).data;
 export const getTanks = async (): Promise<Tank[]> => (await api.get<Tank[]>("/tanks")).data;
