@@ -2,6 +2,7 @@ import * as alertsModel from "../models/alerts.model";
 import * as tankModel from "../models/tank.model";
 import type { Alert, AlertSeverity, CreateAlertRequest } from "../types/alerts.types";
 import type { SensorReading } from "../types/readings.types";
+import { dispatchAlertNotifications } from "./notifications.service";
 
 export class AlertValidationError extends Error {}
 export class AlertTankNotFoundError extends Error {}
@@ -30,7 +31,9 @@ export const addAlert = async (alert: CreateAlertRequest): Promise<Alert> => {
     throw new AlertValidationError("severity must be critical, warning, or info.");
   }
   if (!(await tankModel.getTankById(alert.tank_id))) throw new AlertTankNotFoundError("Tank not found.");
-  return alertsModel.createAlert(alert);
+  const created = await alertsModel.createAlert(alert);
+  await dispatchAlertNotifications(created);
+  return created;
 };
 
 const threshold = (environmentName: string, fallback: number): number => {
@@ -85,5 +88,9 @@ export const generateAlertsForReading = (
 };
 
 export const createAlertsForReading = async (reading: SensorReading): Promise<void> => {
-  await Promise.all(generateAlertsForReading(reading).map((alert) => alertsModel.createAlertUnlessActive(alert)));
+  const candidates = generateAlertsForReading(reading);
+  await alertsModel.resolveInactiveReadingAlerts(reading.tank_id, candidates.map((alert) => alert.alert_type));
+  const created = await Promise.all(candidates.map((alert) => alertsModel.createAlertUnlessActive(alert)));
+  await Promise.all(created.filter((alert): alert is Alert => alert !== null)
+    .map((alert) => dispatchAlertNotifications(alert, reading)));
 };

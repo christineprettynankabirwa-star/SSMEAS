@@ -5,6 +5,7 @@ export interface Alert {
   id: string;
   tank_id: string;
   tank_name: string;
+  location: string;
   alert_type: string;
   severity: AlertSeverity;
   status: AlertStatus;

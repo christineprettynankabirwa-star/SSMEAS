@@ -6,6 +6,7 @@ import dashboardRoutes from "./dashboard.routes";
 import deviceRoutes from "./device.routes";
 import healthRoutes from "./health.routes";
 import maintenanceRoutes from "./maintenance.routes";
+import notificationsRoutes from "./notifications.routes";
 import predictionRoutes from "./prediction.routes";
 import readingsRoutes from "./readings.routes";
 import routeOptimizationRoutes from "./route-optimization.routes";
@@ -21,6 +22,7 @@ router.use("/readings", readingsRoutes);
 router.use("/tanks", tankRoutes);
 router.use("/alerts", alertsRoutes);
 router.use("/maintenance", maintenanceRoutes);
+router.use("/notifications", notificationsRoutes);
 router.use("/predictions", predictionRoutes);
 router.use("/routes", routeOptimizationRoutes);
 

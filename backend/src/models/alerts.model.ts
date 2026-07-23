@@ -1,7 +1,7 @@
 import { pool } from "../config/database";
 import type { Alert, CreateAlertRequest } from "../types/alerts.types";
 
-const alertColumns = `alert.id, alert.tank_id, tank.tank_name, alert.alert_type,
+const alertColumns = `alert.id, alert.tank_id, tank.tank_name, tank.location, alert.alert_type,
   alert.severity, alert.status, alert.message, alert.created_at`;
 
 export const getAllAlerts = async (): Promise<Alert[]> => {
@@ -31,16 +31,32 @@ export const createAlert = async (alert: CreateAlertRequest): Promise<Alert> => 
   return createdAlert;
 };
 
-export const createAlertUnlessActive = async (alert: CreateAlertRequest): Promise<void> => {
-  await pool.query(
-    `INSERT INTO alerts (tank_id, alert_type, severity, message)
-     SELECT $1::uuid, $2::varchar, COALESCE($3::varchar, 'warning'), $4::text
-     WHERE NOT EXISTS (
-       SELECT 1 FROM alerts
-       WHERE tank_id = $1 AND alert_type = $2 AND status = 'ACTIVE'
-     )
-     ON CONFLICT DO NOTHING`,
+export const createAlertUnlessActive = async (alert: CreateAlertRequest): Promise<Alert | null> => {
+  const result = await pool.query<Alert>(
+    `WITH inserted_alert AS (
+       INSERT INTO alerts (tank_id, alert_type, severity, message)
+       SELECT $1::uuid, $2::varchar, COALESCE($3::varchar, 'warning'), $4::text
+       WHERE NOT EXISTS (
+         SELECT 1 FROM alerts
+         WHERE tank_id = $1 AND alert_type = $2 AND status = 'ACTIVE'
+       )
+       ON CONFLICT DO NOTHING RETURNING *
+     ) SELECT ${alertColumns} FROM inserted_alert alert
+       JOIN tanks tank ON tank.id=alert.tank_id`,
     [alert.tank_id, alert.alert_type, alert.severity ?? null, alert.message],
+  );
+  return result.rows[0] ?? null;
+};
+
+export const resolveInactiveReadingAlerts = async (
+  tankId: string, activeTypes: string[],
+): Promise<void> => {
+  await pool.query(
+    `UPDATE alerts SET status='RESOLVED'
+     WHERE tank_id=$1 AND status='ACTIVE'
+       AND alert_type IN ('Critical sewage level','High sewage level','Hazardous gas')
+       AND NOT (alert_type = ANY($2::varchar[]))`,
+    [tankId, activeTypes],
   );
 };
 

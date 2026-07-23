@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { pool } from "../config/database";
 
-type Task = "seed" | "reset" | "demo";
+type Task = "seed" | "reset" | "demo" | "migrate";
 
 const task = process.argv[2] as Task | undefined;
 const databaseDirectory = path.resolve(__dirname, "../../../database");
@@ -16,6 +16,7 @@ const runSqlFile = async (fileName: string): Promise<void> => {
 const applySeedPrerequisites = async (): Promise<void> => {
   await runSqlFile("add_demo_status_support.sql");
   await runSqlFile("expand_maintenance_workflow.sql");
+  await runSqlFile("create_notifications_subsystem.sql");
 };
 
 const resetDemoRecords = async (): Promise<void> => {
@@ -57,6 +58,7 @@ const demo = async (): Promise<void> => {
     "expand_maintenance_workflow.sql",
     "add_direct_device_readings.sql",
     "add_demo_status_support.sql",
+    "create_notifications_subsystem.sql",
   ]) await runSqlFile(migration);
   await resetDemoRecords();
   await runSqlFile("seed_demo_data.sql");
@@ -71,7 +73,8 @@ const main = async (): Promise<void> => {
     return seed();
   }
   if (task === "demo") return demo();
-  throw new Error("Usage: ts-node src/scripts/database-task.ts <seed|reset|demo>");
+  if (task === "migrate") return runSqlFile("create_notifications_subsystem.sql");
+  throw new Error("Usage: ts-node src/scripts/database-task.ts <seed|reset|demo|migrate>");
 };
 
 main()

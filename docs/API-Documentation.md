@@ -49,6 +49,24 @@ Reading responses contain `tank_id`, telemetry values, the source ThingSpeak ide
 - `GET /api/dashboard/summary` — administrator, supervisor; returns `totalTanks`, `onlineTanks`, `activeAlerts`, and `averageFillLevel`.
 - `GET /api/alerts` — administrator, supervisor; returns alerts. The dashboard displays records whose status is `ACTIVE`.
 
+## Notifications
+
+All notification endpoints require authentication and operate only on the signed-in user's records.
+
+- `GET /api/notifications` — dashboard notification history.
+- `GET /api/notifications/unread` — unread dashboard notifications.
+- `PATCH /api/notifications/:id/read` — mark one dashboard notification read.
+- `PATCH /api/notifications/read-all` — mark all dashboard notifications read.
+- `GET /api/notifications/preferences` — current channel and severity preferences.
+- `PUT /api/notifications/preferences` — replace notification preferences.
+- `POST /api/notifications/test-email` — test the configured email provider.
+- `POST /api/notifications/test-sms` — test the configured SMS provider.
+
+Apply `npm run migrate` from `backend/` before deploying this subsystem. Email and SMS
+providers are backend HTTP integrations configured with `EMAIL_PROVIDER_*` and
+`SMS_PROVIDER_*` environment variables; credentials are never exposed to the dashboard
+or ESP32.
+
 ## Overflow predictions
 
 - `GET /api/predictions` — all three roles; calculates predictions for every registered tank from its latest 100 PostgreSQL fill-level readings.

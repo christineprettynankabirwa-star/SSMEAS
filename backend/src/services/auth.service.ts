@@ -13,7 +13,7 @@ const getJwtSecret = (): string => {
 };
 
 const publicUser = ({ password_hash: _passwordHash, ...user }: UserRecord): AuthenticatedUser => user;
-const userRoles = new Set<UserRole>(["ADMINISTRATOR", "MAINTENANCE_OFFICER", "SUPERVISOR"]);
+const userRoles = new Set<UserRole>(["ADMINISTRATOR", "MAINTENANCE_OFFICER", "SUPERVISOR", "CLIENT"]);
 
 export const createUser = async (input: CreateUserRequest): Promise<AuthenticatedUser> => {
   if (typeof input.full_name !== "string" || !input.full_name.trim() || input.full_name.length > 150) {

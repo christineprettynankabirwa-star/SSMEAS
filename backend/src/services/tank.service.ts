@@ -13,6 +13,7 @@ const statuses = [
 const updatableFields = new Set<keyof UpdateTankRequest>([
   "tank_name",
   "owner_name",
+  "owner_user_id",
   "location",
   "latitude",
   "longitude",
@@ -64,6 +65,10 @@ const validateTank = (tank: CreateTankRequest | UpdateTankRequest, isCreate: boo
     }
   }
   if (tank.status !== undefined) validateStatus(tank.status);
+  if (tank.owner_user_id !== undefined && tank.owner_user_id !== null
+    && !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(tank.owner_user_id)) {
+    throw new ValidationError("owner_user_id must be a valid user UUID or null.");
+  }
 };
 
 export const listTanks = async (): Promise<Tank[]> => tankModel.getAllTanks();

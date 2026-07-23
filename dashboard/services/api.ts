@@ -1,9 +1,9 @@
 import axios from "axios";
-import type { AlertItem, AnalyticsRange, AnalyticsResponse, DashboardSummary, HistoricalSensorReading, MaintenanceItem, MaintenanceOfficer, MaintenancePriority, MaintenanceStatus, OptimizedRoute, OverflowPrediction, PredictionApiResponse, SensorReading, Tank } from "@/components/dashboard/types";
+import type { AlertItem, AnalyticsRange, AnalyticsResponse, DashboardSummary, HistoricalSensorReading, MaintenanceItem, MaintenanceOfficer, MaintenancePriority, MaintenanceStatus, NotificationItem, NotificationPreferences, OptimizedRoute, OverflowPrediction, PredictionApiResponse, SensorReading, Tank } from "@/components/dashboard/types";
 
 const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api", timeout: 10_000 });
 export interface LoginResponse { token: string; }
-export interface UserProfile { id: string; full_name: string; email: string; role: "ADMINISTRATOR" | "MAINTENANCE_OFFICER" | "SUPERVISOR"; }
+export interface UserProfile { id: string; full_name: string; email: string; role: "ADMINISTRATOR" | "MAINTENANCE_OFFICER" | "SUPERVISOR" | "CLIENT"; }
 export const setAccessToken = (token: string | null): void => {
   if (token) api.defaults.headers.common.Authorization = `Bearer ${token}`;
   else delete api.defaults.headers.common.Authorization;
@@ -60,4 +60,12 @@ export const getOptimizedRoute = async (): Promise<OptimizedRoute> => {
   const stops = route.stops.map((stop) => ({ ...stop, fillLevel: stop.fillLevel ?? null, priority: stop.priority ?? "MEDIUM" as const, priorityScore: stop.priorityScore ?? 35 }));
   return { ...route, stops, tankCount: route.tankCount ?? stops.length, estimatedDurationMinutes: route.estimatedDurationMinutes ?? Math.round(route.totalDistanceKm * 2 + stops.length * 20), priorityScore: route.priorityScore ?? (stops.length ? Math.round(stops.reduce((sum, stop) => sum + stop.priorityScore, 0) / stops.length) : 0) };
 };
+export const getNotifications = async (): Promise<NotificationItem[]> => (await api.get<NotificationItem[]>("/notifications")).data;
+export const getUnreadNotifications = async (): Promise<NotificationItem[]> => (await api.get<NotificationItem[]>("/notifications/unread")).data;
+export const markNotificationRead = async (id: string): Promise<NotificationItem> => (await api.patch<NotificationItem>(`/notifications/${encodeURIComponent(id)}/read`)).data;
+export const markAllNotificationsRead = async (): Promise<{ updated: number }> => (await api.patch<{ updated: number }>("/notifications/read-all")).data;
+export const getNotificationPreferences = async (): Promise<NotificationPreferences> => (await api.get<NotificationPreferences>("/notifications/preferences")).data;
+export const updateNotificationPreferences = async (value: Omit<NotificationPreferences, "id" | "user_id" | "created_at" | "updated_at">): Promise<NotificationPreferences> => (await api.put<NotificationPreferences>("/notifications/preferences", value)).data;
+export const testNotificationEmail = async (): Promise<{ message: string }> => (await api.post<{ message: string }>("/notifications/test-email")).data;
+export const testNotificationSms = async (): Promise<{ message: string }> => (await api.post<{ message: string }>("/notifications/test-sms")).data;
 export default api;

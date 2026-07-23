@@ -10,7 +10,7 @@ export const createUser = async (
   const result = await pool.query<UserRecord>(
     `INSERT INTO users (full_name, email, password_hash, role)
      VALUES ($1, LOWER($2), $3, $4)
-     RETURNING id, full_name, email, password_hash, role, created_at, updated_at`,
+     RETURNING id, full_name, email, phone_number, password_hash, role, created_at, updated_at`,
     [fullName, email, passwordHash, role],
   );
   const user = result.rows[0];
@@ -20,7 +20,7 @@ export const createUser = async (
 
 export const getUserByEmail = async (email: string): Promise<UserRecord | null> => {
   const result = await pool.query<UserRecord>(
-    `SELECT id, full_name, email, password_hash, role, created_at, updated_at
+    `SELECT id, full_name, email, phone_number, password_hash, role, created_at, updated_at
      FROM users
      WHERE LOWER(email) = LOWER($1)
      LIMIT 1`,
@@ -31,7 +31,7 @@ export const getUserByEmail = async (email: string): Promise<UserRecord | null> 
 
 export const getUserById = async (id: string): Promise<UserRecord | null> => {
   const result = await pool.query<UserRecord>(
-    `SELECT id, full_name, email, password_hash, role, created_at, updated_at
+    `SELECT id, full_name, email, phone_number, password_hash, role, created_at, updated_at
      FROM users
      WHERE id = $1
      LIMIT 1`,

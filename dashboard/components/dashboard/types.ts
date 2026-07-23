@@ -1,5 +1,5 @@
 export type TankStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
-export interface Tank { id: string; tank_name: string; owner_name: string; location: string; latitude: number; longitude: number; capacity_liters: number; status: TankStatus; thingspeak_channel_id?: number; thingspeak_read_api_key?: string; created_at: string; updated_at: string; }
+export interface Tank { id: string; tank_name: string; owner_name: string; owner_user_id?: string | null; location: string; latitude: number; longitude: number; capacity_liters: number; status: TankStatus; thingspeak_channel_id?: number; thingspeak_read_api_key?: string; created_at: string; updated_at: string; }
 export interface SensorReading { id: string; tank_id: string; thingspeak_channel_id: number | null; thingspeak_entry_id: number | null; device_reading_id?: string | null; level: number | null; gas_level: number | null; status?: "SAFE" | "WARNING" | "CRITICAL" | null; recorded_at: string; created_at: string; }
 export interface HistoricalSensorReading { recorded_at: string; level: number | null; gas_level: number | null; }
 export type AnalyticsRange = "1h" | "24h" | "7d" | "30d" | "all";
@@ -16,3 +16,6 @@ export interface OverflowPrediction { tankId: string; currentLevel: number | nul
 export interface PredictionApiResponse { tank_id: string; predicted_overflow_time: string | null; hours_remaining: number | null; risk: number; confidence: number; recommended_maintenance_date: string | null; }
 export interface OptimizedRouteStop { tankId: string; tankName: string; location: string; latitude: number; longitude: number; task: string; scheduledFor: string; fillLevel: number | null; priority: "CRITICAL" | "HIGH" | "MEDIUM"; priorityScore: number; sequence: number; distanceFromPreviousKm: number; }
 export interface OptimizedRoute { depot: { latitude: number; longitude: number }; stops: OptimizedRouteStop[]; totalDistanceKm: number; estimatedDurationMinutes: number; tankCount: number; priorityScore: number; generatedAt: string; }
+export type NotificationStatus = "QUEUED" | "SENT" | "FAILED" | "READ";
+export interface NotificationItem { id: string; alert_id: string; user_id: string; channel: "DASHBOARD"; status: NotificationStatus; recipient: string; subject: string; message: string; sent_at: string | null; read_at: string | null; error_message: string | null; created_at: string; tank_id: string; tank_name: string; severity: "critical" | "warning" | "info"; alert_type: string; }
+export interface NotificationPreferences { id: string; user_id: string; email_enabled: boolean; sms_enabled: boolean; dashboard_enabled: boolean; critical_only: boolean; warning_enabled: boolean; daily_summary: boolean; created_at: string; updated_at: string; }

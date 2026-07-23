@@ -5,6 +5,7 @@ export interface Tank {
   id: string;
   tank_name: string;
   owner_name: string;
+  owner_user_id: string | null;
   location: string;
   latitude: number;
   longitude: number;
@@ -19,6 +20,7 @@ export interface Tank {
 export interface CreateTankRequest {
   tank_name: string;
   owner_name: string;
+  owner_user_id?: string | null;
   location: string;
   latitude: number;
   longitude: number;
@@ -31,6 +33,7 @@ export interface CreateTankRequest {
 export interface UpdateTankRequest {
   tank_name?: string;
   owner_name?: string;
+  owner_user_id?: string | null;
   location?: string;
   latitude?: number;
   longitude?: number;

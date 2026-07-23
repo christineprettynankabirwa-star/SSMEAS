@@ -18,7 +18,14 @@ Supervisors can view the dashboard, tank data, readings, alerts, and maintenance
 
 ## Dashboard
 
-The dashboard refreshes live readings, summary cards, active alerts, maintenance records, and historical telemetry every 30 seconds. Select a tank in the monitoring table to change the historical chart. The “Last updated” time confirms successful refreshes.
+The overview refreshes live readings, summary cards, active alerts, maintenance records, and predictions every 3 seconds. Historical analytics refresh every 30 seconds. Select a tank in the monitoring table to change the historical chart. The “Last updated” time confirms successful refreshes.
+
+## Notifications
+
+Use the bell to view unread alerts. Critical alerts appear as toast messages automatically.
+Click an unread item to mark it read, or use **Mark all read**. The Notifications page keeps
+the full dashboard notification history and lets each user enable dashboard, email, SMS,
+warning, critical-only, and daily-summary preferences.
 
 ## Overflow prediction
 
