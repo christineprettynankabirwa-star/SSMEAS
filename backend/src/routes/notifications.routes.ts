@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
-  deleteNotificationController, getNotifications, getPreferences, getUnreadNotifications,
+  deleteNotificationController, getNotifications, getPreferences, getUnreadNotificationCount,
+  getUnreadNotifications,
   patchNotificationRead, patchNotificationsReadAll, postTestEmail, postTestSms, putPreferences,
 } from "../controllers/notifications.controller";
 import { authenticate } from "../middleware/auth.middleware";
@@ -9,6 +10,7 @@ const router = Router();
 router.use(authenticate);
 router.get("/", getNotifications);
 router.get("/unread", getUnreadNotifications);
+router.get("/unread-count", getUnreadNotificationCount);
 router.patch("/read-all", patchNotificationsReadAll);
 router.patch("/:id/read", patchNotificationRead);
 router.get("/preferences", getPreferences);
@@ -17,4 +19,3 @@ router.post("/test-email", postTestEmail);
 router.post("/test-sms", postTestSms);
 router.delete("/:id", deleteNotificationController);
 export default router;
-

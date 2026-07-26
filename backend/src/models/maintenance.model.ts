@@ -60,11 +60,25 @@ export const createMaintenanceUnlessOpen = async (
   maintenance: CreateMaintenanceRequest,
 ): Promise<void> => {
   await pool.query(
-    `INSERT INTO maintenance (tank_id, task, scheduled_for, status)
-     VALUES ($1, $2, $3, 'SCHEDULED')
+    `INSERT INTO maintenance (tank_id, task, scheduled_for, status, priority, assigned_to)
+     VALUES ($1, $2, $3, 'SCHEDULED', COALESCE($4, 'HIGH'), $5)
      ON CONFLICT (tank_id, task)
        WHERE status IN ('SCHEDULED', 'ASSIGNED', 'IN_PROGRESS')
      DO NOTHING`,
-    [maintenance.tank_id, maintenance.task, maintenance.scheduled_for],
+    [maintenance.tank_id, maintenance.task, maintenance.scheduled_for,
+      maintenance.priority ?? null, maintenance.assigned_to ?? null],
   );
 };
+
+export const getOfficerForTank = async (tankId: string): Promise<string | null> =>
+  (await pool.query<{ id: string }>(
+    `SELECT user_account.id
+     FROM users user_account
+     LEFT JOIN maintenance ON maintenance.assigned_to=user_account.id
+       AND maintenance.tank_id=$1
+       AND maintenance.status IN ('SCHEDULED','ASSIGNED','IN_PROGRESS')
+     WHERE user_account.role='MAINTENANCE_OFFICER'
+     ORDER BY (maintenance.id IS NOT NULL) DESC, user_account.created_at ASC
+     LIMIT 1`,
+    [tankId],
+  )).rows[0]?.id ?? null;

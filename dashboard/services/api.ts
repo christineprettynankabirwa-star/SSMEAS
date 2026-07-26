@@ -62,6 +62,7 @@ export const getOptimizedRoute = async (): Promise<OptimizedRoute> => {
 };
 export const getNotifications = async (): Promise<NotificationItem[]> => (await api.get<NotificationItem[]>("/notifications")).data;
 export const getUnreadNotifications = async (): Promise<NotificationItem[]> => (await api.get<NotificationItem[]>("/notifications/unread")).data;
+export const getUnreadNotificationCount = async (): Promise<number> => (await api.get<{ count: number }>("/notifications/unread-count")).data.count;
 export const markNotificationRead = async (id: string): Promise<NotificationItem> => (await api.patch<NotificationItem>(`/notifications/${encodeURIComponent(id)}/read`)).data;
 export const markAllNotificationsRead = async (): Promise<{ updated: number }> => (await api.patch<{ updated: number }>("/notifications/read-all")).data;
 export const getNotificationPreferences = async (): Promise<NotificationPreferences> => (await api.get<NotificationPreferences>("/notifications/preferences")).data;

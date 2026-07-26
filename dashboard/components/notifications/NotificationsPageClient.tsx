@@ -11,9 +11,9 @@ import {
 } from "@/services/api";
 
 const preferenceFields: Array<[keyof Pick<NotificationPreferences,
-  "email_enabled" | "sms_enabled" | "dashboard_enabled" | "critical_only" |
+  "email_enabled" | "sms_enabled" | "in_app_enabled" | "critical_only" |
   "warning_enabled" | "daily_summary">, string]> = [
-  ["dashboard_enabled", "Dashboard notifications"],
+  ["in_app_enabled", "In-app notifications"],
   ["email_enabled", "Email notifications"],
   ["sms_enabled", "SMS notifications"],
   ["critical_only", "Critical alerts only"],
@@ -43,8 +43,8 @@ export default function NotificationsPageClient() {
   const save = async (event: FormEvent) => {
     event.preventDefault();
     if (!preferences) return;
-    const { email_enabled, sms_enabled, dashboard_enabled, critical_only, warning_enabled, daily_summary } = preferences;
-    setPreferences(await updateNotificationPreferences({ email_enabled, sms_enabled, dashboard_enabled, critical_only, warning_enabled, daily_summary }));
+    const { email_enabled, sms_enabled, in_app_enabled, critical_only, warning_enabled, daily_summary } = preferences;
+    setPreferences(await updateNotificationPreferences({ email_enabled, sms_enabled, in_app_enabled, critical_only, warning_enabled, daily_summary }));
     setMessage("Notification preferences saved.");
   };
   const read = async (item: NotificationItem) => {
@@ -55,7 +55,7 @@ export default function NotificationsPageClient() {
   const readAll = async () => {
     await markAllNotificationsRead();
     const now = new Date().toISOString();
-    setItems((current) => current.map((item) => ({ ...item, status: "READ", read_at: item.read_at ?? now })));
+    setItems((current) => current.map((item) => ({ ...item, read_at: item.read_at ?? now })));
   };
   const clear = async (id: string) => {
     try {
@@ -101,4 +101,3 @@ export default function NotificationsPageClient() {
     </div>
   </main></AppShell>;
 }
-

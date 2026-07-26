@@ -19,6 +19,7 @@ const protectedEndpoints = [
   ["GET", "/api/routes/optimized"],
   ["GET", "/api/notifications"],
   ["GET", "/api/notifications/unread"],
+  ["GET", "/api/notifications/unread-count"],
   ["PATCH", "/api/notifications/00000000-0000-4000-8000-000000000001/read"],
   ["PATCH", "/api/notifications/read-all"],
   ["GET", "/api/notifications/preferences"],

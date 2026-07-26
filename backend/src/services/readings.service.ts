@@ -93,8 +93,8 @@ export const getAndStoreLiveReading = async (): Promise<SensorReading> => {
     throw new ReadingValidationError("ThingSpeak channel does not match the registered tank.");
   }
   const storedReading = await readingsModel.createOrGetSensorReading(reading);
-  await createAlertsForReading(storedReading);
   await createAutomaticMaintenanceForReading(storedReading);
+  await createAlertsForReading(storedReading);
   return storedReading;
 };
 
@@ -196,7 +196,7 @@ export const storeDeviceReading = async (payload: Record<string, unknown>): Prom
   if (!tank) throw new ReadingValidationError("tank_id does not match a registered tank.");
 
   const stored = await readingsModel.createOrGetDeviceReading(reading);
-  await createAlertsForReading(stored);
   await createAutomaticMaintenanceForReading(stored);
+  await createAlertsForReading(stored);
   return stored;
 };

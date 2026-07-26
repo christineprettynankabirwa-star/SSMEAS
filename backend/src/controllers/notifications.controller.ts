@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import {
-  deleteNotification as deleteNotificationService, getNotificationPreferences,
+  countUnreadNotifications, deleteNotification as deleteNotificationService, getNotificationPreferences,
   listNotifications, listUnreadNotifications, NotificationNotFoundError,
   NotificationValidationError, readAllNotifications, readNotification,
   sendTestNotification, setNotificationPreferences,
@@ -23,6 +23,10 @@ export const getNotifications = async (request: Request, response: Response): Pr
 };
 export const getUnreadNotifications = async (request: Request, response: Response): Promise<void> => {
   try { response.json(await listUnreadNotifications(user(request).id)); } catch (error) { handle(error, response); }
+};
+export const getUnreadNotificationCount = async (request: Request, response: Response): Promise<void> => {
+  try { response.json({ count: await countUnreadNotifications(user(request).id) }); }
+  catch (error) { handle(error, response); }
 };
 export const patchNotificationRead = async (request: Request, response: Response): Promise<void> => {
   try { response.json(await readNotification(String(request.params.id), user(request).id)); }
@@ -55,4 +59,3 @@ export const postTestSms = async (request: Request, response: Response): Promise
   try { response.json(await sendTestNotification("SMS", user(request))); }
   catch (error) { handle(error, response); }
 };
-

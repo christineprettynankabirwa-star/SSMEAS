@@ -6,7 +6,7 @@ import {
 
 test("notification preferences require every supported boolean field", () => {
   assert.throws(
-    () => setNotificationPreferences("user-id", { dashboard_enabled: true }),
+    () => setNotificationPreferences("user-id", { in_app_enabled: true }),
     NotificationValidationError,
   );
 });

@@ -1,6 +1,6 @@
 import * as maintenanceModel from "../models/maintenance.model";
 import * as tankModel from "../models/tank.model";
-import { generateAlertsForReading } from "./alerts.service";
+import { alertThresholds } from "./alerts.service";
 import type { CreateMaintenanceRequest, MaintenancePriority, MaintenanceRecord, MaintenanceStatus, UpdateMaintenanceRequest } from "../types/maintenance.types";
 import type { SensorReading } from "../types/readings.types";
 
@@ -56,20 +56,25 @@ export const generateAutomaticMaintenanceRequests = (
   const baseTime = Math.max(now.getTime(), new Date(reading.recorded_at).getTime());
   const scheduledFor = new Date(baseTime + automaticDelayMinutes() * 60_000).toISOString();
 
-  return generateAlertsForReading(reading)
-    .filter((alert) => alert.severity === "critical")
-    .map((alert) => ({
+  const reasons: string[] = [];
+  if (reading.level !== null && reading.level >= 90) reasons.push("Critical sewage level");
+  if (reading.gas_level !== null && reading.gas_level >= alertThresholds.hazardousGas) {
+    reasons.push("Hazardous gas");
+  }
+  return reasons.map((reason) => ({
       tank_id: reading.tank_id,
-      task: `Emergency response: ${alert.alert_type}`,
+      task: `Emergency response: ${reason}`,
       scheduled_for: scheduledFor,
       status: "SCHEDULED",
+      priority: "HIGH",
     }));
 };
 
 export const createAutomaticMaintenanceForReading = async (reading: SensorReading): Promise<void> => {
+  const assignedTo = await maintenanceModel.getOfficerForTank(reading.tank_id);
   await Promise.all(
     generateAutomaticMaintenanceRequests(reading).map((maintenance) =>
-      maintenanceModel.createMaintenanceUnlessOpen(maintenance),
+      maintenanceModel.createMaintenanceUnlessOpen({ ...maintenance, assigned_to: assignedTo }),
     ),
   );
 };

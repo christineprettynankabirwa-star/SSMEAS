@@ -7,8 +7,8 @@ import type {
   NotificationPreferenceUpdate, ProviderMessage,
 } from "../types/notifications.types";
 import {
-  DashboardNotificationProvider, EmailNotificationProvider,
-  NotificationService, SmsNotificationProvider,
+  InAppNotificationProvider, NodemailerEmailProvider,
+  NotificationProvider, SmsNotificationProvider,
 } from "./notification-providers";
 
 export class NotificationValidationError extends Error {}
@@ -17,9 +17,9 @@ export class NotificationNotFoundError extends Error {}
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const providers: Record<NotificationChannel, NotificationService> = {
-  DASHBOARD: new DashboardNotificationProvider(),
-  EMAIL: new EmailNotificationProvider(),
+const providers: Record<NotificationChannel, NotificationProvider> = {
+  IN_APP: new InAppNotificationProvider(),
+  EMAIL: new NodemailerEmailProvider(),
   SMS: new SmsNotificationProvider(),
 };
 
@@ -39,18 +39,22 @@ const isEligible = (severity: Alert["severity"], preference: NotificationPrefere
 export const dispatchAlertNotifications = async (
   alert: Alert, reading?: SensorReading,
 ): Promise<void> => {
+  if (alert.severity !== "warning" && alert.severity !== "critical") return;
   const client = await pool.connect();
   const deliveries: Array<{ channel: NotificationChannel; value: ProviderMessage }> = [];
   try {
     await client.query("BEGIN");
     const recipients = await notificationModel.getRecipients(client, alert);
-    const subject = `${alert.severity.toUpperCase()} ALERT — ${alert.tank_name}`;
+    const subject = alert.severity === "critical"
+      ? `Critical Sewer Alert - ${alert.tank_name}`
+      : `Warning - ${alert.tank_name}`;
     const message = [
       alert.message,
       `Tank: ${alert.tank_name}`,
       `Current level: ${reading?.level ?? "Unavailable"}${reading?.level === null || reading?.level === undefined ? "" : "%"}`,
       `Gas level: ${reading?.gas_level ?? "Unavailable"}`,
       `Location: ${alert.location}`,
+      `Alert type: ${alert.alert_type}`,
       `Time: ${(reading?.recorded_at ?? new Date()).toISOString()}`,
       `Recommended action: ${recommendedAction(alert)}`,
     ].join("\n");
@@ -58,19 +62,22 @@ export const dispatchAlertNotifications = async (
     for (const recipient of recipients) {
       if (!isEligible(alert.severity, recipient.preferences)) continue;
       const enabled: Array<[NotificationChannel, boolean, string | null]> = [
-        ["DASHBOARD", recipient.preferences.dashboard_enabled, recipient.id],
+        ["IN_APP", recipient.preferences.in_app_enabled, recipient.id],
         ["EMAIL", recipient.preferences.email_enabled, recipient.email],
         ["SMS", recipient.preferences.sms_enabled, recipient.phone_number],
       ];
       for (const [channel, isEnabled, address] of enabled) {
         if (!isEnabled || !address) continue;
         const notificationId = await notificationModel.createNotification(
-          client, alert.id, recipient.id, channel, address, subject, message,
+          client, alert.id, alert.tank_id, recipient.id, channel, address, subject, message,
         );
         if (notificationId) {
           deliveries.push({
             channel,
-            value: { notificationId, recipient: address, subject, message },
+            value: {
+              notificationId, recipient: address, subject, message,
+              tankId: alert.tank_id, tankName: alert.tank_name,
+            },
           });
         }
       }
@@ -89,6 +96,8 @@ export const listNotifications = (userId: string): Promise<Notification[]> =>
   notificationModel.listForUser(userId);
 export const listUnreadNotifications = (userId: string): Promise<Notification[]> =>
   notificationModel.unreadForUser(userId);
+export const countUnreadNotifications = (userId: string): Promise<number> =>
+  notificationModel.unreadCountForUser(userId);
 
 export const readNotification = async (id: string, userId: string): Promise<Notification> => {
   if (!uuidPattern.test(id)) throw new NotificationValidationError("Invalid notification id.");
@@ -116,7 +125,7 @@ export const setNotificationPreferences = (
     throw new NotificationValidationError("Preferences must be a JSON object.");
   }
   const fields: Array<keyof NotificationPreferenceUpdate> = [
-    "email_enabled", "sms_enabled", "dashboard_enabled",
+    "email_enabled", "sms_enabled", "in_app_enabled",
     "critical_only", "warning_enabled", "daily_summary",
   ];
   const record = input as Record<string, unknown>;

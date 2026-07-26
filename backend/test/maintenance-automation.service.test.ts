@@ -27,8 +27,16 @@ test("schedules field work for every critical condition", () => {
     ["Emergency response: Critical sewage level", "Emergency response: Hazardous gas"],
   );
   assert.ok(requests.every(({ status }) => status === "SCHEDULED"));
+  assert.ok(requests.every(({ priority }) => priority === "HIGH"));
 });
 
 test("does not schedule maintenance for warning-only readings", () => {
   assert.deepEqual(generateAutomaticMaintenanceRequests(reading({ level: 80 })), []);
+});
+
+test("schedules high-priority maintenance when the level reaches 90 percent", () => {
+  const requests = generateAutomaticMaintenanceRequests(reading({ level: 90 }));
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0]?.priority, "HIGH");
+  assert.equal(requests[0]?.status, "SCHEDULED");
 });

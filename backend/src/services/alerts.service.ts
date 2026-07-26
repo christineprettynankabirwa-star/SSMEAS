@@ -2,7 +2,7 @@ import * as alertsModel from "../models/alerts.model";
 import * as tankModel from "../models/tank.model";
 import type { Alert, AlertSeverity, CreateAlertRequest } from "../types/alerts.types";
 import type { SensorReading } from "../types/readings.types";
-import { dispatchAlertNotifications } from "./notifications.service";
+import { publishAlertNotificationEvent } from "./notification-events";
 
 export class AlertValidationError extends Error {}
 export class AlertTankNotFoundError extends Error {}
@@ -32,7 +32,7 @@ export const addAlert = async (alert: CreateAlertRequest): Promise<Alert> => {
   }
   if (!(await tankModel.getTankById(alert.tank_id))) throw new AlertTankNotFoundError("Tank not found.");
   const created = await alertsModel.createAlert(alert);
-  await dispatchAlertNotifications(created);
+  await publishAlertNotificationEvent({ alert: created });
   return created;
 };
 
@@ -92,5 +92,5 @@ export const createAlertsForReading = async (reading: SensorReading): Promise<vo
   await alertsModel.resolveInactiveReadingAlerts(reading.tank_id, candidates.map((alert) => alert.alert_type));
   const created = await Promise.all(candidates.map((alert) => alertsModel.createAlertUnlessActive(alert)));
   await Promise.all(created.filter((alert): alert is Alert => alert !== null)
-    .map((alert) => dispatchAlertNotifications(alert, reading)));
+    .map((alert) => publishAlertNotificationEvent({ alert, reading })));
 };
