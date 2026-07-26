@@ -1,8 +1,9 @@
 import type { Request, Response } from "express";
 import {
-  getNotificationPreferences, listNotifications, listUnreadNotifications,
-  NotificationNotFoundError, NotificationValidationError, readAllNotifications,
-  readNotification, sendTestNotification, setNotificationPreferences,
+  deleteNotification as deleteNotificationService, getNotificationPreferences,
+  listNotifications, listUnreadNotifications, NotificationNotFoundError,
+  NotificationValidationError, readAllNotifications, readNotification,
+  sendTestNotification, setNotificationPreferences,
 } from "../services/notifications.service";
 
 const user = (request: Request) => request.user!;
@@ -43,6 +44,13 @@ export const postTestEmail = async (request: Request, response: Response): Promi
   try { response.json(await sendTestNotification("EMAIL", user(request))); }
   catch (error) { handle(error, response); }
 };
+export const deleteNotificationController = async (request: Request, response: Response): Promise<void> => {
+  try {
+    await deleteNotificationService(String(request.params.id), user(request).id);
+    response.status(204).end();
+  } catch (error) { handle(error, response); }
+};
+
 export const postTestSms = async (request: Request, response: Response): Promise<void> => {
   try { response.json(await sendTestNotification("SMS", user(request))); }
   catch (error) { handle(error, response); }

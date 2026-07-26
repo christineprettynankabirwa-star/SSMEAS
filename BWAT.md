@@ -13,6 +13,7 @@ This file provides guidance to Bwat when working with code in this repository.
 ## Brand Identity
 
 **Colors** (from `globals.css` custom properties; use existing tokens, never invent new values):
+
 - Background: `#eef5f8` (`--background`)
 - Foreground / text: `#102338` (`--foreground`, `--ss-text`)
 - Secondary text: `#40566d` (`--ss-text-secondary`)
@@ -29,11 +30,13 @@ This file provides guidance to Bwat when working with code in this repository.
 - Cyan accent border: `rgb(8 145 178 / .25)` (`--ss-border-cyan`)
 
 **Typography**:
+
 - Body / UI: `Arial, Helvetica, sans-serif` (set via `--font-sans`)
 - Monospace: `"Courier New", Courier, monospace` (set via `--font-mono`)
 - No custom/imported fonts — uses system sans-serif stack
 
 **Geometry**:
+
 - Card radius: `1rem` (`--ss-radius-card`)
 - Panel radius: `0.75rem` (utility `.panel` class)
 - Small radius (metric icons, buttons): `0.75rem` / `0.5rem`
@@ -70,7 +73,7 @@ This file provides guidance to Bwat when working with code in this repository.
 ## Commands
 
 | Context | Command | What it does |
-|---|---|---|
+| --- | --- | --- |
 | Backend | `npm run dev` | Start dev server with nodemon + ts-node |
 | Backend | `npm run build` | Compile TypeScript to `dist/` |
 | Backend | `npm test` | Run tests (`node --test` with custom register) |

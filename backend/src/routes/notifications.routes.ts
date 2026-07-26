@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
-  getNotifications, getPreferences, getUnreadNotifications, patchNotificationRead,
-  patchNotificationsReadAll, postTestEmail, postTestSms, putPreferences,
+  deleteNotificationController, getNotifications, getPreferences, getUnreadNotifications,
+  patchNotificationRead, patchNotificationsReadAll, postTestEmail, postTestSms, putPreferences,
 } from "../controllers/notifications.controller";
 import { authenticate } from "../middleware/auth.middleware";
 
@@ -15,5 +15,6 @@ router.get("/preferences", getPreferences);
 router.put("/preferences", putPreferences);
 router.post("/test-email", postTestEmail);
 router.post("/test-sms", postTestSms);
+router.delete("/:id", deleteNotificationController);
 export default router;
 

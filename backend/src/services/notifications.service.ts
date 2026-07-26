@@ -14,6 +14,9 @@ import {
 export class NotificationValidationError extends Error {}
 export class NotificationNotFoundError extends Error {}
 
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const providers: Record<NotificationChannel, NotificationService> = {
   DASHBOARD: new DashboardNotificationProvider(),
   EMAIL: new EmailNotificationProvider(),
@@ -88,7 +91,7 @@ export const listUnreadNotifications = (userId: string): Promise<Notification[]>
   notificationModel.unreadForUser(userId);
 
 export const readNotification = async (id: string, userId: string): Promise<Notification> => {
-  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new NotificationValidationError("Invalid notification id.");
+  if (!uuidPattern.test(id)) throw new NotificationValidationError("Invalid notification id.");
   const notification = await notificationModel.markRead(id, userId);
   if (!notification) throw new NotificationNotFoundError("Notification not found.");
   return notification;
@@ -96,6 +99,13 @@ export const readNotification = async (id: string, userId: string): Promise<Noti
 
 export const readAllNotifications = (userId: string): Promise<number> =>
   notificationModel.markAllRead(userId);
+
+export const deleteNotification = async (id: string, userId: string): Promise<void> => {
+  if (!uuidPattern.test(id)) throw new NotificationValidationError("Invalid notification id.");
+  const deleted = await notificationModel.remove(id, userId);
+  if (!deleted) throw new NotificationNotFoundError("Notification not found.");
+};
+
 export const getNotificationPreferences = (userId: string): Promise<NotificationPreference> =>
   notificationModel.getPreferences(userId);
 

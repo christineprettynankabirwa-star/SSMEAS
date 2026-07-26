@@ -148,4 +148,26 @@ WHERE job.tank_id::text LIKE 'd0000000-0000-4000-8000-00000000000_'
     WHEN 1 THEN 'david.kato@ssmeas.local' WHEN 2 THEN 'grace.nansubuga@ssmeas.local'
     ELSE 'michael.okello@ssmeas.local' END;
 
+-- Generate DASHBOARD notifications for the existing demo alerts, targeting the admin user.
+INSERT INTO notifications (alert_id, user_id, channel, recipient, subject, message, status, created_at)
+SELECT alert.id, 'e0000000-0000-4000-8000-000000000001'::uuid, 'DASHBOARD',
+       'admin@ssmeas.local', UPPER(alert.severity) || ' ALERT — ' || tank.tank_name,
+       alert.message || E'\nTank: ' || tank.tank_name || E'\nRecommended action: ' ||
+       CASE alert.severity WHEN 'critical' THEN 'Immediate inspection and emptying are required.'
+                           WHEN 'warning' THEN 'Plan inspection and emptying before conditions become critical.'
+                           ELSE 'Continue monitoring.' END,
+       'SENT', alert.created_at
+FROM alerts alert
+JOIN tanks tank ON tank.id = alert.tank_id
+WHERE tank.id::text LIKE 'd0000000-0000-4000-8000-00000000000%'
+ON CONFLICT (alert_id, user_id, channel) DO UPDATE SET
+    recipient = EXCLUDED.recipient,
+    subject = EXCLUDED.subject,
+    message = EXCLUDED.message,
+    status = EXCLUDED.status,
+    sent_at = NULL,
+    read_at = NULL,
+    error_message = NULL,
+    created_at = EXCLUDED.created_at;
+
 COMMIT;

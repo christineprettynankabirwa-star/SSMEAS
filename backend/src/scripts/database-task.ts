@@ -25,7 +25,12 @@ const resetDemoRecords = async (): Promise<void> => {
     await client.query("BEGIN");
     // Only reserved seed UUIDs are removed; application and production records are preserved.
     await client.query(
-      `DELETE FROM alerts WHERE tank_id::text LIKE 'd0000000-0000-4000-8000-00000000000_';
+      `DELETE FROM notifications
+         WHERE alert_id IN (
+           SELECT id FROM alerts
+           WHERE tank_id::text LIKE 'd0000000-0000-4000-8000-00000000000_'
+         );
+       DELETE FROM alerts WHERE tank_id::text LIKE 'd0000000-0000-4000-8000-00000000000_';
        DELETE FROM maintenance WHERE tank_id::text LIKE 'd0000000-0000-4000-8000-00000000000_';
        DELETE FROM sensor_readings WHERE tank_id::text LIKE 'd0000000-0000-4000-8000-00000000000_';
        DELETE FROM tanks WHERE id::text LIKE 'd0000000-0000-4000-8000-00000000000_';

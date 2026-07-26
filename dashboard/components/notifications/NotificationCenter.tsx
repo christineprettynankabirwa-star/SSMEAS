@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { NotificationItem } from "@/components/dashboard/types";
 import {
-  getUnreadNotifications, markAllNotificationsRead, markNotificationRead,
+  deleteNotification, getUnreadNotifications, markAllNotificationsRead, markNotificationRead,
 } from "@/services/api";
 
 const tone = {
@@ -24,9 +24,8 @@ export default function NotificationCenter() {
     try {
       const unread = await getUnreadNotifications();
       if (initialized.current) {
-        const newestCritical = unread.find((item) =>
-          item.severity === "critical" && !known.current.has(item.id));
-        if (newestCritical) setToast(newestCritical);
+        const newest = unread.find((item) => !known.current.has(item.id));
+        if (newest) setToast(newest);
       }
       unread.forEach((item) => known.current.add(item.id));
       initialized.current = true;
@@ -55,6 +54,12 @@ export default function NotificationCenter() {
     await markAllNotificationsRead();
     setItems([]);
   };
+  const clear = async (id: string) => {
+    try {
+      await deleteNotification(id);
+      setItems((current) => current.filter(({ id: nid }) => nid !== id));
+    } catch { /* notification may have been removed already */ }
+  };
 
   return <>
     <button type="button" aria-label="Open notifications" onClick={() => setOpen((value) => !value)}
@@ -68,20 +73,25 @@ export default function NotificationCenter() {
         <button type="button" disabled={!items.length} onClick={() => void readAll()} className="text-xs font-bold text-cyan-700 disabled:text-slate-300">Mark all read</button>
       </div>
       <div className="max-h-[28rem] overflow-y-auto p-3">
-        {items.length ? items.map((item) => <button type="button" key={item.id} onClick={() => void read(item)}
-          className={`mb-2 block w-full rounded-xl border p-3 text-left ${tone[item.severity]}`}>
-          <span className="text-[10px] font-black uppercase tracking-wider">{item.severity}</span>
-          <strong className="mt-1 block text-sm">{item.tank_name}</strong>
-          <span className="mt-1 line-clamp-2 block whitespace-pre-line text-xs opacity-80">{item.message}</span>
-          <span className="mt-2 block text-[10px] opacity-60">{new Date(item.created_at).toLocaleString("en-UG")} · click to mark read</span>
-        </button>) : <p className="p-8 text-center text-sm text-slate-500">You are all caught up.</p>}
+        {items.length ? items.map((item) => <div key={item.id} className="relative mb-2">
+          <button type="button" onClick={() => void read(item)}
+            className={`block w-full rounded-xl border p-3 pr-8 text-left ${tone[item.severity]}`}>
+            <span className="text-[10px] font-black uppercase tracking-wider">{item.severity}</span>
+            <strong className="mt-1 block text-sm">{item.tank_name}</strong>
+            <span className="mt-1 line-clamp-2 block whitespace-pre-line text-xs opacity-80">{item.message}</span>
+            <span className="mt-2 block text-[10px] opacity-60">{new Date(item.created_at).toLocaleString("en-UG")} · click to mark read</span>
+          </button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); void clear(item.id); }}
+            className="absolute right-2 top-2 grid size-5 place-items-center rounded-full text-xs text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+            aria-label="Dismiss notification">×</button>
+        </div>) : <p className="p-8 text-center text-sm text-slate-500">You are all caught up.</p>}
       </div>
       <Link href="/notifications" onClick={() => setOpen(false)} className="block border-t border-slate-100 p-3 text-center text-sm font-bold text-cyan-700">View notification history and preferences</Link>
     </div>}
     {toast && <div role="alert" className={`fixed bottom-5 right-5 z-[1200] w-[min(24rem,calc(100vw-2.5rem))] rounded-2xl border p-5 shadow-2xl ${tone[toast.severity]}`}>
-      <button type="button" aria-label="Dismiss notification" onClick={() => setToast(null)} className="float-right text-lg">×</button>
-      <p className="text-xs font-black uppercase tracking-wider">🔴 Critical Alert</p>
-      <h2 className="mt-2 text-lg font-black">{toast.tank_name}</h2>
+      <button type="button" aria-label="Dismiss notification" onClick={() => setToast(null)} className="float-right text-lg text-slate-400 hover:text-slate-700">×</button>
+      <p className="text-xs font-black uppercase tracking-wider">{toast.severity === "critical" ? "🔴 Critical Alert" : toast.severity === "warning" ? "🟡 Warning Alert" : "🔵 Information Alert"}</p>
+      <h2 className="mt-2 text-lg font-black">{toast.severity === "critical" ? `Critical sewer alert detected at ${toast.tank_name}` : toast.tank_name}</h2>
       <p className="mt-2 whitespace-pre-line text-sm leading-6">{toast.message}</p>
     </div>}
   </>;

@@ -108,6 +108,14 @@ export const markRead = async (id: string, userId: string): Promise<Notification
   return result.rows[0] ?? null;
 };
 
+export const remove = async (id: string, userId: string): Promise<boolean> => {
+  const result = await pool.query(
+    "DELETE FROM notifications WHERE id=$1 AND user_id=$2 AND channel='DASHBOARD'",
+    [id, userId],
+  );
+  return (result.rowCount ?? 0) > 0;
+};
+
 export const markAllRead = async (userId: string): Promise<number> =>
   (await pool.query(
     `UPDATE notifications SET status='READ', read_at=COALESCE(read_at, NOW())
