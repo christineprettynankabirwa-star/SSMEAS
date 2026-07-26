@@ -4,6 +4,7 @@ import type { Alert, AlertSeverity, CreateAlertRequest } from "../types/alerts.t
 import type { SensorReading } from "../types/readings.types";
 import { publishAlertNotificationEvent } from "./notification-events";
 import { createCriticalAlertMaintenance } from "./maintenance.service";
+import type { AuthenticatedUser } from "../types/auth.types";
 
 export class AlertValidationError extends Error {}
 export class AlertTankNotFoundError extends Error {}
@@ -16,7 +17,8 @@ const validateText = (value: unknown, field: string, maxLength: number): void =>
   }
 };
 
-export const listAlerts = async (): Promise<Alert[]> => alertsModel.getAllAlerts();
+export const listAlerts = async (user?: AuthenticatedUser): Promise<Alert[]> =>
+  alertsModel.getAllAlerts(user?.role === "MAINTENANCE_OFFICER" ? user.id : undefined);
 export const acknowledge = async (id: string): Promise<Alert> => {
   if (!uuidPattern.test(id)) throw new AlertValidationError("alert id must be a valid UUID.");
   const alert = await alertsModel.acknowledgeAlert(id);

@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { getOptimizedRoute } from "../controllers/route-optimization.controller";
 import { authenticate } from "../middleware/auth.middleware";
-import { authorize } from "../middleware/authorize.middleware";
+import { authorizePermission } from "../middleware/authorize.middleware";
 
 const router = Router();
-router.get("/optimized", authenticate, authorize("ADMINISTRATOR", "MAINTENANCE_OFFICER", "SUPERVISOR"), getOptimizedRoute);
+router.get("/optimized", authenticate, authorizePermission("routes:read"), getOptimizedRoute);
 export default router;

@@ -46,3 +46,19 @@ export const getMaintenanceOfficers = async (): Promise<Array<Pick<UserRecord, "
   );
   return result.rows;
 };
+
+export const getAllUsers = async (): Promise<Array<Omit<UserRecord, "password_hash">>> =>
+  (await pool.query<Omit<UserRecord, "password_hash">>(
+    `SELECT id,full_name,email,phone_number,role,created_at,updated_at
+     FROM users ORDER BY created_at DESC`,
+  )).rows;
+
+export const updateUserRole = async (id: string, role: UserRole): Promise<Omit<UserRecord, "password_hash"> | null> =>
+  (await pool.query<Omit<UserRecord, "password_hash">>(
+    `UPDATE users SET role=$2,updated_at=NOW() WHERE id=$1
+     RETURNING id,full_name,email,phone_number,role,created_at,updated_at`,
+    [id, role],
+  )).rows[0] ?? null;
+
+export const deleteUser = async (id: string): Promise<boolean> =>
+  ((await pool.query("DELETE FROM users WHERE id=$1", [id])).rowCount ?? 0) > 0;

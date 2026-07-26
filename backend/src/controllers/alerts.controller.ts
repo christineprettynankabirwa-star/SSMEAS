@@ -9,8 +9,8 @@ const handleError = (error: unknown, response: Response): void => {
   response.status(500).json({ message: "An unexpected server error occurred." });
 };
 
-export const getAlerts = async (_request: Request, response: Response): Promise<void> => {
-  try { response.status(200).json(await listAlerts()); } catch (error) { handleError(error, response); }
+export const getAlerts = async (request: Request, response: Response): Promise<void> => {
+  try { response.status(200).json(await listAlerts(request.user)); } catch (error) { handleError(error, response); }
 };
 
 export const postAlert = async (request: Request, response: Response): Promise<void> => {

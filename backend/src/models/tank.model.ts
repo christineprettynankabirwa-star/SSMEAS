@@ -31,6 +31,16 @@ export const getAllTanks = async (): Promise<Tank[]> => {
   return result.rows;
 };
 
+export const getAssignedTanks = async (officerId: string): Promise<Tank[]> =>
+  (await pool.query<Tank>(
+    `SELECT DISTINCT tank.* FROM tanks tank
+     JOIN maintenance ON maintenance.tank_id=tank.id
+     WHERE maintenance.assigned_to=$1
+       AND maintenance.status IN ('SCHEDULED','ASSIGNED','IN_PROGRESS')
+     ORDER BY tank.created_at DESC`,
+    [officerId],
+  )).rows;
+
 export const getTankById = async (id: string): Promise<Tank | null> => {
   const result = await pool.query<Tank>("SELECT * FROM tanks WHERE id = $1", [id]);
   return result.rows[0] ?? null;

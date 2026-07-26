@@ -1,6 +1,7 @@
 // Applies tank validation and coordinates storage operations for controllers.
 import * as tankModel from "../models/tank.model";
 import type { CreateTankRequest, Tank, TankStatus, UpdateTankRequest } from "../types/tank";
+import type { AuthenticatedUser } from "../types/auth.types";
 
 export class ValidationError extends Error {}
 export class NotFoundError extends Error {}
@@ -71,9 +72,15 @@ const validateTank = (tank: CreateTankRequest | UpdateTankRequest, isCreate: boo
   }
 };
 
-export const listTanks = async (): Promise<Tank[]> => tankModel.getAllTanks();
+export const listTanks = async (user?: AuthenticatedUser): Promise<Tank[]> =>
+  user?.role === "MAINTENANCE_OFFICER" ? tankModel.getAssignedTanks(user.id) : tankModel.getAllTanks();
 
-export const findTankById = async (id: string): Promise<Tank> => {
+export const findTankById = async (id: string, user?: AuthenticatedUser): Promise<Tank> => {
+  if (user?.role === "MAINTENANCE_OFFICER") {
+    const tank = (await tankModel.getAssignedTanks(user.id)).find((value) => value.id === id);
+    if (!tank) throw new NotFoundError("Tank not found.");
+    return tank;
+  }
   const tank = await tankModel.getTankById(id);
   if (!tank) throw new NotFoundError("Tank not found.");
   return tank;

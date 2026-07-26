@@ -26,6 +26,7 @@ const protectedEndpoints = [
   ["PUT", "/api/notifications/preferences"],
   ["POST", "/api/notifications/test-email"],
   ["POST", "/api/notifications/test-sms"],
+  ["GET", "/api/users"],
 ] as const;
 
 test("every protected endpoint rejects requests without authentication", async () => {

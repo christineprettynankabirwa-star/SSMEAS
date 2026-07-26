@@ -8,6 +8,8 @@ const alert: Alert = {
   tank_id: "00000000-0000-4000-8000-000000000002",
   tank_name: "Test Tank",
   location: "Kampala",
+  latitude: 0.3476,
+  longitude: 32.5825,
   alert_type: "High sewage level",
   severity: "warning",
   status: "ACTIVE",

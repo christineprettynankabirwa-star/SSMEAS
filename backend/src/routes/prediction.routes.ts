@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { getOverflowPrediction, getOverflowPredictions } from "../controllers/prediction.controller";
 import { authenticate } from "../middleware/auth.middleware";
-import { authorize } from "../middleware/authorize.middleware";
+import { authorizePermission } from "../middleware/authorize.middleware";
 
 const router = Router();
-router.get("/", authenticate, authorize("ADMINISTRATOR", "MAINTENANCE_OFFICER", "SUPERVISOR"), getOverflowPredictions);
-router.get("/:tankId", authenticate, authorize("ADMINISTRATOR", "MAINTENANCE_OFFICER", "SUPERVISOR"), getOverflowPrediction);
+router.get("/", authenticate, authorizePermission("predictions:read"), getOverflowPredictions);
+router.get("/:tankId", authenticate, authorizePermission("predictions:read"), getOverflowPrediction);
 export default router;

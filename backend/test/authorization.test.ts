@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { NextFunction, Request, Response } from "express";
 import { authorize } from "../src/middleware/authorize.middleware";
+import { authorizePermission } from "../src/middleware/authorize.middleware";
 
 const responseMock = () => {
   let statusCode = 200;
@@ -33,7 +34,7 @@ test("authorization allows a user with a required role", () => {
 
 const roleMatrix = [
   { role: "ADMINISTRATOR", dashboard: true, readMaintenance: true, createMaintenance: true },
-  { role: "MAINTENANCE_OFFICER", dashboard: false, readMaintenance: true, createMaintenance: true },
+  { role: "MAINTENANCE_OFFICER", dashboard: false, readMaintenance: true, createMaintenance: false },
   { role: "SUPERVISOR", dashboard: true, readMaintenance: true, createMaintenance: false },
 ] as const;
 
@@ -41,9 +42,9 @@ for (const expected of roleMatrix) {
   test(`${expected.role} permissions match the acceptance role matrix`, () => {
     const request = { user: { id: "id", email: "user@example.com", full_name: "User", role: expected.role } } as unknown as Request;
     const checks = [
-      { allowed: expected.dashboard, middleware: authorize("ADMINISTRATOR", "SUPERVISOR") },
-      { allowed: expected.readMaintenance, middleware: authorize("ADMINISTRATOR", "MAINTENANCE_OFFICER", "SUPERVISOR") },
-      { allowed: expected.createMaintenance, middleware: authorize("ADMINISTRATOR", "MAINTENANCE_OFFICER") },
+      { allowed: expected.dashboard, middleware: authorizePermission("dashboard:read") },
+      { allowed: expected.readMaintenance, middleware: authorizePermission("maintenance:read") },
+      { allowed: expected.createMaintenance, middleware: authorizePermission("maintenance:create") },
     ];
     for (const check of checks) {
       const mock = responseMock();
@@ -54,3 +55,12 @@ for (const expected of roleMatrix) {
     }
   });
 }
+
+test("maintenance officers cannot access predictions or create maintenance", () => {
+  const request = { user: { id: "id", email: "officer@example.com", full_name: "Officer", role: "MAINTENANCE_OFFICER" } } as unknown as Request;
+  for (const permission of ["predictions:read", "maintenance:create"] as const) {
+    const mock = responseMock(); let called = false;
+    authorizePermission(permission)(request, mock.response, (() => { called = true; }) as NextFunction);
+    assert.equal(called, false); assert.equal(mock.getStatus(), 403);
+  }
+});

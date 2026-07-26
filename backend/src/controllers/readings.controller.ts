@@ -37,9 +37,9 @@ export const getReadingAnalytics = async (request: Request, response: Response):
   }
 };
 
-export const getLiveReading = async (_request: Request, response: Response): Promise<void> => {
+export const getLiveReading = async (request: Request, response: Response): Promise<void> => {
   try {
-    response.status(200).json(await getLatestStoredLiveReading());
+    response.status(200).json(await getLatestStoredLiveReading(request.user));
   } catch (error) {
     if (error instanceof ReadingNotFoundError) {
       response.status(404).json({ message: error.message });
@@ -50,9 +50,9 @@ export const getLiveReading = async (_request: Request, response: Response): Pro
   }
 };
 
-export const getLatestReadings = async (_request: Request, response: Response): Promise<void> => {
+export const getLatestReadings = async (request: Request, response: Response): Promise<void> => {
   try {
-    response.status(200).json(await getLatestStoredReadings());
+    response.status(200).json(await getLatestStoredReadings(request.user));
   } catch (error) {
     console.error("Latest sensor readings request failed:", error);
     response.status(500).json({ message: "An unexpected server error occurred." });
@@ -66,7 +66,7 @@ export const getReadingHistory = async (request: Request, response: Response): P
       response.status(400).json({ message: "tankId is required." });
       return;
     }
-    response.status(200).json(await getHistoricalReadings(tankId));
+    response.status(200).json(await getHistoricalReadings(tankId, request.user));
   } catch (error) {
     if (error instanceof ReadingValidationError) {
       response.status(400).json({ message: error.message });

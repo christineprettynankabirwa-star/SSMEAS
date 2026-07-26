@@ -5,12 +5,19 @@ const alertColumns = `alert.id, alert.tank_id, tank.tank_name, tank.location,
   tank.latitude, tank.longitude, alert.alert_type,
   alert.severity, alert.status, alert.message, alert.created_at`;
 
-export const getAllAlerts = async (): Promise<Alert[]> => {
+export const getAllAlerts = async (assignedTo?: string): Promise<Alert[]> => {
   const result = await pool.query<Alert>(
     `SELECT ${alertColumns}
      FROM alerts AS alert
      INNER JOIN tanks AS tank ON tank.id = alert.tank_id
+     WHERE ($1::uuid IS NULL OR EXISTS (
+       SELECT 1 FROM maintenance
+       WHERE maintenance.tank_id=alert.tank_id
+         AND maintenance.assigned_to=$1
+         AND maintenance.status IN ('SCHEDULED','ASSIGNED','IN_PROGRESS')
+     ))
      ORDER BY alert.created_at DESC`,
+    [assignedTo ?? null],
   );
   return result.rows;
 };

@@ -52,3 +52,15 @@ export const getProfile = async (userId: string): Promise<AuthenticatedUser | nu
   const user = await userModel.getUserById(userId);
   return user ? publicUser(user) : null;
 };
+
+export const listUsers = (): Promise<AuthenticatedUser[]> => userModel.getAllUsers();
+export const changeUserRole = async (id: string, role: unknown): Promise<AuthenticatedUser> => {
+  if (typeof role !== "string" || !userRoles.has(role as UserRole)) throw new AuthValidationError("role is invalid.");
+  const user = await userModel.updateUserRole(id, role as UserRole);
+  if (!user) throw new AuthValidationError("User not found.");
+  return user;
+};
+export const removeUser = async (id: string, currentUserId: string): Promise<void> => {
+  if (id === currentUserId) throw new AuthValidationError("You cannot delete your own account.");
+  if (!(await userModel.deleteUser(id))) throw new AuthValidationError("User not found.");
+};

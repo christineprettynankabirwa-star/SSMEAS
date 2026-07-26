@@ -14,6 +14,7 @@ import type {
   AnalyticsRange,
   AnalyticsResponse,
 } from "../types/readings.types";
+import type { AuthenticatedUser } from "../types/auth.types";
 
 export class ReadingValidationError extends Error {}
 export class ReadingNotFoundError extends Error {}
@@ -101,17 +102,22 @@ export const getAndStoreLiveReading = async (): Promise<SensorReading> => {
 // Direct device uploads are already persisted before the dashboard requests
 // them. Keep this read path database-only so a slow or stale ThingSpeak
 // response cannot hide newer ESP32 telemetry.
-export const getLatestStoredLiveReading = async (): Promise<SensorReading> => {
-  const reading = await readingsModel.getLatestStoredReading();
+export const getLatestStoredLiveReading = async (user?: AuthenticatedUser): Promise<SensorReading> => {
+  const readings = await getLatestStoredReadings(user);
+  const reading = readings.sort((a, b) => b.recorded_at.getTime() - a.recorded_at.getTime())[0] ?? null;
   if (!reading) throw new ReadingNotFoundError("No sensor readings have been received yet.");
   return reading;
 };
 
-export const getLatestStoredReadings = async (): Promise<SensorReading[]> =>
-  readingsModel.getLatestStoredReadingsByTank();
+export const getLatestStoredReadings = async (user?: AuthenticatedUser): Promise<SensorReading[]> => {
+  const readings = await readingsModel.getLatestStoredReadingsByTank();
+  if (user?.role !== "MAINTENANCE_OFFICER") return readings;
+  const assigned = new Set((await tankModel.getAssignedTanks(user.id)).map(({ id }) => id));
+  return readings.filter(({ tank_id }) => assigned.has(tank_id));
+};
 
 export const getHistoricalReadings = async (
-  tankId: string,
+  tankId: string, user?: AuthenticatedUser,
 ): Promise<HistoricalSensorReading[]> => {
   if (!uuidPattern.test(tankId)) {
     throw new ReadingValidationError("tankId must be a valid UUID.");
@@ -119,6 +125,10 @@ export const getHistoricalReadings = async (
 
   const tank = await tankModel.getTankById(tankId);
   if (!tank) throw new ReadingNotFoundError("Tank not found.");
+  if (user?.role === "MAINTENANCE_OFFICER"
+    && !(await tankModel.getAssignedTanks(user.id)).some(({ id }) => id === tankId)) {
+    throw new ReadingNotFoundError("Tank not found.");
+  }
 
   return readingsModel.getHistoricalReadingsByTankId(tankId);
 };

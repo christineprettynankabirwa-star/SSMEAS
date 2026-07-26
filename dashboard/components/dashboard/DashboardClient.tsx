@@ -7,9 +7,7 @@ import {
   getLatestReadings,
   getMaintenance,
   getOverflowPredictions,
-  getProfile,
   getTanks,
-  setAccessToken,
 } from "@/services/api";
 import type {
   AlertItem,
@@ -24,6 +22,7 @@ import DashboardHeader from "./DashboardHeader";
 import LoginForm from "./LoginForm";
 import SummaryCards from "./SummaryCards";
 import HighlightsCarousel from "./HighlightsCarousel";
+import { useAuth } from "@/auth/AuthContext";
 const links = [
   ["Tanks", "Asset registry", "/tanks"],
   ["Analytics", "Network trends", "/analytics"],
@@ -33,7 +32,7 @@ const links = [
   ["Routes", "Collection planning", "/route"],
 ];
 export default function DashboardClient() {
-  const [auth, setAuth] = useState<boolean | null>(null);
+  const { user, loading: authLoading, refresh, signOut, can } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [readings, setReadings] = useState<SensorReading[]>([]);
@@ -47,12 +46,12 @@ export default function DashboardClient() {
     if (!background) setLoading(true);
     setError(null);
     const results = await Promise.allSettled([
-      getDashboardSummary(),
+      user?.role === "MAINTENANCE_OFFICER" ? Promise.resolve(null) : getDashboardSummary(),
       getTanks(),
       getLatestReadings(),
       getAlerts(),
       getMaintenance(),
-      getOverflowPredictions(),
+      can("predictions") ? getOverflowPredictions() : Promise.resolve([]),
     ]);
     if (results[0].status === "fulfilled") setSummary(results[0].value);
     if (results[1].status === "fulfilled") setTanks(results[1].value);
@@ -64,33 +63,9 @@ export default function DashboardClient() {
       setError("Some executive metrics are temporarily unavailable.");
     setUpdated(new Date());
     setLoading(false);
-  }, []);
+  }, [can, user?.role]);
   useEffect(() => {
-    let active = true;
-    const id = window.setTimeout(() => {
-      const token = sessionStorage.getItem("ssmeas_access_token");
-      setAccessToken(token);
-      if (!token) {
-        setAuth(false);
-        return;
-      }
-      void getProfile()
-        .then(() => {
-          if (active) setAuth(true);
-        })
-        .catch(() => {
-          sessionStorage.removeItem("ssmeas_access_token");
-          setAccessToken(null);
-          if (active) setAuth(false);
-        });
-    }, 0);
-    return () => {
-      active = false;
-      window.clearTimeout(id);
-    };
-  }, []);
-  useEffect(() => {
-    if (!auth) return;
+    if (!user) return;
 
     const initialId = window.setTimeout(() => void load(), 0);
     const refreshId = window.setInterval(() => void load(true), 3_000);
@@ -99,9 +74,9 @@ export default function DashboardClient() {
       window.clearTimeout(initialId);
       window.clearInterval(refreshId);
     };
-  }, [auth, load]);
-  if (auth === null) return null;
-  if (!auth) return <LoginForm onAuthenticated={() => setAuth(true)} />;
+  }, [user, load]);
+  if (authLoading) return null;
+  if (!user) return <LoginForm onAuthenticated={() => void refresh()} />;
   const latest = readings.reduce<SensorReading | null>(
     (a, b) => (!a || new Date(b.recorded_at) > new Date(a.recorded_at) ? b : a),
     null,
@@ -119,9 +94,7 @@ export default function DashboardClient() {
       <DashboardHeader
         lastUpdated={updated}
         onSignOut={() => {
-          sessionStorage.removeItem("ssmeas_access_token");
-          setAccessToken(null);
-          setAuth(false);
+          signOut();
         }}
       />
       <main className="pt-16">
@@ -233,7 +206,7 @@ export default function DashboardClient() {
                     </p>
                   )}
                 </section>
-                <section className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-5 text-slate-950 shadow-sm">
+                {can("predictions") && <section className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-5 text-slate-950 shadow-sm">
                   <p className="text-xs font-bold uppercase tracking-[.18em] text-cyan-700">
                     AI summary
                   </p>
@@ -253,14 +226,18 @@ export default function DashboardClient() {
                   >
                     Open analytics
                   </Link>
-                </section>
+                </section>}
               </div>
               <section>
                 <h2 className="mb-4 text-lg font-bold text-slate-950">
                   Operations modules
                 </h2>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {links.map(([name, desc, href]) => (
+                  {links.filter(([, , href]) => {
+                    if (href === "/analytics") return can("analytics");
+                    if (href === "/route") return can("routes");
+                    return true;
+                  }).map(([name, desc, href]) => (
                     <Link
                       key={href}
                       href={href}

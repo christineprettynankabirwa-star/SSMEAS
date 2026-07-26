@@ -6,6 +6,7 @@ import type { NotificationItem } from "@/components/dashboard/types";
 import {
   deleteNotification, getUnreadNotifications, markAllNotificationsRead, markNotificationRead,
 } from "@/services/api";
+import { useAuth } from "@/auth/AuthContext";
 
 const tone = {
   critical: "border-red-300 bg-red-50 text-red-900",
@@ -14,6 +15,7 @@ const tone = {
 };
 
 export default function NotificationCenter() {
+  const { user } = useAuth();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState<NotificationItem | null>(null);
@@ -81,9 +83,9 @@ export default function NotificationCenter() {
             <span className="mt-1 line-clamp-2 block whitespace-pre-line text-xs opacity-80">{item.message}</span>
             <span className="mt-2 block text-[10px] opacity-60">{new Date(item.created_at).toLocaleString("en-UG")} · click to mark read</span>
           </button>
-          <button type="button" onClick={(event) => { event.stopPropagation(); void clear(item.id); }}
+          {user?.role === "ADMINISTRATOR" && <button type="button" onClick={(event) => { event.stopPropagation(); void clear(item.id); }}
             className="absolute right-2 top-2 grid size-5 place-items-center rounded-full text-xs text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-            aria-label="Dismiss notification">×</button>
+            aria-label="Dismiss notification">×</button>}
         </div>) : <p className="p-8 text-center text-sm text-slate-500">You are all caught up.</p>}
       </div>
       <Link href="/notifications" onClick={() => setOpen(false)} className="block border-t border-slate-100 p-3 text-center text-sm font-bold text-cyan-700">View notification history and preferences</Link>
@@ -96,4 +98,3 @@ export default function NotificationCenter() {
     </div>}
   </>;
 }
-

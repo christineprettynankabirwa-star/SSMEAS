@@ -4,6 +4,7 @@ import type { AlertItem, AnalyticsRange, AnalyticsResponse, DashboardSummary, Hi
 const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api", timeout: 10_000 });
 export interface LoginResponse { token: string; }
 export interface UserProfile { id: string; full_name: string; email: string; role: "ADMINISTRATOR" | "MAINTENANCE_OFFICER" | "SUPERVISOR" | "CLIENT"; }
+export interface ManagedUser extends UserProfile { phone_number: string | null; created_at: string; updated_at: string; }
 export const setAccessToken = (token: string | null): void => {
   if (token) api.defaults.headers.common.Authorization = `Bearer ${token}`;
   else delete api.defaults.headers.common.Authorization;
@@ -11,6 +12,10 @@ export const setAccessToken = (token: string | null): void => {
 export const login = async (email: string, password: string): Promise<LoginResponse> =>
   (await api.post<LoginResponse>("/login", { email, password })).data;
 export const getProfile = async (): Promise<UserProfile> => (await api.get<UserProfile>("/profile")).data;
+export const getUsers = async (): Promise<ManagedUser[]> => (await api.get<ManagedUser[]>("/users")).data;
+export const createUser = async (value: { full_name: string; email: string; password: string; role: UserProfile["role"] }): Promise<ManagedUser> => (await api.post<ManagedUser>("/users", value)).data;
+export const updateUserRole = async (id: string, role: UserProfile["role"]): Promise<ManagedUser> => (await api.patch<ManagedUser>(`/users/${encodeURIComponent(id)}/role`, { role })).data;
+export const deleteUser = async (id: string): Promise<void> => { await api.delete(`/users/${encodeURIComponent(id)}`); };
 export interface HealthStatus { status: string; timestamp?: string; }
 export const getHealth = async (): Promise<HealthStatus> => (await api.get<HealthStatus>("/health")).data;
 export const getTanks = async (): Promise<Tank[]> => (await api.get<Tank[]>("/tanks")).data;
@@ -50,6 +55,7 @@ export const acknowledgeAlert = async (id: string): Promise<AlertItem> => (await
 export const getMaintenance = async (): Promise<MaintenanceItem[]> => (await api.get<MaintenanceItem[]>("/maintenance")).data;
 export const createMaintenance = async (input: { tank_id: string; task: string; scheduled_for: string; status?: MaintenanceStatus; priority?: MaintenancePriority; assigned_to?: string | null; notes?: string | null }): Promise<MaintenanceItem> => (await api.post<MaintenanceItem>("/maintenance", input)).data;
 export const updateMaintenance = async (id: string, input: Partial<{ status: MaintenanceStatus; priority: MaintenancePriority; assigned_to: string | null; scheduled_for: string; notes: string | null }>): Promise<MaintenanceItem> => (await api.patch<MaintenanceItem>(`/maintenance/${encodeURIComponent(id)}`, input)).data;
+export const deleteMaintenance = async (id: string): Promise<void> => { await api.delete(`/maintenance/${encodeURIComponent(id)}`); };
 export const getMaintenanceOfficers = async (): Promise<MaintenanceOfficer[]> => (await api.get<MaintenanceOfficer[]>("/maintenance-officers")).data;
 export const getOverflowPrediction = async (tankId: string): Promise<OverflowPrediction> =>
   (await api.get<OverflowPrediction>(`/predictions/${encodeURIComponent(tankId)}`)).data;

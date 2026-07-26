@@ -11,6 +11,7 @@ import predictionRoutes from "./prediction.routes";
 import readingsRoutes from "./readings.routes";
 import routeOptimizationRoutes from "./route-optimization.routes";
 import tankRoutes from "./tank.routes";
+import usersRoutes from "./users.routes";
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use("/maintenance", maintenanceRoutes);
 router.use("/notifications", notificationsRoutes);
 router.use("/predictions", predictionRoutes);
 router.use("/routes", routeOptimizationRoutes);
+router.use("/users", usersRoutes);
 
 export default router;

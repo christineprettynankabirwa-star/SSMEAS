@@ -3,14 +3,17 @@ import * as tankModel from "../models/tank.model";
 import type { Alert } from "../types/alerts.types";
 import type { CreateMaintenanceRequest, MaintenancePriority, MaintenanceRecord, MaintenanceStatus, UpdateMaintenanceRequest } from "../types/maintenance.types";
 import type { SensorReading } from "../types/readings.types";
+import type { AuthenticatedUser } from "../types/auth.types";
 
 export class MaintenanceValidationError extends Error {}
 export class MaintenanceTankNotFoundError extends Error {}
+export class MaintenanceForbiddenError extends Error {}
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const statuses = new Set<MaintenanceStatus>(["SCHEDULED", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]);
 const priorities = new Set<MaintenancePriority>(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
 
-export const listMaintenance = async (): Promise<MaintenanceRecord[]> => maintenanceModel.getAllMaintenance();
+export const listMaintenance = async (user?: AuthenticatedUser): Promise<MaintenanceRecord[]> =>
+  maintenanceModel.getAllMaintenance(user?.role === "MAINTENANCE_OFFICER" ? user.id : undefined);
 
 export const addMaintenance = async (
   maintenance: CreateMaintenanceRequest,
@@ -42,6 +45,27 @@ export const changeMaintenance = async (id: string, update: UpdateMaintenanceReq
   const record = await maintenanceModel.updateMaintenance(id, update);
   if (!record) throw new MaintenanceTankNotFoundError("Maintenance record not found.");
   return record;
+};
+
+export const changeMaintenanceForUser = async (
+  id: string, update: UpdateMaintenanceRequest, user: AuthenticatedUser,
+): Promise<MaintenanceRecord> => {
+  if (user.role !== "MAINTENANCE_OFFICER") return changeMaintenance(id, update);
+  const keys = Object.keys(update);
+  const allowed = new Set<MaintenanceStatus>(["ASSIGNED", "IN_PROGRESS", "COMPLETED"]);
+  if (keys.length !== 1 || keys[0] !== "status" || !update.status || !allowed.has(update.status)) {
+    throw new MaintenanceForbiddenError("Maintenance officers may only update assigned task status.");
+  }
+  const record = await maintenanceModel.updateAssignedMaintenanceStatus(
+    id, user.id, update.status as "ASSIGNED" | "IN_PROGRESS" | "COMPLETED",
+  );
+  if (!record) throw new MaintenanceForbiddenError("This task is not assigned to you.");
+  return record;
+};
+
+export const removeMaintenance = async (id: string): Promise<void> => {
+  if (!uuidPattern.test(id)) throw new MaintenanceValidationError("maintenance id must be a valid UUID.");
+  if (!(await maintenanceModel.deleteMaintenance(id))) throw new MaintenanceTankNotFoundError("Maintenance record not found.");
 };
 
 const automaticDelayMinutes = (): number => {

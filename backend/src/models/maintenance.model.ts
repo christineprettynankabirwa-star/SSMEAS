@@ -6,16 +6,38 @@ const maintenanceColumns = `maintenance.id, maintenance.tank_id, tank.tank_name,
   maintenance.assigned_to, officer.full_name AS assigned_officer, maintenance.completed_at,
   maintenance.alert_id, maintenance.notes, maintenance.created_at`;
 
-export const getAllMaintenance = async (): Promise<MaintenanceRecord[]> => {
+export const getAllMaintenance = async (assignedTo?: string): Promise<MaintenanceRecord[]> => {
   const result = await pool.query<MaintenanceRecord>(
     `SELECT ${maintenanceColumns}
      FROM maintenance AS maintenance
      INNER JOIN tanks AS tank ON tank.id = maintenance.tank_id
      LEFT JOIN users AS officer ON officer.id = maintenance.assigned_to
+     WHERE ($1::uuid IS NULL OR maintenance.assigned_to=$1)
      ORDER BY maintenance.scheduled_for ASC`,
+    [assignedTo ?? null],
   );
   return result.rows;
 };
+
+export const updateAssignedMaintenanceStatus = async (
+  id: string, officerId: string, status: "ASSIGNED" | "IN_PROGRESS" | "COMPLETED",
+): Promise<MaintenanceRecord | null> => {
+  const result = await pool.query<MaintenanceRecord>(
+    `WITH updated AS (
+       UPDATE maintenance SET status=$3,
+         completed_at=CASE WHEN $3='COMPLETED' THEN COALESCE(completed_at,NOW()) ELSE NULL END
+       WHERE id=$1 AND assigned_to=$2 RETURNING *
+     )
+     SELECT ${maintenanceColumns} FROM updated maintenance
+     JOIN tanks tank ON tank.id=maintenance.tank_id
+     LEFT JOIN users officer ON officer.id=maintenance.assigned_to`,
+    [id, officerId, status],
+  );
+  return result.rows[0] ?? null;
+};
+
+export const deleteMaintenance = async (id: string): Promise<boolean> =>
+  ((await pool.query("DELETE FROM maintenance WHERE id=$1", [id])).rowCount ?? 0) > 0;
 
 export const createMaintenance = async (
   maintenance: CreateMaintenanceRequest,
