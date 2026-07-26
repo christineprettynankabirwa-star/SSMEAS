@@ -91,6 +91,9 @@ export class SmsNotificationProvider extends TrackedProvider {
   protected readonly channel = "SMS" as const;
   constructor(private readonly provider: SmsProvider = new MockSmsProvider()) { super(); }
   protected async deliver(message: ProviderMessage): Promise<void> {
-    await this.provider.sendSMS(message.recipient, `${message.subject}\n${message.message}`);
+    await this.provider.sendSMS(
+      message.recipient,
+      message.smsMessage ?? `${message.subject}\n${message.message}`,
+    );
   }
 }

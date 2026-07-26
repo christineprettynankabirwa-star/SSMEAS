@@ -17,6 +17,7 @@ const applySeedPrerequisites = async (): Promise<void> => {
   await runSqlFile("add_demo_status_support.sql");
   await runSqlFile("expand_maintenance_workflow.sql");
   await runSqlFile("create_notifications_subsystem.sql");
+  await runSqlFile("add_emergency_alert_system.sql");
 };
 
 const resetDemoRecords = async (): Promise<void> => {
@@ -64,6 +65,7 @@ const demo = async (): Promise<void> => {
     "add_direct_device_readings.sql",
     "add_demo_status_support.sql",
     "create_notifications_subsystem.sql",
+    "add_emergency_alert_system.sql",
   ]) await runSqlFile(migration);
   await resetDemoRecords();
   await runSqlFile("seed_demo_data.sql");
@@ -78,7 +80,10 @@ const main = async (): Promise<void> => {
     return seed();
   }
   if (task === "demo") return demo();
-  if (task === "migrate") return runSqlFile("create_notifications_subsystem.sql");
+  if (task === "migrate") {
+    await runSqlFile("create_notifications_subsystem.sql");
+    return runSqlFile("add_emergency_alert_system.sql");
+  }
   throw new Error("Usage: ts-node src/scripts/database-task.ts <seed|reset|demo|migrate>");
 };
 

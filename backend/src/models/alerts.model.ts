@@ -1,7 +1,8 @@
 import { pool } from "../config/database";
 import type { Alert, CreateAlertRequest } from "../types/alerts.types";
 
-const alertColumns = `alert.id, alert.tank_id, tank.tank_name, tank.location, alert.alert_type,
+const alertColumns = `alert.id, alert.tank_id, tank.tank_name, tank.location,
+  tank.latitude, tank.longitude, alert.alert_type,
   alert.severity, alert.status, alert.message, alert.created_at`;
 
 export const getAllAlerts = async (): Promise<Alert[]> => {

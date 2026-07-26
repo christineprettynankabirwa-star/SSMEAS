@@ -10,6 +10,7 @@ import {
   InAppNotificationProvider, NodemailerEmailProvider,
   NotificationProvider, SmsNotificationProvider,
 } from "./notification-providers";
+import { predictOverflow } from "./prediction.service";
 
 export class NotificationValidationError extends Error {}
 export class NotificationNotFoundError extends Error {}
@@ -45,6 +46,10 @@ export const dispatchAlertNotifications = async (
   try {
     await client.query("BEGIN");
     const recipients = await notificationModel.getRecipients(client, alert);
+    const prediction = await predictOverflow(alert.tank_id).catch(() => null);
+    const predicted = prediction?.predictedMinutesToFull === null || prediction?.predictedMinutesToFull === undefined
+      ? "Unavailable"
+      : `${Math.ceil(prediction.predictedMinutesToFull)} minutes`;
     const subject = alert.severity === "critical"
       ? `Critical Sewer Alert - ${alert.tank_name}`
       : `Warning - ${alert.tank_name}`;
@@ -53,10 +58,25 @@ export const dispatchAlertNotifications = async (
       `Tank: ${alert.tank_name}`,
       `Current level: ${reading?.level ?? "Unavailable"}${reading?.level === null || reading?.level === undefined ? "" : "%"}`,
       `Gas level: ${reading?.gas_level ?? "Unavailable"}`,
+      `Current status: ${reading?.status ?? alert.severity.toUpperCase()}`,
       `Location: ${alert.location}`,
       `Alert type: ${alert.alert_type}`,
+      `Predicted overflow: ${predicted}`,
       `Time: ${(reading?.recorded_at ?? new Date()).toISOString()}`,
+      `Coordinates: ${alert.latitude},${alert.longitude}`,
+      `Google Maps: https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`,
       `Recommended action: ${recommendedAction(alert)}`,
+    ].join("\n");
+    const smsMessage = [
+      "SSMEAS ALERT",
+      alert.tank_name,
+      reading?.level === null || reading?.level === undefined
+        ? "Level unavailable"
+        : `${reading.level.toFixed(1)}% FULL`,
+      `Predicted overflow: ${prediction?.predictedMinutesToFull == null
+        ? "Unavailable"
+        : `${Math.ceil(prediction.predictedMinutesToFull)} min`}`,
+      "Immediate action required.",
     ].join("\n");
 
     for (const recipient of recipients) {
@@ -76,7 +96,7 @@ export const dispatchAlertNotifications = async (
             channel,
             value: {
               notificationId, recipient: address, subject, message,
-              tankId: alert.tank_id, tankName: alert.tank_name,
+              tankId: alert.tank_id, tankName: alert.tank_name, smsMessage,
             },
           });
         }

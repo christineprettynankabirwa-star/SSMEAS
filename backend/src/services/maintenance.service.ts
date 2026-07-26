@@ -1,6 +1,6 @@
 import * as maintenanceModel from "../models/maintenance.model";
 import * as tankModel from "../models/tank.model";
-import { alertThresholds } from "./alerts.service";
+import type { Alert } from "../types/alerts.types";
 import type { CreateMaintenanceRequest, MaintenancePriority, MaintenanceRecord, MaintenanceStatus, UpdateMaintenanceRequest } from "../types/maintenance.types";
 import type { SensorReading } from "../types/readings.types";
 
@@ -58,7 +58,8 @@ export const generateAutomaticMaintenanceRequests = (
 
   const reasons: string[] = [];
   if (reading.level !== null && reading.level >= 90) reasons.push("Critical sewage level");
-  if (reading.gas_level !== null && reading.gas_level >= alertThresholds.hazardousGas) {
+  const hazardousGas = Number(process.env.GAS_LEVEL_THRESHOLD ?? 300);
+  if (reading.gas_level !== null && reading.gas_level >= hazardousGas) {
     reasons.push("Hazardous gas");
   }
   return reasons.map((reason) => ({
@@ -68,6 +69,12 @@ export const generateAutomaticMaintenanceRequests = (
       status: "SCHEDULED",
       priority: "HIGH",
     }));
+};
+
+export const createCriticalAlertMaintenance = async (alert: Alert): Promise<void> => {
+  if (alert.severity !== "critical") return;
+  const assignedTo = await maintenanceModel.getOfficerForTank(alert.tank_id);
+  await maintenanceModel.createEmergencyInspectionUnlessOpen(alert.id, alert.tank_id, assignedTo);
 };
 
 export const createAutomaticMaintenanceForReading = async (reading: SensorReading): Promise<void> => {

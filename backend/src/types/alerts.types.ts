@@ -6,6 +6,8 @@ export interface Alert {
   tank_id: string;
   tank_name: string;
   location: string;
+  latitude: number;
+  longitude: number;
   alert_type: string;
   severity: AlertSeverity;
   status: AlertStatus;

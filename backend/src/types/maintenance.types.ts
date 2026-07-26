@@ -11,6 +11,7 @@ export interface MaintenanceRecord {
   created_at: Date;
   priority: MaintenancePriority;
   assigned_to: string | null;
+  alert_id?: string | null;
   assigned_officer: string | null;
   completed_at: Date | null;
   notes: string | null;

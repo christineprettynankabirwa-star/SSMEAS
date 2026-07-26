@@ -55,4 +55,5 @@ export interface ProviderMessage {
   message: string;
   tankId?: string;
   tankName?: string;
+  smsMessage?: string;
 }

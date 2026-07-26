@@ -4,7 +4,7 @@ import type { CreateMaintenanceRequest, MaintenanceRecord, UpdateMaintenanceRequ
 const maintenanceColumns = `maintenance.id, maintenance.tank_id, tank.tank_name,
   maintenance.task, maintenance.scheduled_for, maintenance.status, maintenance.priority,
   maintenance.assigned_to, officer.full_name AS assigned_officer, maintenance.completed_at,
-  maintenance.notes, maintenance.created_at`;
+  maintenance.alert_id, maintenance.notes, maintenance.created_at`;
 
 export const getAllMaintenance = async (): Promise<MaintenanceRecord[]> => {
   const result = await pool.query<MaintenanceRecord>(
@@ -82,3 +82,22 @@ export const getOfficerForTank = async (tankId: string): Promise<string | null> 
      LIMIT 1`,
     [tankId],
   )).rows[0]?.id ?? null;
+
+export const createEmergencyInspectionUnlessOpen = async (
+  alertId: string,
+  tankId: string,
+  assignedTo: string | null,
+): Promise<void> => {
+  await pool.query(
+    `INSERT INTO maintenance(
+       tank_id, alert_id, task, scheduled_for, status, priority, assigned_to, notes
+     ) VALUES($1,$2,'Emergency Tank Inspection',NOW(),'SCHEDULED','HIGH',$3,
+       'Automatically created for a critical sewer alert.')
+     ON CONFLICT (tank_id, task)
+       WHERE status IN ('SCHEDULED','ASSIGNED','IN_PROGRESS')
+     DO UPDATE SET alert_id=EXCLUDED.alert_id,
+       priority='HIGH',
+       assigned_to=COALESCE(maintenance.assigned_to, EXCLUDED.assigned_to)`,
+    [tankId, alertId, assignedTo],
+  );
+};

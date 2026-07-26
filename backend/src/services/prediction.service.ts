@@ -18,6 +18,16 @@ export const calculateOverflowPrediction = (
     .filter(({ level, recordedAt }) => Number.isFinite(level) && !Number.isNaN(recordedAt.getTime()))
     .sort((a, b) => a.recordedAt.getTime() - b.recordedAt.getTime());
   const currentLevel = valid.at(-1)?.level ?? null;
+  const recent = valid.slice(-10);
+  const elapsedMinutes = recent.length >= 2
+    ? (recent.at(-1)!.recordedAt.getTime() - recent[0]!.recordedAt.getTime()) / 60_000
+    : 0;
+  const averageIncreasePerMinute = elapsedMinutes > 0
+    ? Math.max(0, (recent.at(-1)!.level - recent[0]!.level) / elapsedMinutes)
+    : 0;
+  const predictedMinutesToFull = currentLevel !== null && averageIncreasePerMinute > 0
+    ? Math.max(0, (100 - currentLevel) / averageIncreasePerMinute)
+    : null;
   const gasValues = valid.map(({ gasLevel }) => gasLevel).filter((value): value is number => value !== null && value !== undefined && Number.isFinite(value));
   const highestGas = gasValues.length ? Math.max(...gasValues) : 0;
   let slope = 0;
@@ -80,6 +90,8 @@ export const calculateOverflowPrediction = (
     predictedOverflowAt,
     recommendedMaintenanceAt,
     hoursUntilOverflow: hoursUntilOverflow === null ? null : Number(hoursUntilOverflow.toFixed(2)),
+    predictedMinutesToFull: predictedMinutesToFull === null ? null : Number(predictedMinutesToFull.toFixed(1)),
+    averageIncreasePerMinute: Number(averageIncreasePerMinute.toFixed(4)),
     risk,
     riskPercentage,
     confidence,
@@ -92,6 +104,8 @@ const toApiResponse = (prediction: OverflowPrediction): PredictionApiResponse =>
   tank_id: prediction.tankId,
   predicted_overflow_time: prediction.predictedOverflowAt,
   hours_remaining: prediction.hoursUntilOverflow,
+  predicted_minutes_to_full: prediction.predictedMinutesToFull,
+  average_increase_per_minute: prediction.averageIncreasePerMinute,
   risk: prediction.riskPercentage,
   confidence: prediction.confidence,
   recommended_maintenance_date: prediction.recommendedMaintenanceAt,
@@ -108,17 +122,38 @@ export const predictAllOverflows = async (): Promise<PredictionApiResponse[]> =>
   });
   const tanks = await tankModel.getAllTanks();
   const now = new Date();
-  return tanks.map((tank) => toApiResponse(calculateOverflowPrediction(tank.id, grouped.get(tank.id) ?? [], now, alertCounts.get(tank.id) ?? 0)));
+  const predictions = tanks.map((tank) =>
+    calculateOverflowPrediction(tank.id, grouped.get(tank.id) ?? [], now, alertCounts.get(tank.id) ?? 0));
+  await Promise.all(predictions.map((prediction) => predictionModel.storePrediction({
+    tankId: prediction.tankId,
+    predictedMinutesToFull: prediction.predictedMinutesToFull,
+    predictedOverflowAt: prediction.predictedOverflowAt,
+    averageIncreasePerMinute: prediction.averageIncreasePerMinute,
+    currentLevel: prediction.currentLevel,
+    sampleCount: prediction.samples,
+    calculatedAt: prediction.generatedAt,
+  })));
+  return predictions.map(toApiResponse);
 };
 
 export const predictOverflow = async (tankId: string): Promise<OverflowPrediction> => {
   if (!uuidPattern.test(tankId)) throw new PredictionValidationError("tankId must be a valid UUID.");
   if (!(await tankModel.getTankById(tankId))) throw new PredictionTankNotFoundError("Tank not found.");
   const [readings, alertCounts] = await Promise.all([predictionModel.getPredictionReadings(tankId), predictionModel.getRecentAlertCounts()]);
-  return calculateOverflowPrediction(
+  const prediction = calculateOverflowPrediction(
     tankId,
     readings.map(({ level, gas_level, recorded_at }) => ({ level: Number(level), gasLevel: gas_level === null ? null : Number(gas_level), recordedAt: new Date(recorded_at) })),
     new Date(),
     alertCounts.get(tankId) ?? 0,
   );
+  await predictionModel.storePrediction({
+    tankId: prediction.tankId,
+    predictedMinutesToFull: prediction.predictedMinutesToFull,
+    predictedOverflowAt: prediction.predictedOverflowAt,
+    averageIncreasePerMinute: prediction.averageIncreasePerMinute,
+    currentLevel: prediction.currentLevel,
+    sampleCount: prediction.samples,
+    calculatedAt: prediction.generatedAt,
+  });
+  return prediction;
 };
