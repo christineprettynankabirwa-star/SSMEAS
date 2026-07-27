@@ -7,7 +7,7 @@ export interface AnalyticsReading extends HistoricalSensorReading { tank_id: str
 export interface AnalyticsSummary { highestFill: number | null; averageFill: number | null; highestGas: number | null; reportingDeviceCount: number; offlineDeviceCount: number; }
 export interface AnalyticsResponse { range: AnalyticsRange; generatedAt: string; readings: AnalyticsReading[]; summary: AnalyticsSummary; }
 export interface DashboardSummary { totalTanks: number; onlineTanks: number; activeAlerts: number; averageFillLevel: number; }
-export interface AlertItem { id: string; tank_id: string; tank_name: string; location: string; latitude: number; longitude: number; alert_type: string; severity: "critical" | "warning" | "info"; status: "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED"; message: string; created_at: string; }
+export interface AlertItem { id: string; tank_id: string; tank_name: string; location: string; latitude: number; longitude: number; alert_type: string; severity: "critical" | "warning" | "info"; status: "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED"; message: string; created_at: string; updated_at: string; last_seen_at: string; acknowledged_by: string | null; acknowledged_by_name: string | null; acknowledged_at: string | null; resolved_at: string | null; }
 export type MaintenanceStatus = "SCHEDULED" | "ASSIGNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 export type MaintenancePriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export interface MaintenanceItem { id: string; tank_id: string; tank_name: string; task: string; scheduled_for: string; status: MaintenanceStatus; priority: MaintenancePriority; assigned_to: string | null; assigned_officer: string | null; completed_at: string | null; notes: string | null; created_at: string; }

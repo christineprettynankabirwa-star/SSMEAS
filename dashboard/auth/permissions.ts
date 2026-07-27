@@ -1,12 +1,13 @@
 export type UserRole = "ADMINISTRATOR" | "SUPERVISOR" | "MAINTENANCE_OFFICER" | "CLIENT";
 export type UiPermission =
   | "overview" | "tanks" | "analytics" | "map" | "alerts" | "notifications"
-  | "maintenance" | "routes" | "predictions" | "reports" | "users" | "settings";
+  | "maintenance" | "routes" | "predictions" | "reports" | "users" | "settings"
+  | "simulation";
 
 const matrix: Record<UserRole, ReadonlySet<UiPermission>> = {
   ADMINISTRATOR: new Set([
     "overview", "tanks", "analytics", "map", "alerts", "notifications",
-    "maintenance", "routes", "predictions", "reports", "users", "settings",
+    "maintenance", "routes", "predictions", "reports", "users", "settings", "simulation",
   ]),
   SUPERVISOR: new Set([
     "overview", "tanks", "analytics", "map", "alerts", "maintenance",
@@ -22,6 +23,7 @@ export const can = (role: UserRole, permission: UiPermission): boolean =>
   matrix[role].has(permission);
 
 export const pathPermission = (pathname: string): UiPermission => {
+  if (pathname.startsWith("/testing-simulation")) return "simulation";
   if (pathname.startsWith("/users")) return "users";
   if (pathname.startsWith("/settings")) return "settings";
   if (pathname.startsWith("/reports")) return "reports";

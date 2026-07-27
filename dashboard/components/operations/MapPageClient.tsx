@@ -6,6 +6,7 @@ import type { SensorReading, Tank } from "@/components/dashboard/types";
 import { getLatestReadings, getTanks } from "@/services/api";
 import { ModuleError, ModuleLoading, ModuleScaffold } from "./ModuleScaffold";
 import { useApiSession } from "./useApiSession";
+import { subscribeDataRefresh } from "@/services/data-refresh";
 
 const TankMap = dynamic(() => import("@/components/dashboard/TankMap"), {
   ssr: false,
@@ -53,6 +54,7 @@ export default function MapPageClient() {
     }, 0);
     return () => window.clearTimeout(id);
   }, [session, load]);
+  useEffect(() => subscribeDataRefresh(() => void load()), [load]);
 
   return <ModuleScaffold
     eyebrow="Geospatial operations"

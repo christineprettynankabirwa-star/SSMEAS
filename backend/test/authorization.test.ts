@@ -64,3 +64,38 @@ test("maintenance officers cannot access predictions or create maintenance", () 
     assert.equal(called, false); assert.equal(mock.getStatus(), 403);
   }
 });
+
+test("only administrators can manage testing and simulation", () => {
+  for (const [role, allowed] of [
+    ["ADMINISTRATOR", true], ["SUPERVISOR", false],
+    ["MAINTENANCE_OFFICER", false], ["CLIENT", false],
+  ] as const) {
+    const request = {
+      user: { id: "id", email: "user@example.com", full_name: "User", role },
+    } as unknown as Request;
+    const response = responseMock();
+    let called = false;
+    authorizePermission("simulation:manage")(
+      request, response.response, (() => { called = true; }) as NextFunction,
+    );
+    assert.equal(called, allowed);
+    assert.equal(response.getStatus(), allowed ? 200 : 403);
+  }
+});
+
+test("only administrators can acknowledge alerts", () => {
+  for (const [role, allowed] of [
+    ["ADMINISTRATOR", true], ["SUPERVISOR", false],
+    ["MAINTENANCE_OFFICER", false], ["CLIENT", false],
+  ] as const) {
+    const request = {
+      user: { id: "id", email: "user@example.com", full_name: "User", role },
+    } as unknown as Request;
+    const response = responseMock();
+    let called = false;
+    authorizePermission("alerts:acknowledge")(
+      request, response.response, (() => { called = true; }) as NextFunction,
+    );
+    assert.equal(called, allowed);
+  }
+});

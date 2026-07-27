@@ -24,6 +24,6 @@ export const postAlert = async (request: Request, response: Response): Promise<v
 };
 
 export const patchAlertAcknowledgement = async (request: Request, response: Response): Promise<void> => {
-  try { response.status(200).json(await acknowledge(String(request.params.id ?? ""))); }
+  try { response.status(200).json(await acknowledge(String(request.params.id ?? ""), request.user!)); }
   catch (error) { handleError(error, response); }
 };

@@ -7,12 +7,14 @@ import {
   deleteNotification, getUnreadNotifications, markAllNotificationsRead, markNotificationRead,
 } from "@/services/api";
 import { useAuth } from "@/auth/AuthContext";
+import { subscribeDataRefresh } from "@/services/data-refresh";
 
 const tone = {
   critical: "border-red-300 bg-red-50 text-red-900",
   warning: "border-amber-300 bg-amber-50 text-amber-900",
   info: "border-emerald-300 bg-emerald-50 text-emerald-900",
 };
+const isResolution = (item: NotificationItem): boolean => item.subject.startsWith("Resolved - ");
 
 export default function NotificationCenter() {
   const { user } = useAuth();
@@ -40,7 +42,8 @@ export default function NotificationCenter() {
   useEffect(() => {
     const initial = window.setTimeout(() => void load(), 0);
     const interval = window.setInterval(() => void load(), 3_000);
-    return () => { window.clearTimeout(initial); window.clearInterval(interval); };
+    const unsubscribe = subscribeDataRefresh(() => void load());
+    return () => { window.clearTimeout(initial); window.clearInterval(interval); unsubscribe(); };
   }, [load]);
   useEffect(() => {
     if (!toast) return;
@@ -77,8 +80,8 @@ export default function NotificationCenter() {
       <div className="max-h-[28rem] overflow-y-auto p-3">
         {items.length ? items.map((item) => <div key={item.id} className="relative mb-2">
           <button type="button" onClick={() => void read(item)}
-            className={`block w-full rounded-xl border p-3 pr-8 text-left ${tone[item.severity]}`}>
-            <span className="text-[10px] font-black uppercase tracking-wider">{item.severity}</span>
+            className={`block w-full rounded-xl border p-3 pr-8 text-left ${isResolution(item) ? tone.info : tone[item.severity]}`}>
+            <span className="text-[10px] font-black uppercase tracking-wider">{isResolution(item) ? "resolved" : item.severity}</span>
             <strong className="mt-1 block text-sm">{item.tank_name}</strong>
             <span className="mt-1 line-clamp-2 block whitespace-pre-line text-xs opacity-80">{item.message}</span>
             <span className="mt-2 block text-[10px] opacity-60">{new Date(item.created_at).toLocaleString("en-UG")} · click to mark read</span>
@@ -90,10 +93,10 @@ export default function NotificationCenter() {
       </div>
       <Link href="/notifications" onClick={() => setOpen(false)} className="block border-t border-slate-100 p-3 text-center text-sm font-bold text-cyan-700">View notification history and preferences</Link>
     </div>}
-    {toast && <div role="alert" className={`fixed bottom-5 right-5 z-[1200] w-[min(24rem,calc(100vw-2.5rem))] rounded-2xl border p-5 shadow-2xl ${tone[toast.severity]}`}>
+    {toast && <div role="alert" className={`fixed bottom-5 right-5 z-[1200] w-[min(24rem,calc(100vw-2.5rem))] rounded-2xl border p-5 shadow-2xl ${isResolution(toast) ? tone.info : tone[toast.severity]}`}>
       <button type="button" aria-label="Dismiss notification" onClick={() => setToast(null)} className="float-right text-lg text-slate-400 hover:text-slate-700">×</button>
       <p className="text-xs font-black uppercase tracking-wider">{toast.severity === "critical" ? "🔴 Critical Alert" : toast.severity === "warning" ? "🟡 Warning Alert" : "🔵 Information Alert"}</p>
-      <h2 className="mt-2 text-lg font-black">{toast.severity === "critical" ? `Critical sewer alert detected at ${toast.tank_name}` : toast.tank_name}</h2>
+      <h2 className="mt-2 text-lg font-black">{isResolution(toast) ? `${toast.tank_name} restored to SAFE` : toast.severity === "critical" ? `Critical sewer alert detected at ${toast.tank_name}` : toast.tank_name}</h2>
       <p className="mt-2 whitespace-pre-line text-sm leading-6">{toast.message}</p>
     </div>}
   </>;

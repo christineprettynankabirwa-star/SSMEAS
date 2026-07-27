@@ -82,15 +82,44 @@ export const createMaintenanceUnlessOpen = async (
   maintenance: CreateMaintenanceRequest,
 ): Promise<void> => {
   await pool.query(
-    `INSERT INTO maintenance (tank_id, task, scheduled_for, status, priority, assigned_to)
-     VALUES ($1, $2, $3, 'SCHEDULED', COALESCE($4, 'HIGH'), $5)
+    `INSERT INTO maintenance (tank_id, task, scheduled_for, status, priority, assigned_to, notes)
+     VALUES ($1, $2, $3, 'SCHEDULED', COALESCE($4, 'HIGH'), $5, $6)
      ON CONFLICT (tank_id, task)
        WHERE status IN ('SCHEDULED', 'ASSIGNED', 'IN_PROGRESS')
      DO NOTHING`,
     [maintenance.tank_id, maintenance.task, maintenance.scheduled_for,
-      maintenance.priority ?? null, maintenance.assigned_to ?? null],
+      maintenance.priority ?? null, maintenance.assigned_to ?? null, maintenance.notes ?? null],
   );
 };
+
+export const cancelUnstartedAutomaticMaintenance = async (tankId: string): Promise<number> =>
+  (await pool.query(
+    `UPDATE maintenance
+     SET status='CANCELLED',
+       notes=CONCAT_WS(E'\n', NULLIF(notes, ''),
+         'Cancelled automatically after an administrator restored the test tank to SAFE.')
+     WHERE tank_id=$1 AND status IN ('SCHEDULED','ASSIGNED')
+       AND (
+         task LIKE 'Emergency response:%'
+         OR (task='Emergency Tank Inspection'
+           AND notes LIKE 'Automatically created for a critical sewer alert.%')
+       )`,
+    [tankId],
+  )).rowCount ?? 0;
+
+export const completeAutomaticMaintenanceForTank = async (tankId: string): Promise<number> =>
+  (await pool.query(
+    `UPDATE maintenance SET status='COMPLETED', completed_at=COALESCE(completed_at,NOW()),
+       notes=CONCAT_WS(E'\n', NULLIF(notes, ''),
+         'Completed automatically after live readings returned to SAFE.')
+     WHERE tank_id=$1 AND status IN ('SCHEDULED','ASSIGNED','IN_PROGRESS')
+       AND (
+         task LIKE 'Emergency response:%'
+         OR (task='Emergency Tank Inspection'
+           AND notes LIKE 'Automatically created for a critical sewer alert.%')
+       )`,
+    [tankId],
+  )).rowCount ?? 0;
 
 export const getOfficerForTank = async (tankId: string): Promise<string | null> =>
   (await pool.query<{ id: string }>(

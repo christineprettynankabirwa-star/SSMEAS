@@ -23,6 +23,7 @@ import LoginForm from "./LoginForm";
 import SummaryCards from "./SummaryCards";
 import HighlightsCarousel from "./HighlightsCarousel";
 import { useAuth } from "@/auth/AuthContext";
+import { subscribeDataRefresh } from "@/services/data-refresh";
 const links = [
   ["Tanks", "Asset registry", "/tanks"],
   ["Analytics", "Network trends", "/analytics"],
@@ -69,10 +70,12 @@ export default function DashboardClient() {
 
     const initialId = window.setTimeout(() => void load(), 0);
     const refreshId = window.setInterval(() => void load(true), 3_000);
+    const unsubscribe = subscribeDataRefresh(() => void load(true));
 
     return () => {
       window.clearTimeout(initialId);
       window.clearInterval(refreshId);
+      unsubscribe();
     };
   }, [user, load]);
   if (authLoading) return null;

@@ -78,4 +78,21 @@ export const testNotificationSms = async (): Promise<{ message: string }> => (aw
 export const deleteNotification = async (id: string): Promise<void> => {
   await api.delete(`/notifications/${encodeURIComponent(id)}`);
 };
+export type SimulationCondition = "SAFE" | "WARNING" | "DANGER";
+export interface SimulationResult {
+  tankId: string; tankName: string; condition: SimulationCondition;
+  reading: SensorReading; resolvedAlerts: number; cancelledMaintenance: number;
+}
+export const generateSimulationReading = async (
+  tankId: string, condition: SimulationCondition,
+): Promise<SimulationResult> =>
+  (await api.post<SimulationResult>(
+    `/simulation/tanks/${encodeURIComponent(tankId)}/readings`, { condition },
+  )).data;
+export const resetSimulationTank = async (tankId: string): Promise<SimulationResult> =>
+  (await api.post<SimulationResult>(
+    `/simulation/tanks/${encodeURIComponent(tankId)}/reset`,
+  )).data;
+export const resetAllTestTanks = async (): Promise<{ results: SimulationResult[] }> =>
+  (await api.post<{ results: SimulationResult[] }>("/simulation/reset-all")).data;
 export default api;

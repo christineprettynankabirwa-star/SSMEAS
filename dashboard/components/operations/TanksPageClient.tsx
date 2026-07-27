@@ -6,6 +6,7 @@ import { getLatestReadings, getTanks } from "@/services/api";
 import type { SensorReading, Tank } from "@/components/dashboard/types";
 import { ModuleError, ModuleLoading, ModuleScaffold } from "./ModuleScaffold";
 import { useApiSession } from "./useApiSession";
+import { subscribeDataRefresh } from "@/services/data-refresh";
 
 const condition = (reading?: SensorReading) => !reading ? "OFFLINE" : (reading.level ?? 0) >= 95 || (reading.gas_level ?? 0) >= 300 ? "CRITICAL" : (reading.level ?? 0) >= 80 || (reading.gas_level ?? 0) >= 200 ? "WARNING" : "SAFE";
 const tones = { SAFE: "bg-emerald-50 text-emerald-700", WARNING: "bg-amber-50 text-amber-700", CRITICAL: "bg-red-50 text-red-700", OFFLINE: "bg-slate-100 text-slate-600" };
@@ -14,6 +15,7 @@ export default function TanksPageClient() {
   const session = useApiSession(); const [tanks,setTanks]=useState<Tank[]>([]); const [readings,setReadings]=useState<SensorReading[]>([]); const [query,setQuery]=useState(""); const [error,setError]=useState<string|null>(null); const [loading,setLoading]=useState(true);
   const load=useCallback(async()=>{setLoading(true);setError(null);try{const t=await getTanks();setTanks(t);const r=await getLatestReadings().catch(()=>[]);setReadings(r);}catch{setError("Unable to load the tank registry and live telemetry.");}finally{setLoading(false);}},[]);
   useEffect(()=>{const id=window.setTimeout(()=>{if(session)void load();else if(session===false)setLoading(false)},0);return()=>window.clearTimeout(id)},[session,load]);
+  useEffect(()=>subscribeDataRefresh(()=>void load()),[load]);
   const byTank=useMemo(()=>new Map(readings.map(r=>[r.tank_id,r])),[readings]);
   const visible=tanks.filter(t=>[t.tank_name,t.location,t.owner_name,String(t.thingspeak_channel_id??"")].some(v=>v.toLowerCase().includes(query.toLowerCase())));
   return <ModuleScaffold eyebrow="Asset registry" title="Tanks Management" description="Live operating condition, device assignment and ownership for every registered sewer tank." actions={<Link href="/map" className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-bold text-slate-950">Open GIS map</Link>}>

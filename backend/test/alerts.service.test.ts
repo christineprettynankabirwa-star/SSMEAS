@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { generateAlertsForReading, type AlertThresholds } from "../src/services/alerts.service";
+import {
+  generateAlertsForReading, isReadingSafe, type AlertThresholds,
+} from "../src/services/alerts.service";
 import type { SensorReading } from "../src/types/readings.types";
 
 const reading = (overrides: Partial<SensorReading>): SensorReading => ({
@@ -33,4 +35,10 @@ test("uses warning rather than critical severity between fill thresholds", () =>
   assert.equal(alerts.length, 1);
   assert.equal(alerts[0]?.severity, "warning");
   assert.match(alerts[0]?.message ?? "", /72% warning threshold/);
+});
+
+test("resolves incidents only after both fill and gas readings are SAFE", () => {
+  assert.equal(isReadingSafe(reading({ level: 30, gas_level: 100 }), thresholds), true);
+  assert.equal(isReadingSafe(reading({ level: 72, gas_level: 100 }), thresholds), false);
+  assert.equal(isReadingSafe(reading({ level: 30, gas_level: 220 }), thresholds), false);
 });

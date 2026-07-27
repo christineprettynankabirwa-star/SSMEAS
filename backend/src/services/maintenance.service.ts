@@ -109,3 +109,9 @@ export const createAutomaticMaintenanceForReading = async (reading: SensorReadin
     ),
   );
 };
+
+export const cancelUnstartedAutomaticMaintenance = (tankId: string): Promise<number> =>
+  maintenanceModel.cancelUnstartedAutomaticMaintenance(tankId);
+
+export const completeAutomaticMaintenanceForTank = (tankId: string): Promise<number> =>
+  maintenanceModel.completeAutomaticMaintenanceForTank(tankId);

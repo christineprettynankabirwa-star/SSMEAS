@@ -15,6 +15,12 @@ const alert: Alert = {
   status: "ACTIVE",
   message: "Level is high.",
   created_at: new Date("2026-07-26T12:00:00.000Z"),
+  updated_at: new Date("2026-07-26T12:00:00.000Z"),
+  last_seen_at: new Date("2026-07-26T12:00:00.000Z"),
+  acknowledged_by: null,
+  acknowledged_by_name: null,
+  acknowledged_at: null,
+  resolved_at: null,
 };
 
 test("notification events isolate channel failures and continue other listeners", async () => {

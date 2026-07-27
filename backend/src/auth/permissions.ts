@@ -7,7 +7,7 @@ export type Permission =
   | "notifications:read" | "notifications:configure"
   | "maintenance:read" | "maintenance:create" | "maintenance:update" | "maintenance:delete"
   | "predictions:read" | "reports:read" | "routes:read"
-  | "users:manage" | "settings:manage";
+  | "users:manage" | "settings:manage" | "simulation:manage";
 
 const all: Permission[] = [
   "dashboard:read", "tanks:read", "tanks:write", "tanks:delete",
@@ -15,14 +15,14 @@ const all: Permission[] = [
   "alerts:read", "alerts:acknowledge", "notifications:read",
   "notifications:configure", "maintenance:read", "maintenance:create",
   "maintenance:update", "maintenance:delete", "predictions:read", "reports:read", "routes:read",
-  "users:manage", "settings:manage",
+  "users:manage", "settings:manage", "simulation:manage",
 ];
 
 export const rolePermissions: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
   ADMINISTRATOR: new Set(all),
   SUPERVISOR: new Set([
     "dashboard:read", "tanks:read", "readings:live", "readings:history",
-    "readings:analytics", "alerts:read", "alerts:acknowledge",
+    "readings:analytics", "alerts:read",
     "notifications:read", "maintenance:read", "predictions:read", "reports:read",
   ]),
   MAINTENANCE_OFFICER: new Set([

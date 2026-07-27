@@ -13,6 +13,12 @@ export interface Alert {
   status: AlertStatus;
   message: string;
   created_at: Date;
+  updated_at: Date;
+  last_seen_at: Date;
+  acknowledged_by: string | null;
+  acknowledged_by_name: string | null;
+  acknowledged_at: Date | null;
+  resolved_at: Date | null;
 }
 
 export interface CreateAlertRequest {

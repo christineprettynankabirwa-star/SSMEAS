@@ -12,6 +12,7 @@ import readingsRoutes from "./readings.routes";
 import routeOptimizationRoutes from "./route-optimization.routes";
 import tankRoutes from "./tank.routes";
 import usersRoutes from "./users.routes";
+import simulationRoutes from "./simulation.routes";
 
 const router = Router();
 
@@ -27,5 +28,6 @@ router.use("/notifications", notificationsRoutes);
 router.use("/predictions", predictionRoutes);
 router.use("/routes", routeOptimizationRoutes);
 router.use("/users", usersRoutes);
+router.use("/simulation", simulationRoutes);
 
 export default router;

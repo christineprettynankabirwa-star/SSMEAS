@@ -3,7 +3,10 @@ import * as tankModel from "../models/tank.model";
 import type { Alert, AlertSeverity, CreateAlertRequest } from "../types/alerts.types";
 import type { SensorReading } from "../types/readings.types";
 import { publishAlertNotificationEvent } from "./notification-events";
-import { createCriticalAlertMaintenance } from "./maintenance.service";
+import {
+  completeAutomaticMaintenanceForTank, createCriticalAlertMaintenance,
+} from "./maintenance.service";
+import { createResolutionNotifications } from "../models/notifications.model";
 import type { AuthenticatedUser } from "../types/auth.types";
 
 export class AlertValidationError extends Error {}
@@ -19,9 +22,9 @@ const validateText = (value: unknown, field: string, maxLength: number): void =>
 
 export const listAlerts = async (user?: AuthenticatedUser): Promise<Alert[]> =>
   alertsModel.getAllAlerts(user?.role === "MAINTENANCE_OFFICER" ? user.id : undefined);
-export const acknowledge = async (id: string): Promise<Alert> => {
+export const acknowledge = async (id: string, user: AuthenticatedUser): Promise<Alert> => {
   if (!uuidPattern.test(id)) throw new AlertValidationError("alert id must be a valid UUID.");
-  const alert = await alertsModel.acknowledgeAlert(id);
+  const alert = await alertsModel.acknowledgeAlert(id, user.id);
   if (!alert) throw new AlertTankNotFoundError("Active alert not found.");
   return alert;
 };
@@ -55,6 +58,15 @@ export const alertThresholds: Readonly<AlertThresholds> = {
   fillWarning: threshold("FILL_WARNING_THRESHOLD", 80),
   fillCritical: threshold("FILL_CRITICAL_THRESHOLD", 95),
   hazardousGas: threshold("GAS_LEVEL_THRESHOLD", 300),
+};
+
+export const isReadingSafe = (
+  reading: SensorReading,
+  thresholds: Readonly<AlertThresholds> = alertThresholds,
+): boolean => {
+  const gasWarning = threshold("GAS_WARNING_THRESHOLD", 200);
+  return (reading.level === null || reading.level < thresholds.fillWarning)
+    && (reading.gas_level === null || reading.gas_level < gasWarning);
 };
 
 export const generateAlertsForReading = (
@@ -91,13 +103,23 @@ export const generateAlertsForReading = (
   return alerts;
 };
 
-export const createAlertsForReading = async (reading: SensorReading): Promise<void> => {
+export const createAlertsForReading = async (
+  reading: SensorReading,
+  options: { completeMaintenanceOnResolution?: boolean } = {},
+): Promise<void> => {
   const candidates = generateAlertsForReading(reading);
-  await alertsModel.resolveInactiveReadingAlerts(reading.tank_id, candidates.map((alert) => alert.alert_type));
+  const resolved = await alertsModel.resolveInactiveReadingAlerts(
+    reading.tank_id, !isReadingSafe(reading),
+  );
   const created = await Promise.all(candidates.map((alert) => alertsModel.createAlertUnlessActive(alert)));
   await Promise.all(created.filter((alert): alert is Alert => alert !== null)
     .map(async (alert) => {
       await createCriticalAlertMaintenance(alert);
       await publishAlertNotificationEvent({ alert, reading });
     }));
+  if (resolved.length && options.completeMaintenanceOnResolution !== false) {
+    await completeAutomaticMaintenanceForTank(reading.tank_id);
+    await Promise.all(resolved.map((alert) =>
+      createResolutionNotifications(alert, "Live sensor monitoring")));
+  }
 };

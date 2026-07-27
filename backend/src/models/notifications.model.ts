@@ -62,7 +62,7 @@ export const createNotification = async (
   const result = await client.query<{ id: string }>(
     `INSERT INTO notifications(alert_id, tank_id, user_id, channel, recipient, title, message)
      SELECT $1, $2, $3, $4, $5, $6, $7
-     WHERE $4 = 'IN_APP' OR NOT EXISTS (
+     WHERE $4::varchar = 'IN_APP' OR NOT EXISTS (
        SELECT 1 FROM notifications recent
        JOIN alerts recent_alert ON recent_alert.id = recent.alert_id
        JOIN alerts current_alert ON current_alert.id = $1
@@ -70,7 +70,7 @@ export const createNotification = async (
          AND recent_alert.alert_type = current_alert.alert_type
          AND recent.created_at >= NOW() - INTERVAL '30 minutes'
      )
-     ON CONFLICT(alert_id, user_id, channel) DO NOTHING RETURNING id`,
+     ON CONFLICT(alert_id, user_id, channel, title) DO NOTHING RETURNING id`,
     [alertId, tankId, userId, channel, recipient, subject, message],
   );
   return result.rows[0]?.id ?? null;
@@ -136,6 +136,26 @@ export const markAllRead = async (userId: string): Promise<number> =>
     `UPDATE notifications SET read_at=COALESCE(read_at, NOW())
      WHERE user_id=$1 AND channel='IN_APP' AND read_at IS NULL`,
     [userId],
+  )).rowCount ?? 0;
+
+export const createResolutionNotifications = async (
+  alert: Alert, source: string,
+): Promise<number> =>
+  (await pool.query(
+    `INSERT INTO notifications(
+       alert_id,tank_id,user_id,channel,recipient,title,message,status,sent_at
+     )
+     SELECT $1,$2,user_account.id,'IN_APP',user_account.id::text,
+       $3,$4,'SENT',NOW()
+     FROM users user_account
+     LEFT JOIN notification_preferences preference ON preference.user_id=user_account.id
+     WHERE user_account.role='ADMINISTRATOR'
+       AND COALESCE(preference.in_app_enabled,TRUE)
+     ON CONFLICT(alert_id,user_id,channel,title) DO NOTHING`,
+    [
+      alert.id, alert.tank_id, `Resolved - ${alert.tank_name}`,
+      `${source} confirmed that ${alert.tank_name} returned to SAFE. Existing alert history was retained.`,
+    ],
   )).rowCount ?? 0;
 
 export const getPreferences = async (userId: string): Promise<NotificationPreference> => {

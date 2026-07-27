@@ -17,6 +17,7 @@ const items: Array<{ href: string; label: string; icon: string; permission: UiPe
   { href: "/reports", label: "Reports", icon: "▤", permission: "reports" },
   { href: "/users", label: "Users", icon: "♟", permission: "users" },
   { href: "/settings", label: "Settings", icon: "⚙", permission: "settings" },
+  { href: "/testing-simulation", label: "Testing", icon: "T", permission: "simulation" },
 ];
 
 export default function NavBar() {
