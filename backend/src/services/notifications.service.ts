@@ -83,8 +83,13 @@ export const dispatchAlertNotifications = async (
       if (!isEligible(alert.severity, recipient.preferences)) continue;
       const enabled: Array<[NotificationChannel, boolean, string | null]> = [
         ["IN_APP", recipient.preferences.in_app_enabled, recipient.id],
-        ["EMAIL", recipient.preferences.email_enabled, recipient.email],
-        ["SMS", recipient.preferences.sms_enabled, recipient.phone_number],
+        ["EMAIL", recipient.preferences.email_enabled && (
+          recipient.role === "SUPERVISOR"
+          || (alert.severity === "critical"
+            && (recipient.role === "ADMINISTRATOR" || recipient.role === "CLIENT"))
+        ), recipient.email],
+        ["SMS", recipient.preferences.sms_enabled
+          && recipient.role === "MAINTENANCE_OFFICER", recipient.phone_number],
       ];
       for (const [channel, isEnabled, address] of enabled) {
         if (!isEnabled || !address) continue;

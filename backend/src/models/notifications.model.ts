@@ -30,8 +30,8 @@ export const getRecipients = async (
      FROM users user_account
      LEFT JOIN notification_preferences preference ON preference.user_id = user_account.id
      WHERE user_account.role = 'ADMINISTRATOR'
-        OR (user_account.role = 'SUPERVISOR' AND $2 = 'critical')
-        OR (user_account.role = 'CLIENT' AND EXISTS (
+        OR user_account.role = 'SUPERVISOR'
+        OR (user_account.role = 'CLIENT' AND $2 = 'critical' AND EXISTS (
           SELECT 1 FROM tanks WHERE id = $1 AND owner_user_id = user_account.id
         ))
         OR (user_account.role = 'MAINTENANCE_OFFICER' AND EXISTS (
@@ -155,6 +155,24 @@ export const createResolutionNotifications = async (
     [
       alert.id, alert.tank_id, `Resolved - ${alert.tank_name}`,
       `${source} confirmed that ${alert.tank_name} returned to SAFE. Existing alert history was retained.`,
+    ],
+  )).rowCount ?? 0;
+
+export const createAcknowledgementNotifications = async (alert: Alert): Promise<number> =>
+  (await pool.query(
+    `INSERT INTO notifications(
+       alert_id,tank_id,user_id,channel,recipient,title,message,status,sent_at
+     )
+     SELECT $1,$2,user_account.id,'IN_APP',user_account.id::text,
+       $3,$4,'SENT',NOW()
+     FROM users user_account
+     LEFT JOIN notification_preferences preference ON preference.user_id=user_account.id
+     WHERE user_account.role='ADMINISTRATOR'
+       AND COALESCE(preference.in_app_enabled,TRUE)
+     ON CONFLICT(alert_id,user_id,channel,title) DO NOTHING`,
+    [
+      alert.id, alert.tank_id, `Acknowledged - ${alert.tank_name}`,
+      `${alert.tank_name} remains in DANGER. Monitoring continues until live readings return to SAFE.`,
     ],
   )).rowCount ?? 0;
 

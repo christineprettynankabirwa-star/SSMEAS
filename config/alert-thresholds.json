@@ -1,0 +1,10 @@
+{
+  "sewageLevel": {
+    "safeMaximum": 64,
+    "warningMinimum": 65,
+    "warningMaximum": 84,
+    "dangerMinimum": 85,
+    "dangerMaximum": 100
+  },
+  "maintenanceOnWarning": false
+}

@@ -6,8 +6,11 @@ import { publishAlertNotificationEvent } from "./notification-events";
 import {
   completeAutomaticMaintenanceForTank, createCriticalAlertMaintenance,
 } from "./maintenance.service";
-import { createResolutionNotifications } from "../models/notifications.model";
+import {
+  createAcknowledgementNotifications, createResolutionNotifications,
+} from "../models/notifications.model";
 import type { AuthenticatedUser } from "../types/auth.types";
+import { alertThresholdConfig } from "../config/alert-thresholds";
 
 export class AlertValidationError extends Error {}
 export class AlertTankNotFoundError extends Error {}
@@ -26,6 +29,7 @@ export const acknowledge = async (id: string, user: AuthenticatedUser): Promise<
   if (!uuidPattern.test(id)) throw new AlertValidationError("alert id must be a valid UUID.");
   const alert = await alertsModel.acknowledgeAlert(id, user.id);
   if (!alert) throw new AlertTankNotFoundError("Active alert not found.");
+  await createAcknowledgementNotifications(alert);
   return alert;
 };
 
@@ -43,30 +47,21 @@ export const addAlert = async (alert: CreateAlertRequest): Promise<Alert> => {
   return created;
 };
 
-const threshold = (environmentName: string, fallback: number): number => {
-  const configuredValue = Number(process.env[environmentName] ?? fallback);
-  return Number.isFinite(configuredValue) ? configuredValue : fallback;
-};
-
 export interface AlertThresholds {
   fillWarning: number;
   fillCritical: number;
-  hazardousGas: number;
 }
 
 export const alertThresholds: Readonly<AlertThresholds> = {
-  fillWarning: threshold("FILL_WARNING_THRESHOLD", 80),
-  fillCritical: threshold("FILL_CRITICAL_THRESHOLD", 95),
-  hazardousGas: threshold("GAS_LEVEL_THRESHOLD", 300),
+  fillWarning: alertThresholdConfig.sewageLevel.warningMinimum,
+  fillCritical: alertThresholdConfig.sewageLevel.dangerMinimum,
 };
 
 export const isReadingSafe = (
   reading: SensorReading,
   thresholds: Readonly<AlertThresholds> = alertThresholds,
 ): boolean => {
-  const gasWarning = threshold("GAS_WARNING_THRESHOLD", 200);
-  return (reading.level === null || reading.level < thresholds.fillWarning)
-    && (reading.gas_level === null || reading.gas_level < gasWarning);
+  return reading.level !== null && reading.level < thresholds.fillWarning;
 };
 
 export const generateAlertsForReading = (
@@ -88,15 +83,6 @@ export const generateAlertsForReading = (
       alert_type: "High sewage level",
       severity: "warning",
       message: `Fill level is ${reading.level.toFixed(1)}%, at or above the ${thresholds.fillWarning}% warning threshold.`,
-    });
-  }
-
-  if (reading.gas_level !== null && reading.gas_level >= thresholds.hazardousGas) {
-    alerts.push({
-      tank_id: reading.tank_id,
-      alert_type: "Hazardous gas",
-      severity: "critical",
-      message: `Gas level is ${reading.gas_level.toFixed(1)}, at or above the ${thresholds.hazardousGas} threshold.`,
     });
   }
 

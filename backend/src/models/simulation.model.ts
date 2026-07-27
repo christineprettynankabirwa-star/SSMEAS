@@ -1,4 +1,5 @@
 import { pool } from "../config/database";
+import { alertThresholdConfig } from "../config/alert-thresholds";
 
 export const countOpenAlerts = async (tankId: string): Promise<number> =>
   (await pool.query<{ count: number }>(
@@ -15,8 +16,9 @@ export const getUnsafeTestTankIds = async (): Promise<string[]> =>
      )
      SELECT tank.id FROM tanks tank JOIN latest ON latest.tank_id=tank.id
      WHERE tank.id::text LIKE 'd0000000-0000-4000-8000-00000000000_'
-       AND (COALESCE(latest.level,0) >= 80 OR COALESCE(latest.gas_level,0) >= 200)
+       AND COALESCE(latest.level,0) >= $1
      ORDER BY tank.tank_name`,
+    [alertThresholdConfig.sewageLevel.warningMinimum],
   )).rows.map(({ id }) => id);
 
 export const recordSimulationAudit = async (input: {

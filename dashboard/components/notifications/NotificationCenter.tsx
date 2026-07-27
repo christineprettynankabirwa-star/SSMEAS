@@ -15,6 +15,8 @@ const tone = {
   info: "border-emerald-300 bg-emerald-50 text-emerald-900",
 };
 const isResolution = (item: NotificationItem): boolean => item.subject.startsWith("Resolved - ");
+const isAcknowledgement = (item: NotificationItem): boolean =>
+  item.subject.startsWith("Acknowledged - ");
 
 export default function NotificationCenter() {
   const { user } = useAuth();
@@ -29,7 +31,7 @@ export default function NotificationCenter() {
       const unread = await getUnreadNotifications();
       if (initialized.current) {
         const newest = unread.find((item) => !known.current.has(item.id));
-        if (newest) setToast(newest);
+        if (newest && !isAcknowledgement(newest)) setToast(newest);
       }
       unread.forEach((item) => known.current.add(item.id));
       initialized.current = true;
@@ -80,8 +82,8 @@ export default function NotificationCenter() {
       <div className="max-h-[28rem] overflow-y-auto p-3">
         {items.length ? items.map((item) => <div key={item.id} className="relative mb-2">
           <button type="button" onClick={() => void read(item)}
-            className={`block w-full rounded-xl border p-3 pr-8 text-left ${isResolution(item) ? tone.info : tone[item.severity]}`}>
-            <span className="text-[10px] font-black uppercase tracking-wider">{isResolution(item) ? "resolved" : item.severity}</span>
+            className={`block w-full rounded-xl border p-3 pr-8 text-left ${isResolution(item) || isAcknowledgement(item) ? tone.info : tone[item.severity]}`}>
+            <span className="text-[10px] font-black uppercase tracking-wider">{isResolution(item) ? "resolved" : isAcknowledgement(item) ? "acknowledged" : item.severity}</span>
             <strong className="mt-1 block text-sm">{item.tank_name}</strong>
             <span className="mt-1 line-clamp-2 block whitespace-pre-line text-xs opacity-80">{item.message}</span>
             <span className="mt-2 block text-[10px] opacity-60">{new Date(item.created_at).toLocaleString("en-UG")} · click to mark read</span>

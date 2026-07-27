@@ -20,8 +20,8 @@ export class SimulationTankNotFoundError extends Error {}
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const profiles: Record<SimulationCondition, { level: number; gas: number }> = {
   SAFE: { level: 35, gas: 100 },
-  WARNING: { level: 85, gas: 220 },
-  DANGER: { level: 97, gas: 350 },
+  WARNING: { level: 75, gas: 120 },
+  DANGER: { level: 90, gas: 120 },
 };
 
 const generate = async (

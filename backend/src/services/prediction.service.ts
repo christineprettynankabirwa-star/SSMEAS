@@ -1,6 +1,7 @@
 import * as predictionModel from "../models/prediction.model";
 import * as tankModel from "../models/tank.model";
 import type { OverflowPrediction, OverflowRisk, PredictionApiResponse } from "../types/prediction.types";
+import { alertThresholdConfig } from "../config/alert-thresholds";
 
 export class PredictionValidationError extends Error {}
 export class PredictionTankNotFoundError extends Error {}
@@ -55,9 +56,11 @@ export const calculateOverflowPrediction = (
     ? null
     : new Date(now.getTime() + hoursUntilOverflow * 3_600_000).toISOString();
   let risk: OverflowRisk = "LOW";
-  if (currentLevel !== null && currentLevel >= 95) risk = "CRITICAL";
+  if (currentLevel !== null
+    && currentLevel >= alertThresholdConfig.sewageLevel.dangerMinimum) risk = "CRITICAL";
   else if (hoursUntilOverflow !== null && hoursUntilOverflow <= 6) risk = "CRITICAL";
-  else if ((currentLevel ?? 0) >= 80 || (hoursUntilOverflow !== null && hoursUntilOverflow <= 24)) risk = "HIGH";
+  else if ((currentLevel ?? 0) >= alertThresholdConfig.sewageLevel.warningMinimum
+    || (hoursUntilOverflow !== null && hoursUntilOverflow <= 24)) risk = "HIGH";
   else if ((currentLevel ?? 0) >= 60 || (hoursUntilOverflow !== null && hoursUntilOverflow <= 72)) risk = "MEDIUM";
 
   const levelRisk = Math.max(0, Math.min(100, currentLevel ?? 0));

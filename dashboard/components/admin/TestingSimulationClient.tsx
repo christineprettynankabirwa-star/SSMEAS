@@ -9,12 +9,10 @@ import {
 } from "@/services/api";
 import { announceDataRefresh } from "@/services/data-refresh";
 import type { SensorReading, Tank } from "@/components/dashboard/types";
+import { classifyReading } from "@/services/alert-thresholds";
 
 const condition = (reading?: SensorReading): SimulationCondition | "OFFLINE" =>
-  !reading ? "OFFLINE"
-    : (reading.level ?? 0) >= 95 || (reading.gas_level ?? 0) >= 300 ? "DANGER"
-      : (reading.level ?? 0) >= 80 || (reading.gas_level ?? 0) >= 200 ? "WARNING"
-        : "SAFE";
+  classifyReading(reading);
 
 export default function TestingSimulationClient() {
   const { user, loading: authLoading } = useAuth();

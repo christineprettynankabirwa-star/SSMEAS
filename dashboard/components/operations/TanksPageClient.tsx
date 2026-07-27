@@ -7,9 +7,10 @@ import type { SensorReading, Tank } from "@/components/dashboard/types";
 import { ModuleError, ModuleLoading, ModuleScaffold } from "./ModuleScaffold";
 import { useApiSession } from "./useApiSession";
 import { subscribeDataRefresh } from "@/services/data-refresh";
+import { classifyReading } from "@/services/alert-thresholds";
 
-const condition = (reading?: SensorReading) => !reading ? "OFFLINE" : (reading.level ?? 0) >= 95 || (reading.gas_level ?? 0) >= 300 ? "CRITICAL" : (reading.level ?? 0) >= 80 || (reading.gas_level ?? 0) >= 200 ? "WARNING" : "SAFE";
-const tones = { SAFE: "bg-emerald-50 text-emerald-700", WARNING: "bg-amber-50 text-amber-700", CRITICAL: "bg-red-50 text-red-700", OFFLINE: "bg-slate-100 text-slate-600" };
+const condition = classifyReading;
+const tones = { SAFE: "bg-emerald-50 text-emerald-700", WARNING: "bg-amber-50 text-amber-700", DANGER: "bg-red-50 text-red-700", OFFLINE: "bg-slate-100 text-slate-600" };
 
 export default function TanksPageClient() {
   const session = useApiSession(); const [tanks,setTanks]=useState<Tank[]>([]); const [readings,setReadings]=useState<SensorReading[]>([]); const [query,setQuery]=useState(""); const [error,setError]=useState<string|null>(null); const [loading,setLoading]=useState(true);

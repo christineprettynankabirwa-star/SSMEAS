@@ -16,27 +16,31 @@ const reading = (overrides: Partial<SensorReading>): SensorReading => ({
   ...overrides,
 });
 
-test("schedules field work for every critical condition", () => {
+test("schedules field work for a DANGER sewage level", () => {
   const requests = generateAutomaticMaintenanceRequests(
-    reading({ level: 96, gas_level: 500 }),
+    reading({ level: 85, gas_level: 500 }),
     new Date("2026-07-17T09:00:00.000Z"),
   );
 
   assert.deepEqual(
     requests.map(({ task }) => task),
-    ["Emergency response: Critical sewage level", "Emergency response: Hazardous gas"],
+    ["Emergency response: Critical sewage level"],
   );
   assert.ok(requests.every(({ status }) => status === "SCHEDULED"));
   assert.ok(requests.every(({ priority }) => priority === "HIGH"));
 });
 
 test("does not schedule maintenance for warning-only readings", () => {
-  assert.deepEqual(generateAutomaticMaintenanceRequests(reading({ level: 80 })), []);
+  assert.deepEqual(generateAutomaticMaintenanceRequests(reading({ level: 84 })), []);
 });
 
-test("schedules high-priority maintenance when the level reaches 90 percent", () => {
-  const requests = generateAutomaticMaintenanceRequests(reading({ level: 90 }));
+test("schedules high-priority maintenance when the level reaches 85 percent", () => {
+  const requests = generateAutomaticMaintenanceRequests(reading({ level: 85 }));
   assert.equal(requests.length, 1);
   assert.equal(requests[0]?.priority, "HIGH");
   assert.equal(requests[0]?.status, "SCHEDULED");
+});
+
+test("gas alone does not create sewage maintenance", () => {
+  assert.deepEqual(generateAutomaticMaintenanceRequests(reading({ level: 64, gas_level: 9999 })), []);
 });

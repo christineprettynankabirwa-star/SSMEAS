@@ -9,10 +9,10 @@ import {
 } from "../src/models/simulation.model";
 
 test("reset-all targets only unsafe reserved test tanks", async () => {
-  const query = mock.method(pool, "query", async (sql: string) => {
+  const query = mock.method(pool, "query", async (sql: string, values: unknown[]) => {
     assert.match(sql, /id::text LIKE 'd0000000/);
-    assert.match(sql, /level,0\) >= 80/);
-    assert.match(sql, /gas_level,0\) >= 200/);
+    assert.match(sql, /level,0\) >= \$1/);
+    assert.deepEqual(values, [65]);
     return { rows: [{ id: "test-tank-id" }] };
   });
   try {

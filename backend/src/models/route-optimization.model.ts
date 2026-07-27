@@ -1,5 +1,6 @@
 import { pool } from "../config/database";
 import type { RouteCandidate } from "../types/route-optimization.types";
+import { alertThresholdConfig } from "../config/alert-thresholds";
 
 interface RouteRow {
   tank_id: string; tank_name: string; location: string; latitude: number;
@@ -36,10 +37,10 @@ export const getOpenMaintenanceStops = async (): Promise<RouteCandidate[]> => {
      WHERE open_work.tank_id IS NOT NULL
         OR latest_reading.level >= $1
         OR active_alert.tank_id IS NOT NULL`,
-    [Number(process.env.FILL_WARNING_THRESHOLD ?? 80)],
+    [alertThresholdConfig.sewageLevel.warningMinimum],
   );
-  const criticalThreshold = Number(process.env.FILL_CRITICAL_THRESHOLD ?? 95);
-  const warningThreshold = Number(process.env.FILL_WARNING_THRESHOLD ?? 80);
+  const criticalThreshold = alertThresholdConfig.sewageLevel.dangerMinimum;
+  const warningThreshold = alertThresholdConfig.sewageLevel.warningMinimum;
   return result.rows.map((row) => {
     const fillLevel = row.fill_level === null ? null : Number(row.fill_level);
     const priority = row.alert_severity === "critical" || (fillLevel ?? 0) >= criticalThreshold

@@ -2,14 +2,11 @@ import AnimatedValue from "@/components/ui/AnimatedValue";
 import MetricCard from "@/components/ui/MetricCard";
 import type { SensorReading } from "./types";
 import { isLiveReading } from "./telemetry";
+import { classifyLevel } from "@/services/alert-thresholds";
 
 const Icon = ({ path }: { path: string }) => <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={path}/></svg>;
 export default function SummaryCards({ reading, lastUpdated }: { reading: SensorReading | null; lastUpdated: Date | null }) {
-  const gasWarning = Number(process.env.NEXT_PUBLIC_GAS_WARNING_THRESHOLD ?? 200);
-  const gasCritical = Number(process.env.NEXT_PUBLIC_GAS_LEVEL_THRESHOLD ?? 300);
-  const dangerous = (reading?.level ?? 0) >= 95 || (reading?.gas_level ?? 0) >= gasCritical;
-  const warning = !dangerous && ((reading?.level ?? 0) >= 80 || (reading?.gas_level ?? 0) >= gasWarning);
-  const status = !isLiveReading(reading) ? "OFFLINE" : dangerous ? "DANGER" : warning ? "WARNING" : "SAFE";
+  const status = !isLiveReading(reading) ? "OFFLINE" : classifyLevel(reading?.level);
   const statusTone = status === "DANGER" ? "bg-red-100 text-red-700" : status === "WARNING" ? "bg-amber-100 text-amber-700" : status === "SAFE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600";
   const items = [
     { label: "Sewage level", value: reading?.level == null ? "—" : <AnimatedValue value={reading.level} decimals={1} suffix="%"/>, detail: "latest tank reading", tone: "bg-cyan-100 text-cyan-700", line: "bg-cyan-400", icon: <Icon path="M5 4v14a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V4M5 13c2-1.5 4 1.5 7 0s5 1.5 7 0"/> },

@@ -26,7 +26,7 @@ export default function EmergencyAlertSystem() {
         getAlerts(), getLatestReadings(), getOverflowPredictions(),
       ]);
       setAlerts(nextAlerts.filter((alert) =>
-        alert.status !== "RESOLVED" && alert.severity === "critical"));
+        alert.status === "ACTIVE" && alert.severity === "critical"));
       setReadings(nextReadings);
       setPredictions(nextPredictions);
       setError("");
@@ -74,9 +74,7 @@ export default function EmergencyAlertSystem() {
     if (audio.current) audio.current.currentTime = 0;
   }, []);
 
-  const activeAlerts = alerts.filter(({ status }) => status === "ACTIVE");
-  const acknowledgedAlerts = alerts.filter(({ status }) => status === "ACKNOWLEDGED");
-  const alert = activeAlerts[0] ?? null;
+  const alert = alerts[0] ?? null;
   const reading = useMemo(
     () => alert ? readings.find((item) => item.tank_id === alert.tank_id) ?? null : null,
     [alert, readings],
@@ -101,10 +99,7 @@ export default function EmergencyAlertSystem() {
     }
   };
 
-  if (!alert) {
-    if (!acknowledgedAlerts.length) return null;
-    return <AcknowledgedDangerBanner alerts={acknowledgedAlerts}/>;
-  }
+  if (!alert) return null;
   const predictedText = prediction?.predicted_minutes_to_full == null
     ? prediction?.predicted_overflow_time
       ? new Date(prediction.predicted_overflow_time).toLocaleString("en-UG")
@@ -112,8 +107,7 @@ export default function EmergencyAlertSystem() {
     : `${Math.ceil(prediction.predicted_minutes_to_full)} minutes`;
 
   return <>
-    {acknowledgedAlerts.length > 0 && <AcknowledgedDangerBanner alerts={acknowledgedAlerts}/>}
-    <div aria-label={`${activeAlerts.length} active critical alerts`}
+    <div aria-label={`${alerts.length} active critical alerts`}
       className="fixed left-0 top-0 z-[1600] hidden h-full w-2 animate-pulse bg-red-600 shadow-[0_0_25px_#dc2626] lg:block" />
     <div className="fixed right-36 top-3 z-[1600] flex h-10 min-w-10 items-center justify-center rounded-xl bg-red-700 px-3 text-sm font-black text-white shadow-lg shadow-red-500/40"
       title="Active critical alerts">
@@ -125,7 +119,7 @@ export default function EmergencyAlertSystem() {
         <div className="text-center">
           <div className="text-7xl" aria-hidden="true">🚨</div>
           <p className="mt-3 text-xs font-black uppercase tracking-[.3em] text-red-300">
-            {activeAlerts.length} active critical {activeAlerts.length === 1 ? "alert" : "alerts"}
+            {alerts.length} active critical {alerts.length === 1 ? "alert" : "alerts"}
           </p>
           <h1 id="critical-alert-title" className="mt-3 text-3xl font-black text-red-100 sm:text-5xl">
             CRITICAL SEWER ALERT
@@ -165,22 +159,4 @@ export default function EmergencyAlertSystem() {
       </section>
     </div>
   </>;
-}
-
-function AcknowledgedDangerBanner({ alerts }: { alerts: AlertItem[] }) {
-  const tanks = [...new Set(alerts.map(({ tank_name }) => tank_name))];
-  return <div role="status"
-    className="fixed left-3 right-3 top-14 z-[1500] border-l-4 border-red-700 bg-red-100 px-4 py-3 text-red-950 shadow-lg lg:left-64 lg:top-3">
-    <div className="flex items-center justify-between gap-4">
-      <div className="min-w-0">
-        <p className="text-xs font-black uppercase">Danger acknowledged - monitoring continues</p>
-        <p className="truncate text-sm font-semibold">
-          {tanks.join(", ")} {tanks.length === 1 ? "remains" : "remain"} in DANGER until live readings return to SAFE.
-        </p>
-      </div>
-      <span className="shrink-0 bg-red-700 px-2 py-1 text-xs font-black text-white">
-        {alerts.length} acknowledged
-      </span>
-    </div>
-  </div>;
 }

@@ -1,44 +1,39 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  generateAlertsForReading, isReadingSafe, type AlertThresholds,
+  alertThresholds, generateAlertsForReading, isReadingSafe,
 } from "../src/services/alerts.service";
+import { classifySewageLevel } from "../src/config/alert-thresholds";
 import type { SensorReading } from "../src/types/readings.types";
 
-const reading = (overrides: Partial<SensorReading>): SensorReading => ({
+const reading = (level: number, gasLevel = 500): SensorReading => ({
   id: "reading-id",
   tank_id: "00000000-0000-4000-8000-000000000001",
   thingspeak_channel_id: 1,
   thingspeak_entry_id: 1,
-  level: null,
-  gas_level: null,
+  level,
+  gas_level: gasLevel,
   recorded_at: new Date(0),
   created_at: new Date(0),
-  ...overrides,
 });
 
-const thresholds: AlertThresholds = { fillWarning: 72, fillCritical: 88, hazardousGas: 240 };
+for (const [level, condition, severity] of [
+  [64, "SAFE", null],
+  [65, "WARNING", "warning"],
+  [84, "WARNING", "warning"],
+  [85, "DANGER", "critical"],
+  [100, "DANGER", "critical"],
+] as const) {
+  test(`${level}% is ${condition}`, () => {
+    assert.equal(classifySewageLevel(level), condition);
+    const alerts = generateAlertsForReading(reading(level), alertThresholds);
+    assert.equal(alerts[0]?.severity ?? null, severity);
+    assert.equal(isReadingSafe(reading(level), alertThresholds), condition === "SAFE");
+  });
+}
 
-test("generates alerts using the configured values in both decisions and messages", () => {
-  const alerts = generateAlertsForReading(reading({ level: 88, gas_level: 240 }), thresholds);
-  assert.deepEqual(alerts.map(({ alert_type }) => alert_type), ["Critical sewage level", "Hazardous gas"]);
-  assert.match(alerts[0]?.message ?? "", /88% critical threshold/);
-  assert.match(alerts[1]?.message ?? "", /240 threshold/);
-});
-
-test("generates no alerts when readings are within configured limits", () => {
-  assert.deepEqual(generateAlertsForReading(reading({ level: 71.9, gas_level: 239.9 }), thresholds), []);
-});
-
-test("uses warning rather than critical severity between fill thresholds", () => {
-  const alerts = generateAlertsForReading(reading({ level: 72 }), thresholds);
-  assert.equal(alerts.length, 1);
-  assert.equal(alerts[0]?.severity, "warning");
-  assert.match(alerts[0]?.message ?? "", /72% warning threshold/);
-});
-
-test("resolves incidents only after both fill and gas readings are SAFE", () => {
-  assert.equal(isReadingSafe(reading({ level: 30, gas_level: 100 }), thresholds), true);
-  assert.equal(isReadingSafe(reading({ level: 72, gas_level: 100 }), thresholds), false);
-  assert.equal(isReadingSafe(reading({ level: 30, gas_level: 220 }), thresholds), false);
+test("sewage level is the primary alert trigger", () => {
+  assert.deepEqual(generateAlertsForReading(reading(64, 9999), alertThresholds), []);
+  assert.equal(generateAlertsForReading(reading(65, 0), alertThresholds)[0]?.severity, "warning");
+  assert.equal(generateAlertsForReading(reading(85, 0), alertThresholds)[0]?.severity, "critical");
 });

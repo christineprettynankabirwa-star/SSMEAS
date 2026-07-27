@@ -4,6 +4,7 @@ import type { Alert } from "../types/alerts.types";
 import type { CreateMaintenanceRequest, MaintenancePriority, MaintenanceRecord, MaintenanceStatus, UpdateMaintenanceRequest } from "../types/maintenance.types";
 import type { SensorReading } from "../types/readings.types";
 import type { AuthenticatedUser } from "../types/auth.types";
+import { alertThresholdConfig, classifySewageLevel } from "../config/alert-thresholds";
 
 export class MaintenanceValidationError extends Error {}
 export class MaintenanceTankNotFoundError extends Error {}
@@ -81,10 +82,10 @@ export const generateAutomaticMaintenanceRequests = (
   const scheduledFor = new Date(baseTime + automaticDelayMinutes() * 60_000).toISOString();
 
   const reasons: string[] = [];
-  if (reading.level !== null && reading.level >= 90) reasons.push("Critical sewage level");
-  const hazardousGas = Number(process.env.GAS_LEVEL_THRESHOLD ?? 300);
-  if (reading.gas_level !== null && reading.gas_level >= hazardousGas) {
-    reasons.push("Hazardous gas");
+  const condition = classifySewageLevel(reading.level);
+  if (condition === "DANGER") reasons.push("Critical sewage level");
+  if (condition === "WARNING" && alertThresholdConfig.maintenanceOnWarning) {
+    reasons.push("Warning sewage level");
   }
   return reasons.map((reason) => ({
       tank_id: reading.tank_id,
