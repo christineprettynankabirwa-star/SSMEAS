@@ -74,7 +74,6 @@ export const markAllNotificationsRead = async (): Promise<{ updated: number }> =
 export const getNotificationPreferences = async (): Promise<NotificationPreferences> => (await api.get<NotificationPreferences>("/notifications/preferences")).data;
 export const updateNotificationPreferences = async (value: Omit<NotificationPreferences, "id" | "user_id" | "created_at" | "updated_at">): Promise<NotificationPreferences> => (await api.put<NotificationPreferences>("/notifications/preferences", value)).data;
 export const testNotificationEmail = async (): Promise<{ message: string }> => (await api.post<{ message: string }>("/notifications/test-email")).data;
-export const testNotificationSms = async (): Promise<{ message: string }> => (await api.post<{ message: string }>("/notifications/test-sms")).data;
 export const deleteNotification = async (id: string): Promise<void> => {
   await api.delete(`/notifications/${encodeURIComponent(id)}`);
 };

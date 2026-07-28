@@ -25,7 +25,6 @@ const protectedEndpoints = [
   ["GET", "/api/notifications/preferences"],
   ["PUT", "/api/notifications/preferences"],
   ["POST", "/api/notifications/test-email"],
-  ["POST", "/api/notifications/test-sms"],
   ["GET", "/api/users"],
 ] as const;
 

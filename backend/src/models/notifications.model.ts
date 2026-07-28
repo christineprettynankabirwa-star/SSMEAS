@@ -90,10 +90,18 @@ export const listForUser = async (userId: string, limit = 100): Promise<Notifica
   (await pool.query<Notification>(
     `SELECT ${notificationColumns} FROM notifications notification
      JOIN alerts alert ON alert.id=notification.alert_id JOIN tanks tank ON tank.id=alert.tank_id
-     WHERE notification.user_id=$1 AND notification.channel='IN_APP'
+     WHERE notification.user_id=$1
      ORDER BY notification.created_at DESC LIMIT $2`,
     [userId, limit],
   )).rows;
+
+export const markDeviceSmsRecorded = async (client: PoolClient, id: string): Promise<void> => {
+  await client.query(
+    `UPDATE notifications SET status='SENT',sent_at=NOW(),
+       error_message=NULL WHERE id=$1 AND channel='SMS_DEVICE'`,
+    [id],
+  );
+};
 
 export const unreadForUser = async (userId: string): Promise<Notification[]> =>
   (await pool.query<Notification>(

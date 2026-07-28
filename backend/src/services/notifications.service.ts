@@ -8,7 +8,7 @@ import type {
 } from "../types/notifications.types";
 import {
   InAppNotificationProvider, NodemailerEmailProvider,
-  NotificationProvider, SmsNotificationProvider,
+  NotificationProvider,
 } from "./notification-providers";
 import { predictOverflow } from "./prediction.service";
 
@@ -18,10 +18,9 @@ export class NotificationNotFoundError extends Error {}
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const providers: Record<NotificationChannel, NotificationProvider> = {
+const providers: Record<"IN_APP" | "EMAIL", NotificationProvider> = {
   IN_APP: new InAppNotificationProvider(),
   EMAIL: new NodemailerEmailProvider(),
-  SMS: new SmsNotificationProvider(),
 };
 
 const recommendedAction = (alert: Alert): string =>
@@ -42,7 +41,7 @@ export const dispatchAlertNotifications = async (
 ): Promise<void> => {
   if (alert.severity !== "warning" && alert.severity !== "critical") return;
   const client = await pool.connect();
-  const deliveries: Array<{ channel: NotificationChannel; value: ProviderMessage }> = [];
+  const deliveries: Array<{ channel: "IN_APP" | "EMAIL"; value: ProviderMessage }> = [];
   try {
     await client.query("BEGIN");
     const recipients = await notificationModel.getRecipients(client, alert);
@@ -67,18 +66,6 @@ export const dispatchAlertNotifications = async (
       `Google Maps: https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`,
       `Recommended action: ${recommendedAction(alert)}`,
     ].join("\n");
-    const smsMessage = [
-      "SSMEAS ALERT",
-      alert.tank_name,
-      reading?.level === null || reading?.level === undefined
-        ? "Level unavailable"
-        : `${reading.level.toFixed(1)}% FULL`,
-      `Predicted overflow: ${prediction?.predictedMinutesToFull == null
-        ? "Unavailable"
-        : `${Math.ceil(prediction.predictedMinutesToFull)} min`}`,
-      "Immediate action required.",
-    ].join("\n");
-
     for (const recipient of recipients) {
       if (!isEligible(alert.severity, recipient.preferences)) continue;
       const enabled: Array<[NotificationChannel, boolean, string | null]> = [
@@ -88,7 +75,7 @@ export const dispatchAlertNotifications = async (
           || (alert.severity === "critical"
             && (recipient.role === "ADMINISTRATOR" || recipient.role === "CLIENT"))
         ), recipient.email],
-        ["SMS", recipient.preferences.sms_enabled
+        ["SMS_DEVICE", alert.severity === "critical" && recipient.preferences.sms_enabled
           && recipient.role === "MAINTENANCE_OFFICER", recipient.phone_number],
       ];
       for (const [channel, isEnabled, address] of enabled) {
@@ -97,13 +84,14 @@ export const dispatchAlertNotifications = async (
           client, alert.id, alert.tank_id, recipient.id, channel, address, subject, message,
         );
         if (notificationId) {
-          deliveries.push({
-            channel,
-            value: {
+          if (channel === "SMS_DEVICE") {
+            await notificationModel.markDeviceSmsRecorded(client, notificationId);
+          } else if (channel === "IN_APP" || channel === "EMAIL") {
+            deliveries.push({ channel, value: {
               notificationId, recipient: address, subject, message,
-              tankId: alert.tank_id, tankName: alert.tank_name, smsMessage,
-            },
-          });
+              tankId: alert.tank_id, tankName: alert.tank_name,
+            } });
+          }
         }
       }
     }
@@ -161,33 +149,17 @@ export const setNotificationPreferences = (
 };
 
 export const sendTestNotification = async (
-  channel: "EMAIL" | "SMS", user: { id: string; email: string },
+  user: { id: string; email: string },
 ): Promise<{ message: string }> => {
-  const client = await pool.connect();
-  try {
-    const preference = await notificationModel.getPreferences(user.id);
-    const target = channel === "EMAIL" ? user.email
-      : (await client.query<{ phone_number: string | null }>(
-        "SELECT phone_number FROM users WHERE id=$1", [user.id],
-      )).rows[0]?.phone_number;
-    if (!target) throw new NotificationValidationError(
-      channel === "SMS" ? "Add a phone number before testing SMS." : "Email address is unavailable.",
-    );
-    if (channel === "EMAIL" && !preference.email_enabled) {
-      throw new NotificationValidationError("Email notifications are disabled in your preferences.");
-    }
-    if (channel === "SMS" && !preference.sms_enabled) {
-      throw new NotificationValidationError("SMS notifications are disabled in your preferences.");
-    }
-    const provider = providers[channel];
-    await provider.send({
-      notificationId: "test",
-      recipient: target,
-      subject: "SSMEAS notification test",
-      message: `Your ${channel.toLowerCase()} notification settings are working.`,
-    });
-    return { message: `${channel} test submitted.` };
-  } finally {
-    client.release();
+  const preference = await notificationModel.getPreferences(user.id);
+  if (!user.email) throw new NotificationValidationError("Email address is unavailable.");
+  if (!preference.email_enabled) {
+    throw new NotificationValidationError("Email notifications are disabled in your preferences.");
   }
+  await providers.EMAIL.send({
+    notificationId: "test", recipient: user.email,
+    subject: "SSMEAS notification test",
+    message: "Your email notification settings are working.",
+  });
+  return { message: "EMAIL test submitted." };
 };

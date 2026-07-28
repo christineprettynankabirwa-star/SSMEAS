@@ -45,7 +45,7 @@ export const putPreferences = async (request: Request, response: Response): Prom
   catch (error) { handle(error, response); }
 };
 export const postTestEmail = async (request: Request, response: Response): Promise<void> => {
-  try { response.json(await sendTestNotification("EMAIL", user(request))); }
+  try { response.json(await sendTestNotification(user(request))); }
   catch (error) { handle(error, response); }
 };
 export const deleteNotificationController = async (request: Request, response: Response): Promise<void> => {
@@ -53,9 +53,4 @@ export const deleteNotificationController = async (request: Request, response: R
     await deleteNotificationService(String(request.params.id), user(request).id);
     response.status(204).end();
   } catch (error) { handle(error, response); }
-};
-
-export const postTestSms = async (request: Request, response: Response): Promise<void> => {
-  try { response.json(await sendTestNotification("SMS", user(request))); }
-  catch (error) { handle(error, response); }
 };

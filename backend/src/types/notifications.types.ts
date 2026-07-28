@@ -1,6 +1,6 @@
 import type { AlertSeverity } from "./alerts.types";
 
-export type NotificationChannel = "EMAIL" | "SMS" | "IN_APP";
+export type NotificationChannel = "EMAIL" | "IN_APP" | "SMS_DEVICE" | "SMS_CLOUD";
 export type NotificationStatus = "PENDING" | "SENT" | "FAILED";
 
 export interface NotificationPreference {
@@ -55,5 +55,4 @@ export interface ProviderMessage {
   message: string;
   tankId?: string;
   tankName?: string;
-  smsMessage?: string;
 }

@@ -6,19 +6,9 @@ export interface NotificationProvider {
   send(message: ProviderMessage): Promise<void>;
 }
 
-export interface SmsProvider {
-  sendSMS(phoneNumber: string, message: string): Promise<void>;
-}
-
-export class MockSmsProvider implements SmsProvider {
-  async sendSMS(phoneNumber: string, message: string): Promise<void> {
-    console.info("Mock SMS prepared", { phoneNumber, message, timestamp: new Date().toISOString() });
-  }
-}
-
 const deliveryLog = (
   message: ProviderMessage,
-  channel: "EMAIL" | "SMS" | "IN_APP",
+  channel: "EMAIL" | "IN_APP",
   status: "SENT" | "FAILED",
   error?: string,
 ): void => {
@@ -33,7 +23,7 @@ const deliveryLog = (
 };
 
 abstract class TrackedProvider implements NotificationProvider {
-  protected abstract readonly channel: "EMAIL" | "SMS" | "IN_APP";
+  protected abstract readonly channel: "EMAIL" | "IN_APP";
   protected abstract deliver(message: ProviderMessage): Promise<void>;
 
   async send(message: ProviderMessage): Promise<void> {
@@ -84,16 +74,5 @@ export class NodemailerEmailProvider extends TrackedProvider {
       subject: message.subject,
       text: message.message,
     });
-  }
-}
-
-export class SmsNotificationProvider extends TrackedProvider {
-  protected readonly channel = "SMS" as const;
-  constructor(private readonly provider: SmsProvider = new MockSmsProvider()) { super(); }
-  protected async deliver(message: ProviderMessage): Promise<void> {
-    await this.provider.sendSMS(
-      message.recipient,
-      message.smsMessage ?? `${message.subject}\n${message.message}`,
-    );
   }
 }

@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     tank_id UUID NOT NULL REFERENCES tanks(id) ON DELETE RESTRICT,
     alert_id UUID NOT NULL REFERENCES alerts(id) ON DELETE RESTRICT,
-    channel VARCHAR(20) NOT NULL CHECK (channel IN ('EMAIL', 'SMS', 'IN_APP')),
+    channel VARCHAR(20) NOT NULL CHECK (channel IN ('EMAIL', 'IN_APP', 'SMS_DEVICE', 'SMS_CLOUD')),
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING'
@@ -74,10 +74,11 @@ BEGIN
     END IF;
 END $$;
 UPDATE notifications SET channel='IN_APP' WHERE channel='DASHBOARD';
+UPDATE notifications SET channel='SMS_DEVICE' WHERE channel='SMS';
 UPDATE notifications SET status='PENDING' WHERE status='QUEUED';
 UPDATE notifications SET status='SENT' WHERE status='READ';
 ALTER TABLE notifications ADD CONSTRAINT notifications_channel_check
-    CHECK (channel IN ('EMAIL', 'SMS', 'IN_APP'));
+    CHECK (channel IN ('EMAIL', 'IN_APP', 'SMS_DEVICE', 'SMS_CLOUD'));
 ALTER TABLE notifications ADD CONSTRAINT notifications_status_check
     CHECK (status IN ('PENDING', 'SENT', 'FAILED'));
 ALTER TABLE notifications ALTER COLUMN status SET DEFAULT 'PENDING';
