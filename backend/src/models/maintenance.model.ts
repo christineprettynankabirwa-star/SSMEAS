@@ -19,6 +19,16 @@ export const getAllMaintenance = async (assignedTo?: string): Promise<Maintenanc
   return result.rows;
 };
 
+export const getMaintenanceById = async (id: string): Promise<MaintenanceRecord | null> =>
+  (await pool.query<MaintenanceRecord>(
+    `SELECT ${maintenanceColumns}
+     FROM maintenance maintenance
+     JOIN tanks tank ON tank.id=maintenance.tank_id
+     LEFT JOIN users officer ON officer.id=maintenance.assigned_to
+     WHERE maintenance.id=$1`,
+    [id],
+  )).rows[0] ?? null;
+
 export const updateAssignedMaintenanceStatus = async (
   id: string, officerId: string, status: "ASSIGNED" | "IN_PROGRESS" | "COMPLETED",
 ): Promise<MaintenanceRecord | null> => {

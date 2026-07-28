@@ -33,6 +33,9 @@ export const addMaintenance = async (
   }
   if (maintenance.priority !== undefined && !priorities.has(maintenance.priority)) throw new MaintenanceValidationError("priority is invalid.");
   if (maintenance.assigned_to && !uuidPattern.test(maintenance.assigned_to)) throw new MaintenanceValidationError("assigned_to must be a valid UUID.");
+  if (maintenance.status && ["IN_PROGRESS", "COMPLETED"].includes(maintenance.status) && !maintenance.assigned_to) {
+    throw new MaintenanceValidationError("Assign a maintenance officer before starting or completing this task.");
+  }
   if (!(await tankModel.getTankById(maintenance.tank_id))) throw new MaintenanceTankNotFoundError("Tank not found.");
   return maintenanceModel.createMaintenance({ ...maintenance, scheduled_for: scheduledFor.toISOString() });
 };
@@ -43,6 +46,13 @@ export const changeMaintenance = async (id: string, update: UpdateMaintenanceReq
   if (update.priority !== undefined && !priorities.has(update.priority)) throw new MaintenanceValidationError("priority is invalid.");
   if (update.assigned_to && !uuidPattern.test(update.assigned_to)) throw new MaintenanceValidationError("assigned_to must be a valid UUID.");
   if (update.scheduled_for && Number.isNaN(new Date(update.scheduled_for).getTime())) throw new MaintenanceValidationError("scheduled_for must be a valid ISO date-time.");
+  const current = await maintenanceModel.getMaintenanceById(id);
+  if (!current) throw new MaintenanceTankNotFoundError("Maintenance record not found.");
+  const hasAssignmentUpdate = Object.prototype.hasOwnProperty.call(update, "assigned_to");
+  const effectiveOfficer = hasAssignmentUpdate ? update.assigned_to : current.assigned_to;
+  if (update.status && ["IN_PROGRESS", "COMPLETED"].includes(update.status) && !effectiveOfficer) {
+    throw new MaintenanceValidationError("Assign a maintenance officer before starting or completing this task.");
+  }
   const record = await maintenanceModel.updateMaintenance(id, update);
   if (!record) throw new MaintenanceTankNotFoundError("Maintenance record not found.");
   return record;
