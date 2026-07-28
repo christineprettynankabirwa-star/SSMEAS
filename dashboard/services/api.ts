@@ -14,6 +14,7 @@ export const login = async (email: string, password: string): Promise<LoginRespo
 export const getProfile = async (): Promise<UserProfile> => (await api.get<UserProfile>("/profile")).data;
 export const getUsers = async (): Promise<ManagedUser[]> => (await api.get<ManagedUser[]>("/users")).data;
 export const createUser = async (value: { full_name: string; email: string; password: string; role: UserProfile["role"] }): Promise<ManagedUser> => (await api.post<ManagedUser>("/users", value)).data;
+export const updateUser = async (id: string, value: { full_name: string; email: string; password?: string; role: UserProfile["role"] }): Promise<ManagedUser> => (await api.patch<ManagedUser>(`/users/${encodeURIComponent(id)}`, value)).data;
 export const updateUserRole = async (id: string, role: UserProfile["role"]): Promise<ManagedUser> => (await api.patch<ManagedUser>(`/users/${encodeURIComponent(id)}/role`, { role })).data;
 export const deleteUser = async (id: string): Promise<void> => { await api.delete(`/users/${encodeURIComponent(id)}`); };
 export interface HealthStatus { status: string; timestamp?: string; }

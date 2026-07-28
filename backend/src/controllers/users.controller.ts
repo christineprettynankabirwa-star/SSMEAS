@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { AuthValidationError, changeUserRole, createUser, listUsers, removeUser } from "../services/auth.service";
+import { AuthValidationError, changeUserRole, createUser, listUsers, removeUser, updateUser } from "../services/auth.service";
 
 const handle = (error: unknown, response: Response): void => {
   if (error instanceof AuthValidationError) { response.status(400).json({ message: error.message }); return; }
@@ -15,6 +15,10 @@ export const postUser = async (request: Request, response: Response): Promise<vo
 };
 export const patchUserRole = async (request: Request, response: Response): Promise<void> => {
   try { response.json(await changeUserRole(String(request.params.id), request.body?.role)); }
+  catch (error) { handle(error, response); }
+};
+export const patchUser = async (request: Request, response: Response): Promise<void> => {
+  try { response.json(await updateUser(String(request.params.id), request.body)); }
   catch (error) { handle(error, response); }
 };
 export const deleteUser = async (request: Request, response: Response): Promise<void> => {

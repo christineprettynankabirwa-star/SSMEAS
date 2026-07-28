@@ -4,11 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/ui/AppShell";
 import { useApiSession } from "@/components/operations/useApiSession";
 import { useAuth } from "@/auth/AuthContext";
-import { createUser, deleteUser, getUsers, updateUserRole, type ManagedUser } from "@/services/api";
+import { createUser, deleteUser, getUsers, updateUser, type ManagedUser } from "@/services/api";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import UserFormModal from "./UserFormModal";
 import UsersTable from "./UsersTable";
-import { apiErrorMessage, type CreateUserValues, type ManagedRole } from "./userManagement";
+import { apiErrorMessage, type CreateUserValues } from "./userManagement";
 
 type Feedback = { tone: "success" | "error"; message: string } | null;
 
@@ -58,9 +58,14 @@ export default function UsersPageClient() {
     setFeedback({ tone: "success", message: "User created successfully." });
   };
 
-  const editRole = async (role: ManagedRole) => {
+  const editAccount = async (values: CreateUserValues) => {
     if (!editingUser) return;
-    const updated = await updateUserRole(editingUser.id, role);
+    const updated = await updateUser(editingUser.id, {
+      full_name: values.fullName,
+      email: values.email,
+      role: values.role,
+      ...(values.password ? { password: values.password } : {}),
+    });
     setUsers((current) => current.map((item) => item.id === updated.id ? updated : item));
     setEditingUser(null);
     setFeedback({ tone: "success", message: `${updated.full_name}'s role was updated.` });
@@ -103,7 +108,7 @@ export default function UsersPageClient() {
       </main>
 
       {creating && <UserFormModal mode="create" onClose={() => setCreating(false)} onSubmit={addUser} />}
-      {editingUser && <UserFormModal mode="edit" user={editingUser} onClose={() => setEditingUser(null)} onSubmit={editRole} />}
+      {editingUser && <UserFormModal mode="edit" user={editingUser} onClose={() => setEditingUser(null)} onSubmit={editAccount} />}
       {deletingUser && <ConfirmDeleteModal user={deletingUser} onClose={() => setDeletingUser(null)} onConfirm={removeUser} />}
     </AppShell>
   );

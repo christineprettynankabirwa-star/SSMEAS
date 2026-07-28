@@ -25,6 +25,13 @@ export interface CreateUserRequest {
   role: UserRole;
 }
 
+export interface UpdateUserRequest {
+  full_name: string;
+  email: string;
+  role: UserRole;
+  password?: string;
+}
+
 export interface JwtUserPayload {
   sub: string;
   email: string;

@@ -49,6 +49,18 @@ export const validateCreateUser = (values: CreateUserValues): Partial<Record<Use
   return errors;
 };
 
+export const validateUserDetails = (
+  values: CreateUserValues,
+  requirePassword: boolean,
+): Partial<Record<UserFormField, string>> => {
+  const errors = validateCreateUser(values);
+  if (!requirePassword && !values.password) delete errors.password;
+  else if (!requirePassword && values.password.length < 8) {
+    errors.password = "New password must contain at least 8 characters.";
+  }
+  return errors;
+};
+
 export const apiErrorMessage = (error: unknown, fallback: string): string => {
   if (axios.isAxiosError(error)) {
     const message = error.response?.data?.message;

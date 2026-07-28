@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt, { type SignOptions } from "jsonwebtoken";
 import * as userModel from "../models/user.model";
-import type { AuthenticatedUser, CreateUserRequest, JwtUserPayload, LoginRequest, UserRecord, UserRole } from "../types/auth.types";
+import type { AuthenticatedUser, CreateUserRequest, JwtUserPayload, LoginRequest, UpdateUserRequest, UserRecord, UserRole } from "../types/auth.types";
 
 export class InvalidCredentialsError extends Error {}
 export class AuthValidationError extends Error {}
@@ -72,6 +72,39 @@ export const changeUserRole = async (id: string, role: unknown): Promise<Authent
   if (!user) throw new AuthValidationError("User not found.");
   return user;
 };
+
+export const updateUser = async (id: string, input: UpdateUserRequest): Promise<AuthenticatedUser> => {
+  if (typeof input.full_name !== "string" || !input.full_name.trim() || input.full_name.length > 150) {
+    throw new AuthValidationError("Full name is required and must not exceed 150 characters.");
+  }
+  const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
+  if (!email || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new AuthValidationError("Enter a valid email address.");
+  }
+  if (!userRoles.has(input.role)) throw new AuthValidationError("Select a valid role.");
+  if (input.password !== undefined && input.password !== "" && input.password.length < 8) {
+    throw new AuthValidationError("New password must contain at least 8 characters.");
+  }
+
+  const current = await userModel.getUserById(id);
+  if (!current) throw new AuthValidationError("User not found.");
+  const emailOwner = await userModel.getUserByEmail(email);
+  if (emailOwner && emailOwner.id !== id) {
+    throw new AuthValidationError("An account with this email already exists.");
+  }
+  const passwordHash = input.password ? await bcrypt.hash(input.password, 12) : undefined;
+  try {
+    const updated = await userModel.updateUser(id, input.full_name.trim(), email, input.role, passwordHash);
+    if (!updated) throw new AuthValidationError("User not found.");
+    return updated;
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") {
+      throw new AuthValidationError("An account with this email already exists.");
+    }
+    throw error;
+  }
+};
+
 export const removeUser = async (id: string, currentUserId: string): Promise<void> => {
   if (id === currentUserId) throw new AuthValidationError("You cannot delete your own account.");
   if (!(await userModel.deleteUser(id))) throw new AuthValidationError("User not found.");

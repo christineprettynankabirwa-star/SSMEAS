@@ -7,7 +7,7 @@ import {
   apiErrorMessage,
   roleLabel,
   titleCaseName,
-  validateCreateUser,
+  validateUserDetails,
   type CreateUserValues,
   type ManagedRole,
   type UserFormField,
@@ -21,7 +21,7 @@ type CreateProps = {
 type EditProps = {
   mode: "edit";
   user: ManagedUser;
-  onSubmit: (role: ManagedRole) => Promise<void>;
+  onSubmit: (values: CreateUserValues) => Promise<void>;
 };
 type Props = (CreateProps | EditProps) & { onClose: () => void };
 
@@ -63,18 +63,15 @@ export default function UserFormModal(props: Props) {
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalized = { ...values, fullName: titleCaseName(values.fullName), email: values.email.trim().toLowerCase() };
-    if (props.mode === "create") {
-      const validationErrors = validateCreateUser(normalized);
-      if (Object.keys(validationErrors).length) {
-        setErrors(validationErrors);
-        return;
-      }
+    const validationErrors = validateUserDetails(normalized, props.mode === "create");
+    if (Object.keys(validationErrors).length) {
+      setErrors(validationErrors);
+      return;
     }
     setSubmitting(true);
     setErrors({});
     try {
-      if (props.mode === "create") await props.onSubmit(normalized);
-      else await props.onSubmit(normalized.role);
+      await props.onSubmit(normalized);
     } catch (error) {
       const message = apiErrorMessage(error, props.mode === "create" ? "The user could not be created." : "The user could not be updated.");
       setErrors(message.toLowerCase().includes("email") ? { email: message } : { form: message });
@@ -92,7 +89,7 @@ export default function UserFormModal(props: Props) {
           <div>
             <h2 id={titleId} className="text-xl font-bold text-slate-900">{props.mode === "create" ? "Add user" : "Edit user"}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              {props.mode === "create" ? "Create an account and assign its access level." : `Update ${props.user.full_name}'s access level.`}
+              {props.mode === "create" ? "Create an account and assign its access level." : `Update ${props.user.full_name}'s SSMEAS account.`}
             </p>
           </div>
           <button type="button" onClick={props.onClose} disabled={submitting} title="Close dialog" aria-label="Close dialog" className="h-9 w-9 rounded-md text-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900">×</button>
@@ -102,7 +99,7 @@ export default function UserFormModal(props: Props) {
           {errors.form && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errors.form}</p>}
           <div>
             <label htmlFor={`${titleId}-name`} className="mb-1.5 block text-sm font-semibold text-slate-800">Full Name</label>
-            <input id={`${titleId}-name`} value={values.fullName} disabled={props.mode === "edit"} autoFocus={props.mode === "create"}
+            <input id={`${titleId}-name`} value={values.fullName} autoFocus
               onChange={(event) => setField("fullName", event.target.value)}
               onBlur={() => setField("fullName", titleCaseName(values.fullName))}
               placeholder="e.g. Sarah Namusoke" autoComplete="name" className={fieldClass("fullName")} aria-invalid={Boolean(errors.fullName)} />
@@ -111,24 +108,28 @@ export default function UserFormModal(props: Props) {
 
           <div>
             <label htmlFor={`${titleId}-email`} className="mb-1.5 block text-sm font-semibold text-slate-800">Email Address</label>
-            <input id={`${titleId}-email`} type="email" value={values.email} disabled={props.mode === "edit"}
+            <input id={`${titleId}-email`} type="email" value={values.email}
               onChange={(event) => setField("email", event.target.value)}
               placeholder="name@ssmeas.local" autoComplete="email" className={fieldClass("email")} aria-invalid={Boolean(errors.email)} />
             {errors.email && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.email}</p>}
           </div>
 
-          {props.mode === "create" && <div>
-            <label htmlFor={`${titleId}-password`} className="mb-1.5 block text-sm font-semibold text-slate-800">Temporary Password</label>
+          <div>
+            <label htmlFor={`${titleId}-password`} className="mb-1.5 block text-sm font-semibold text-slate-800">
+              {props.mode === "create" ? "Temporary Password" : "New SSMEAS Password"}
+              {props.mode === "edit" && <span className="ml-1 font-normal text-slate-500">(optional)</span>}
+            </label>
             <div className="relative">
               <input id={`${titleId}-password`} type={showPassword ? "text" : "password"} value={values.password}
                 onChange={(event) => setField("password", event.target.value)}
-                placeholder="At least 8 characters" autoComplete="new-password" className={`${fieldClass("password")} pr-16`} aria-invalid={Boolean(errors.password)} />
+                placeholder={props.mode === "create" ? "At least 8 characters" : "Leave blank to keep current password"}
+                autoComplete="new-password" className={`${fieldClass("password")} pr-16`} aria-invalid={Boolean(errors.password)} />
               <button type="button" onClick={() => setShowPassword((visible) => !visible)}
                 className="absolute inset-y-0 right-2 px-2 text-xs font-bold text-cyan-800 hover:text-cyan-950"
                 aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? "Hide" : "Show"}</button>
             </div>
             {errors.password && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.password}</p>}
-          </div>}
+          </div>
 
           <div>
             <label htmlFor={`${titleId}-role`} className="mb-1.5 block text-sm font-semibold text-slate-800">Role</label>

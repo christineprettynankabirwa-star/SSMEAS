@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { deleteUser, getUsers, patchUserRole, postUser } from "../controllers/users.controller";
+import { deleteUser, getUsers, patchUser, patchUserRole, postUser } from "../controllers/users.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import { authorizePermission } from "../middleware/authorize.middleware";
 
@@ -8,5 +8,6 @@ router.use(authenticate, authorizePermission("users:manage"));
 router.get("/", getUsers);
 router.post("/", postUser);
 router.patch("/:id/role", patchUserRole);
+router.patch("/:id", patchUser);
 router.delete("/:id", deleteUser);
 export default router;
