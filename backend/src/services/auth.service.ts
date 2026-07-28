@@ -17,17 +17,29 @@ const userRoles = new Set<UserRole>(["ADMINISTRATOR", "MAINTENANCE_OFFICER", "SU
 
 export const createUser = async (input: CreateUserRequest): Promise<AuthenticatedUser> => {
   if (typeof input.full_name !== "string" || !input.full_name.trim() || input.full_name.length > 150) {
-    throw new AuthValidationError("full_name is required and must not exceed 150 characters.");
+    throw new AuthValidationError("Full name is required and must not exceed 150 characters.");
   }
-  if (typeof input.email !== "string" || !input.email.trim() || input.email.length > 255) {
-    throw new AuthValidationError("email is required and must not exceed 255 characters.");
+  const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
+  if (!email || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new AuthValidationError("Enter a valid email address.");
   }
   if (typeof input.password !== "string" || input.password.length < 8) {
-    throw new AuthValidationError("password must contain at least 8 characters.");
+    throw new AuthValidationError("Password must contain at least 8 characters.");
   }
-  if (!userRoles.has(input.role)) throw new AuthValidationError("role is invalid.");
+  if (!userRoles.has(input.role)) throw new AuthValidationError("Select a valid role.");
+  if (await userModel.getUserByEmail(email)) {
+    throw new AuthValidationError("An account with this email already exists.");
+  }
+
   const passwordHash = await bcrypt.hash(input.password, 12);
-  return publicUser(await userModel.createUser(input.full_name.trim(), input.email.trim(), passwordHash, input.role));
+  try {
+    return publicUser(await userModel.createUser(input.full_name.trim(), email, passwordHash, input.role));
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") {
+      throw new AuthValidationError("An account with this email already exists.");
+    }
+    throw error;
+  }
 };
 
 export const login = async (credentials: LoginRequest): Promise<{ token: string; user: AuthenticatedUser }> => {
