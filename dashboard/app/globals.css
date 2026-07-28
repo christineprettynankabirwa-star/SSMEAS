@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
+@import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
+@import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";
 
 :root {
   --background: #eef5f8;
@@ -106,6 +108,12 @@ button, a, input { font: inherit; }
 .data-table tbody tr { border-top: 1px solid #f3f4f6; }
 .leaflet-tooltip.route-sequence-tooltip { margin: 0; border: 0; background: transparent; box-shadow: none; color: white; font-size: 11px; font-weight: 800; line-height: 1; }
 .leaflet-tooltip.route-sequence-tooltip::before { display: none; }
+.tank-pin-wrapper { border: 0; background: transparent; filter: drop-shadow(0 3px 3px rgb(15 23 42 / .3)); }
+.tank-map-legend { display: flex; flex-wrap: wrap; gap: .5rem .75rem; max-width: 20rem; padding: .55rem .7rem; border: 1px solid rgb(15 23 42 / .14); border-radius: .4rem; background: rgb(255 255 255 / .96); box-shadow: 0 3px 12px rgb(15 23 42 / .16); color: #40566d; font-size: .7rem; font-weight: 700; }
+.tank-map-legend span { display: inline-flex; align-items: center; gap: .3rem; }
+.tank-map-legend i { display: inline-block; width: .6rem; height: .6rem; border-radius: 999px; }
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgb(8 145 178 / .22); }
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background-color: #0e7490; color: white; font-weight: 800; }
 
 /* Control-room component surfaces override the legacy light utility treatment. */
 .control-room .panel { border-color: var(--ss-border); background: var(--ss-surface); box-shadow: var(--ss-shadow-card); backdrop-filter: blur(16px); }

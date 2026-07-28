@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import type { SensorReading, Tank } from "@/components/dashboard/types";
-import { getAlerts, getLatestReadings, getTanks } from "@/services/api";
+import { getLatestReadings, getTanks } from "@/services/api";
 import { ModuleError, ModuleLoading, ModuleScaffold } from "./ModuleScaffold";
 import { useApiSession } from "./useApiSession";
 import { subscribeDataRefresh } from "@/services/data-refresh";
@@ -29,7 +29,6 @@ export default function MapPageClient() {
   const session = useApiSession();
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [readings, setReadings] = useState<SensorReading[]>([]);
-  const [dangerTankId, setDangerTankId] = useState<string | null>(null);
   const [focus] = useState(initialFocus);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +39,6 @@ export default function MapPageClient() {
       const nextTanks = await getTanks();
       setTanks(nextTanks);
       setReadings(await getLatestReadings().catch(() => []));
-      const alerts = await getAlerts().catch(() => []);
-      setDangerTankId(alerts.find((alert) =>
-        alert.status !== "RESOLVED" && alert.severity === "critical")?.tank_id ?? null);
       setError(null);
     } catch {
       setError("GIS data could not be loaded from the monitoring API.");
@@ -74,8 +70,9 @@ export default function MapPageClient() {
               tanks={tanks}
               readings={readings}
               route={null}
-              focusTankId={focus.tankId ?? dangerTankId}
+              focusTankId={focus.tankId}
               focusZoom={focus.zoom}
+              operationalControls
             />
           : <div className="rounded-2xl bg-white p-12 text-center text-slate-500">
               No mapped tanks are registered.
