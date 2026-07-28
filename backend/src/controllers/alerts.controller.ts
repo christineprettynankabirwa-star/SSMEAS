@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { AlertTankNotFoundError, AlertValidationError, acknowledge, addAlert, listAlerts } from "../services/alerts.service";
+import { AlertTankNotFoundError, AlertValidationError, acknowledge, addAlert, listAlerts, resolve } from "../services/alerts.service";
 import type { CreateAlertRequest } from "../types/alerts.types";
 
 const handleError = (error: unknown, response: Response): void => {
@@ -25,5 +25,10 @@ export const postAlert = async (request: Request, response: Response): Promise<v
 
 export const patchAlertAcknowledgement = async (request: Request, response: Response): Promise<void> => {
   try { response.status(200).json(await acknowledge(String(request.params.id ?? ""), request.user!)); }
+  catch (error) { handleError(error, response); }
+};
+
+export const patchAlertResolution = async (request: Request, response: Response): Promise<void> => {
+  try { response.status(200).json(await resolve(String(request.params.id ?? ""))); }
   catch (error) { handleError(error, response); }
 };

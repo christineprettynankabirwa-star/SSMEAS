@@ -158,3 +158,14 @@ export const getLatestStoredReadingsByTank = async (): Promise<SensorReading[]> 
   );
   return result.rows;
 };
+
+export const getLatestStoredReadingForTank = async (
+  tankId: string,
+): Promise<SensorReading | null> =>
+  (await pool.query<SensorReading>(
+    `SELECT * FROM sensor_readings
+     WHERE tank_id=$1
+     ORDER BY recorded_at DESC, created_at DESC
+     LIMIT 1`,
+    [tankId],
+  )).rows[0] ?? null;

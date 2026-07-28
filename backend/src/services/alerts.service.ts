@@ -1,5 +1,6 @@
 import * as alertsModel from "../models/alerts.model";
 import * as tankModel from "../models/tank.model";
+import * as readingsModel from "../models/readings.model";
 import type { Alert, AlertSeverity, CreateAlertRequest } from "../types/alerts.types";
 import type { SensorReading } from "../types/readings.types";
 import { publishAlertNotificationEvent } from "./notification-events";
@@ -30,6 +31,25 @@ export const acknowledge = async (id: string, user: AuthenticatedUser): Promise<
   const alert = await alertsModel.acknowledgeAlert(id, user.id);
   if (!alert) throw new AlertTankNotFoundError("Active alert not found.");
   await createAcknowledgementNotifications(alert);
+  return alert;
+};
+
+export const resolve = async (id: string): Promise<Alert> => {
+  if (!uuidPattern.test(id)) throw new AlertValidationError("alert id must be a valid UUID.");
+  const current = await alertsModel.getAlertById(id);
+  if (!current || current.status !== "ACKNOWLEDGED") {
+    throw new AlertTankNotFoundError("Acknowledged alert not found.");
+  }
+  const reading = await readingsModel.getLatestStoredReadingForTank(current.tank_id);
+  if (!reading || !isReadingSafe(reading)) {
+    throw new AlertValidationError(
+      `This incident cannot be resolved until a live sewage reading is below ${alertThresholds.fillWarning}%.`,
+    );
+  }
+  const alert = await alertsModel.resolveAcknowledgedAlert(id);
+  if (!alert) throw new AlertTankNotFoundError("Acknowledged alert not found.");
+  await completeAutomaticMaintenanceForTank(alert.tank_id);
+  await createResolutionNotifications(alert, "Administrator verification of the latest SAFE reading");
   return alert;
 };
 
@@ -94,6 +114,9 @@ export const createAlertsForReading = async (
   options: { completeMaintenanceOnResolution?: boolean } = {},
 ): Promise<void> => {
   const candidates = generateAlertsForReading(reading);
+  const escalated = candidates.some(({ severity }) => severity === "critical")
+    ? await alertsModel.resolveSupersededWarningAlerts(reading.tank_id)
+    : [];
   const resolved = await alertsModel.resolveInactiveReadingAlerts(
     reading.tank_id, !isReadingSafe(reading),
   );
@@ -103,6 +126,8 @@ export const createAlertsForReading = async (
       await createCriticalAlertMaintenance(alert);
       await publishAlertNotificationEvent({ alert, reading });
     }));
+  await Promise.all(escalated.map((alert) =>
+    createResolutionNotifications(alert, "Escalated to a CRITICAL sewage incident")));
   if (resolved.length && options.completeMaintenanceOnResolution !== false) {
     await completeAutomaticMaintenanceForTank(reading.tank_id);
     await Promise.all(resolved.map((alert) =>

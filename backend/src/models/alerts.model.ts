@@ -20,7 +20,10 @@ export const getAllAlerts = async (assignedTo?: string): Promise<Alert[]> => {
          AND maintenance.assigned_to=$1
          AND maintenance.status IN ('SCHEDULED','ASSIGNED','IN_PROGRESS')
      ))
-     ORDER BY alert.created_at DESC`,
+     ORDER BY
+       CASE alert.status WHEN 'ACTIVE' THEN 0 WHEN 'ACKNOWLEDGED' THEN 1 ELSE 2 END,
+       CASE alert.severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
+       alert.created_at DESC`,
     [assignedTo ?? null],
   );
   return result.rows;
@@ -87,6 +90,33 @@ export const acknowledgeAlert = async (id: string, userId: string): Promise<Aler
   );
   return result.rows[0] ?? null;
 };
+
+export const getAlertById = async (id: string): Promise<Alert | null> =>
+  (await pool.query<Alert>(
+    `SELECT ${alertColumns} FROM alerts alert ${alertJoins} WHERE alert.id=$1`,
+    [id],
+  )).rows[0] ?? null;
+
+export const resolveAcknowledgedAlert = async (id: string): Promise<Alert | null> =>
+  (await pool.query<Alert>(
+    `WITH updated AS (
+       UPDATE alerts SET status='RESOLVED', resolved_at=NOW(), updated_at=NOW()
+       WHERE id=$1 AND status='ACKNOWLEDGED' RETURNING *
+     ) SELECT ${alertColumns} FROM updated alert ${alertJoins}`,
+    [id],
+  )).rows[0] ?? null;
+
+export const resolveSupersededWarningAlerts = async (tankId: string): Promise<Alert[]> =>
+  (await pool.query<Alert>(
+    `WITH resolved AS (
+       UPDATE alerts SET status='RESOLVED', resolved_at=NOW(), updated_at=NOW()
+       WHERE tank_id=$1 AND severity='warning'
+         AND alert_type='High sewage level'
+         AND status IN ('ACTIVE','ACKNOWLEDGED')
+       RETURNING *
+     ) SELECT ${alertColumns} FROM resolved alert ${alertJoins}`,
+    [tankId],
+  )).rows;
 
 export const getLatestResolvedAlertForTank = async (tankId: string): Promise<Alert | null> =>
   (await pool.query<Alert>(

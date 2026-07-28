@@ -14,15 +14,27 @@ export interface CreateTaskValues {
 interface Props {
   tanks: Tank[];
   officers: MaintenanceOfficer[];
+  initialValues?: Partial<CreateTaskValues>;
   onClose: () => void;
   onSubmit: (value: CreateTaskValues) => Promise<void>;
 }
 
 const fieldClass = (error?: string) => `mt-1.5 w-full rounded-lg border bg-white px-3 text-sm outline-none focus:ring-2 ${error ? "border-red-500 focus:ring-red-100" : "border-slate-300 focus:border-cyan-700 focus:ring-cyan-100"}`;
 
-export default function CreateTaskModal({ tanks, officers, onClose, onSubmit }: Props) {
+const localDateTimeValue = (date: Date): string => {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
+
+export default function CreateTaskModal({ tanks, officers, initialValues, onClose, onSubmit }: Props) {
   const titleId = useId();
-  const [value, setValue] = useState<CreateTaskValues>({ tankId: "", task: "", officerId: "", priority: "HIGH", scheduledFor: "" });
+  const [value, setValue] = useState<CreateTaskValues>({
+    tankId: initialValues?.tankId ?? "",
+    task: initialValues?.task ?? "",
+    officerId: initialValues?.officerId ?? "",
+    priority: initialValues?.priority ?? "HIGH",
+    scheduledFor: initialValues?.scheduledFor ?? localDateTimeValue(new Date()),
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   useEffect(() => {
@@ -63,4 +75,3 @@ export default function CreateTaskModal({ tanks, officers, onClose, onSubmit }: 
     </section>
   </div>;
 }
-

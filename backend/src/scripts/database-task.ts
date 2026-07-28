@@ -69,6 +69,7 @@ const demo = async (): Promise<void> => {
     "add_testing_simulation_support.sql",
     "add_alert_acknowledgement_lifecycle.sql",
     "add_device_sms_notification_channels.sql",
+    "add_alert_escalation_dedup.sql",
   ]) await runSqlFile(migration);
   await resetDemoRecords();
   await runSqlFile("seed_demo_data.sql");
@@ -88,7 +89,8 @@ const main = async (): Promise<void> => {
     await runSqlFile("add_emergency_alert_system.sql");
     await runSqlFile("add_testing_simulation_support.sql");
     await runSqlFile("add_alert_acknowledgement_lifecycle.sql");
-    return runSqlFile("add_device_sms_notification_channels.sql");
+    await runSqlFile("add_device_sms_notification_channels.sql");
+    return runSqlFile("add_alert_escalation_dedup.sql");
   }
   throw new Error("Usage: ts-node src/scripts/database-task.ts <seed|reset|demo|migrate>");
 };

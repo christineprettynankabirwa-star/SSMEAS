@@ -4,8 +4,10 @@ import { pool } from "../src/config/database";
 import {
   acknowledgeAlert,
   createAlertUnlessActive,
+  resolveAcknowledgedAlert,
   resolveAllOpenAlertsForTank,
   resolveInactiveReadingAlerts,
+  resolveSupersededWarningAlerts,
 } from "../src/models/alerts.model";
 
 test("does not recreate an alert while its condition is active or acknowledged", async () => {
@@ -93,6 +95,37 @@ test("safe reset resolves every open alert type for its tank", async () => {
       await resolveAllOpenAlertsForTank("00000000-0000-4000-8000-000000000001"),
       2,
     );
+  } finally {
+    query.mock.restore();
+  }
+});
+
+test("critical escalation resolves an open warning for the same tank", async () => {
+  const query = mock.method(pool, "query", async (sql: string) => {
+    assert.match(sql, /severity='warning'/);
+    assert.match(sql, /alert_type='High sewage level'/);
+    assert.match(sql, /status IN \('ACTIVE','ACKNOWLEDGED'\)/);
+    return { rows: [], rowCount: 0 };
+  });
+  try {
+    assert.deepEqual(
+      await resolveSupersededWarningAlerts("00000000-0000-4000-8000-000000000001"),
+      [],
+    );
+  } finally {
+    query.mock.restore();
+  }
+});
+
+test("manual resolution only updates an acknowledged alert", async () => {
+  const query = mock.method(pool, "query", async (sql: string) => {
+    assert.match(sql, /status='RESOLVED'/);
+    assert.match(sql, /status='ACKNOWLEDGED'/);
+    assert.match(sql, /resolved_at=NOW\(\)/);
+    return { rows: [], rowCount: 0 };
+  });
+  try {
+    assert.equal(await resolveAcknowledgedAlert("alert-id"), null);
   } finally {
     query.mock.restore();
   }
