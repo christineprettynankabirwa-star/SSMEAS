@@ -1,2 +1,5 @@
-import AppShell from "@/components/ui/AppShell";
-export default function ReportsPage() { return <AppShell><main className="mx-auto max-w-6xl p-6 pt-20"><p className="text-xs font-black uppercase tracking-widest text-cyan-700">Decision support</p><h1 className="mt-2 text-3xl font-black">Operational reports</h1><div className="mt-6 rounded-2xl bg-white p-8 shadow-sm"><p className="text-slate-600">Use Analytics for historical telemetry and Alerts for incident audit reports. Export-ready reporting can be added here without changing the RBAC policy.</p></div></main></AppShell>; }
+import ReportsPageClient from "@/components/reports/ReportsPageClient";
+
+export default function ReportsPage() {
+  return <ReportsPageClient />;
+}
