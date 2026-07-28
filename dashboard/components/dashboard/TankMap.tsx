@@ -170,25 +170,28 @@ export default function TankMap({
           })}
         </MarkerClusterGroup>
       </MapContainer>
-      {operationalControls && <>
-        <button type="button" onClick={() => setDrawerOpen((current) => !current)}
-          aria-label={drawerOpen ? "Collapse asset drawer" : "Open asset drawer"}
-          className="absolute left-3 top-3 z-[800] grid h-10 w-10 place-items-center rounded-md border border-slate-200 bg-white text-lg font-bold text-slate-700 shadow-lg">
-          {drawerOpen ? "‹" : "›"}
-        </button>
-        {drawerOpen && <aside className="absolute bottom-3 left-3 top-16 z-[750] flex w-[min(22rem,calc(100%-1.5rem))] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
-          <div className="space-y-3 border-b border-slate-200 p-4">
-            <div className="flex items-center justify-between"><h3 className="font-bold text-slate-900">Assets</h3><button type="button" onClick={recenter} className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-bold text-slate-700">Recenter Map</button></div>
-            <label className="block"><span className="sr-only">Search tanks</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tank name or ID" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm"/></label>
-            <div className="flex gap-1 overflow-x-auto">{(["ALL", "CRITICAL", "HIGH", "SAFE"] as const).map((value) => <button type="button" key={value} onClick={() => setFilter(value)} className={`rounded-md px-2.5 py-1.5 text-[11px] font-bold ${filter === value ? "bg-cyan-700 text-white" : "bg-slate-100 text-slate-600"}`}>{value.charAt(0) + value.slice(1).toLowerCase()}</button>)}</div>
-          </div>
-          <div className="flex-1 space-y-2 overflow-y-auto p-3">{visibleViews.map(({ tank, reading, status }) => <button type="button" key={tank.id} onClick={() => locate(tank)} className="flex w-full items-start gap-3 rounded-md border border-slate-200 p-3 text-left hover:border-cyan-300 hover:bg-cyan-50">
-            <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: pinColors[status] }}/>
-            <span className="min-w-0"><strong className="block truncate text-sm text-slate-900">{tank.tank_name}</strong><span className="block truncate text-xs text-slate-500">{tank.location} · {reading?.level == null ? "No live level" : `${reading.level.toFixed(1)}%`}</span></span>
-          </button>)}{visibleViews.length === 0 && <p className="p-5 text-center text-sm text-slate-500">No tanks match these filters.</p>}</div>
-        </aside>}
-      </>}
     </div>
+    {operationalControls && <section className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="flex flex-col gap-3 border-b border-slate-200 p-4 xl:flex-row xl:items-center">
+        <div className="flex items-center justify-between gap-3 xl:mr-auto">
+          <div><h3 className="font-bold text-slate-900">Assets</h3><p className="text-xs text-slate-500">{visibleViews.length} mapped tanks</p></div>
+          <button type="button" onClick={() => setDrawerOpen((current) => !current)}
+            aria-expanded={drawerOpen} className="rounded-md border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700">
+            {drawerOpen ? "Hide assets" : "Show assets"}
+          </button>
+        </div>
+        <label className="block w-full xl:w-72"><span className="sr-only">Search tanks</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tank name or ID" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm"/></label>
+        <div className="flex gap-1 overflow-x-auto">{(["ALL", "CRITICAL", "HIGH", "SAFE"] as const).map((value) => <button type="button" key={value} onClick={() => setFilter(value)} className={`rounded-md px-3 py-2 text-xs font-bold ${filter === value ? "bg-cyan-700 text-white" : "bg-slate-100 text-slate-600"}`}>{value.charAt(0) + value.slice(1).toLowerCase()}</button>)}</div>
+        <button type="button" onClick={recenter} className="h-10 whitespace-nowrap rounded-md border border-slate-300 px-3 text-xs font-bold text-slate-700">Recenter Map</button>
+      </div>
+      {drawerOpen && <div className="flex gap-3 overflow-x-auto p-4">
+        {visibleViews.map(({ tank, reading, status }) => <button type="button" key={tank.id} onClick={() => locate(tank)} className="flex w-64 shrink-0 items-start gap-3 rounded-md border border-slate-200 p-3 text-left hover:border-cyan-300 hover:bg-cyan-50">
+          <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: pinColors[status] }}/>
+          <span className="min-w-0"><strong className="block truncate text-sm text-slate-900">{tank.tank_name}</strong><span className="block truncate text-xs text-slate-500">{tank.location}</span><span className="mt-1 block text-xs font-semibold text-slate-600">{reading?.level == null ? "No live level" : `${reading.level.toFixed(1)}% full`}</span></span>
+        </button>)}
+        {visibleViews.length === 0 && <p className="w-full p-5 text-center text-sm text-slate-500">No tanks match these filters.</p>}
+      </div>}
+    </section>}
     {route && tankStops.length > 0 && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500"><p><span className="font-semibold text-cyan-700">Route:</span> depot → {route.stops.map((stop) => stop.stopType === "TANK" ? stop.tankName : stop.name).join(" → ")}</p><span className={`rounded-full px-2 py-1 font-bold ${route.routingSource === "OSRM" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{route.routingSource === "OSRM" ? "Live road network" : "Offline fallback"}</span></div>}
   </section>;
 }

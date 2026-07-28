@@ -2,7 +2,7 @@
 
 ## 1 — Smart Sewage Monitoring and Early Alert System
 
-Real-time tank telemetry, early warnings, maintenance coordination, and role-based access.
+Real-time tank telemetry, predictive analytics, route optimization, maintenance coordination, and role-based access.
 
 ## 2 — Problem
 
@@ -16,13 +16,15 @@ Physical ESP32 sensors upload readings to the backend every 30 seconds. The back
 
 ## 4 — Architecture
 
-ESP32 → Backend API → PostgreSQL → Dashboard.
+ESP32 -> Backend API -> PostgreSQL -> Predictive Analytics Module -> Route Optimization Module -> Dashboard.
 
 ## 5 — Core capabilities
 
 - Live and historical telemetry
 - Automatic dashboard refresh
 - Threshold-based alerts
+- Statistical fill-rate and overflow forecasting
+- Urgency-ranked, capacity-aware collection routes
 - Tank registry and maintenance scheduling
 - Administrator, maintenance officer, and supervisor roles
 
@@ -32,7 +34,7 @@ Device API-key authentication, JWT user authentication, endpoint-level role chec
 
 ## 7 — Demonstration
 
-Publish physical ESP32 sensor data; observe the backend response; watch the dashboard refresh; switch roles; trigger an alert; schedule maintenance.
+Publish physical ESP32 sensor data; observe the backend response; review the statistical fill trend and confidence; inspect the urgency-ranked route; trigger an alert; and schedule maintenance.
 
 ## 8 — Verification
 
@@ -40,7 +42,7 @@ Backend tests and builds pass. Dashboard lint and production build pass. The man
 
 ## 9 — Impact and next steps
 
-Faster incident awareness and traceable maintenance. Next steps: field sensor calibration, notification delivery, audit logging, and production monitoring.
+Faster incident awareness, earlier maintenance planning, shorter response time, and more efficient servicing routes. SSMEAS is an embedded-systems and IoT solution using deterministic predictive analytics, not a learned model.
 
 ## 10 — Questions
 

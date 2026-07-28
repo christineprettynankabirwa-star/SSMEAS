@@ -68,10 +68,10 @@ uses Nodemailer with the backend-only `SMTP_*` settings. SMS delivery uses the i
 `SmsProvider` interface and defaults to `MockSmsProvider` in development; credentials are
 never exposed to the dashboard or ESP32.
 
-## Overflow predictions
+## Predictive Analytics Module
 
-- `GET /api/predictions` — all three roles; calculates predictions for every registered tank from its latest 100 PostgreSQL fill-level readings.
-- `GET /api/predictions/:tankId` — all three roles; retains the detailed, backward-compatible prediction response for one tank.
+- `GET /api/predictions` — calculates statistical forecasts for every registered tank from recent PostgreSQL sewage-level readings.
+- `GET /api/predictions/:tankId` — returns the detailed, backward-compatible forecast response for one tank.
 
 The collection endpoint returns an array. Each item follows this contract:
 
@@ -86,13 +86,13 @@ The collection endpoint returns an array. Each item follows this contract:
 }
 ```
 
-`predicted_overflow_time` and `hours_remaining` are `null` when readings are stable or falling. `risk` and `confidence` are percentages from 0 to 100. The forecast uses historical sewage and gas readings. Risk combines current fill level, positive fill rate, gas conditions, recent alert history, and estimated time to 100%. The recommended maintenance date is scheduled ahead of predicted overflow or immediately when gas/alert history indicates urgent intervention.
+`predicted_overflow_time` and `hours_remaining` are `null` when readings are stable or falling. `risk` and `confidence` are percentages from 0 to 100. The deterministic forecast calculates average fill rate and a linear trend from timestamped PostgreSQL readings. Confidence reflects sample count, recency, and trend consistency. Risk combines configured warning and danger thresholds, estimated fill time, gas conditions, and recent alert history. The maintenance recommendation is scheduled ahead of expected overflow or immediately when conditions require intervention. No learned model is used.
 
 ## Collection route optimization
 
 - `GET /api/routes/optimized` — all three roles; returns a critical-first, distance-optimized collection route.
 
-Candidates include tanks at or above the configured fill warning threshold, tanks with active warning or critical alerts, and tanks with open maintenance work. Critical tanks are routed before high- and medium-priority tanks; nearest-neighbour distance optimization is applied within each tier. The response retains `depot`, `stops`, `totalDistanceKm`, and `generatedAt`, and also includes `estimatedDurationMinutes`, `tankCount`, and the route-wide `priorityScore`. Each stop includes its collection sequence, distance from the previous stop, fill level, priority category, and priority score.
+Candidates include tanks at or above the configured fill warning threshold, tanks with active warning or critical alerts, and tanks with open maintenance work. The Route Optimization Module consumes urgency and fill-time forecasts, ranks critical work first, groups nearby stops where appropriate, observes truck capacity, and refines the service order to reduce travel distance, response time, and fuel consumption.
 
 ## Maintenance
 
@@ -105,7 +105,7 @@ Candidates include tanks at or above the configured fill warning threshold, tank
 | --- | --- | --- | --- |
 | Dashboard summary and alerts | Allow | 403 | Allow |
 | Readings | Allow | Allow | Allow |
-| Overflow predictions | Allow | Allow | Allow |
+| Predictive analytics | Allow | Allow | Allow |
 | List maintenance | Allow | Allow | Allow |
 | Create maintenance | Allow | Allow | 403 |
 | Read tanks | Allow | 403 | Allow |

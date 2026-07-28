@@ -18,7 +18,7 @@ Supervisors can view the dashboard, tank data, readings, alerts, and maintenance
 
 ## Dashboard
 
-The overview refreshes live readings, summary cards, active alerts, maintenance records, and predictions every 3 seconds. Historical analytics refresh every 30 seconds. Select a tank in the monitoring table to change the historical chart. The “Last updated” time confirms successful refreshes.
+The overview refreshes live readings, summary cards, active alerts, maintenance records, and predictive analytics every 3 seconds. Historical analytics refresh every 30 seconds. Select a tank in the monitoring table to change the historical chart. The “Last updated” time confirms successful refreshes.
 
 ## Notifications
 
@@ -27,11 +27,11 @@ Click an unread item to mark it read, or use **Mark all read**. The Notification
 the full dashboard notification history and lets each user enable dashboard, email, SMS,
 warning, critical-only, and daily-summary preferences.
 
-## Overflow prediction
+## Predictive Analytics
 
-The **Overflow prediction** card forecasts when the selected tank may reach 100% fill. It refreshes its PostgreSQL-based forecast every 30 seconds and displays a live countdown, overflow-risk percentage, confidence score, current level, and fill trend.
+The **Predictive Analytics** card uses historical PostgreSQL readings and statistical trend analysis to estimate fill rate, remaining time to configured thresholds, and expected overflow time. It displays risk, confidence, current level, fill trend, and recommended maintenance timing.
 
-Risk colours are green for low risk, yellow for medium risk, orange for high risk, and red for critical risk. When the level is stable or falling, the card displays **No active overflow trend** instead of inventing an overflow time. Low confidence generally means there are too few readings, the data is old, or the trend is inconsistent; collect more recent telemetry before relying on that estimate for scheduling field work.
+Risk colours are green for low risk, yellow for medium risk, orange for high risk, and red for critical risk. When the level is stable or falling, the card displays **No active overflow trend** instead of inventing an overflow time. Low confidence generally means there are too few readings, the data is old, or the trend is inconsistent. These calculations are deterministic and do not use a learned model.
 
 ## Alerts and maintenance
 
@@ -39,7 +39,7 @@ Active alerts appear in the alerts panel after telemetry crosses a configured th
 
 ## Optimized collection route
 
-The optimized route includes tanks needing collection and tanks with open work. Critical tanks are placed first, followed by high- and medium-priority stops arranged to reduce travel distance. The route panel shows estimated distance, duration, tank count, priority score, and ordered stops. On the operations map, the dashed cyan line starts at the depot and follows the numbered collection markers. Marker colours indicate collection priority: red is critical, orange is high, and yellow is medium.
+The optimized route consumes predictive-analytics urgency information and includes tanks needing collection and tanks with open work. Critical tanks are placed first, followed by high- and medium-priority stops arranged to reduce travel distance, response time, and fuel consumption. The route panel shows estimated distance, duration, tank count, priority score, and ordered stops.
 
 ## Troubleshooting
 

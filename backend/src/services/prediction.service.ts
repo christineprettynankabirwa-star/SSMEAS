@@ -9,6 +9,8 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 
 export interface TimedLevel { level: number; gasLevel?: number | null; recordedAt: Date }
 
+// Deterministic statistical forecasting based on fill rate, linear trend,
+// goodness-of-fit, sample count, and recency. No learned model is involved.
 export const calculateOverflowPrediction = (
   tankId: string,
   readings: TimedLevel[],

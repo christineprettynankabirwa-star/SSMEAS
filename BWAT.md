@@ -7,7 +7,7 @@ This file provides guidance to Bwat when working with code in this repository.
 - **Dashboard**: Next.js 16 (App Router), React 19, TypeScript 5, Tailwind CSS 4
 - **Backend**: Express 5 (TypeScript 6), PostgreSQL 16 via `pg` (no ORM), JWT auth (bcrypt + jsonwebtoken)
 - **Firmware**: Arduino C++ for ESP32 — core libraries only (WiFi, HTTPClient)
-- **Prediction engine**: Placeholder directory (empty, not yet implemented)
+- **Predictive Analytics Module**: Implemented in the backend using PostgreSQL history and deterministic statistical trend analysis. The legacy `prediction-engine/` directory is not used at runtime.
 - **Key deps**: leaflet + react-leaflet (GIS map), recharts (charts), axios (HTTP), Thingspeak (IoT telemetry bridge)
 
 ## Brand Identity
@@ -93,7 +93,7 @@ This file provides guidance to Bwat when working with code in this repository.
 - **Auth queries DB every request**: The `authenticate` middleware calls `getProfile(payload.sub)` on every authenticated request to verify the user still exists. This is a DB hit per request — not cached.
 - **Env vars for alert thresholds**: `FILL_WARNING_THRESHOLD` (default 80), `FILL_CRITICAL_THRESHOLD` (default 95), and `GAS_LEVEL_THRESHOLD` (default 300) control alert classification. Changes require a backend restart.
 - **ThingSpeak dependency**: The primary telemetry ingestion path depends on an external service (ThingSpeak). If ThingSpeak is unreachable, the dashboard shows stale data. The `CRITICAL_MAINTENANCE_DELAY_MINUTES` env var (default 30) controls how long after a critical reading before an automatic maintenance task is created.
-- **Prediction engine is empty**: The `prediction-engine/` directory is a placeholder. Any prediction/ML work starts from scratch.
+- **Legacy directory**: `prediction-engine/` is an unused placeholder. Predictive analytics is implemented in TypeScript under `backend/src/services/prediction.service.ts`; it does not use AI or machine learning.
 - **ESP32 firmware credentials**: WiFi credentials and device API key must be hardcoded in `SewerGuard_ESP32.ino` before upload. The `DEVICE_API_KEY` must match `DEVICE_API_KEY` in the backend `.env`.
 - **No Tailwind config file**: Tailwind v4 uses `@import "tailwindcss"` syntax with `@theme inline` overrides in `globals.css`. There is no `tailwind.config.*`. The theme only overrides `--color-background`, `--color-foreground`, `--font-sans`, and `--font-mono` — all other tokens are used via inline CSS custom properties or utility classes.
 - **`control-room` class**: The dashboard's `AppShell` wraps all content in a `.control-room` div. This class remaps standard Tailwind utilities (`.bg-white`, `.text-slate-*`, `.border-slate-*`, `.shadow-*`) to the frosted-surface design system. Any new page or component rendered inside the shell will inherit this remapping automatically, but new standalone pages outside the shell will NOT get these overrides.

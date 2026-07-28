@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS overflow_predictions (
     sample_count INTEGER NOT NULL DEFAULT 0,
     calculated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+COMMENT ON TABLE overflow_predictions IS
+    'Deterministic Predictive Analytics Module results calculated from historical sensor trends; no learned model is used.';
 
 ALTER TABLE maintenance
     ADD COLUMN IF NOT EXISTS alert_id UUID REFERENCES alerts(id) ON DELETE SET NULL;

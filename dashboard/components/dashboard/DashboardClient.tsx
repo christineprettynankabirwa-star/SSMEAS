@@ -211,17 +211,17 @@ export default function DashboardClient() {
                 </section>
                 {can("predictions") && <section className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-5 text-slate-950 shadow-sm">
                   <p className="text-xs font-bold uppercase tracking-[.18em] text-cyan-700">
-                    AI summary
+                    Predictive analytics
                   </p>
                   <p className="mt-4 text-3xl font-black">
                     {highRisk} high-risk tanks
                   </p>
                   <p className="mt-3 text-sm leading-6 text-slate-600">
-                    Prediction analysis covers {predictions.length} reporting
+                    Statistical trend analysis covers {predictions.length} reporting
                     tanks.{" "}
                     {highRisk
                       ? "Prioritize the highest-risk tanks in collection planning."
-                      : "No immediate prediction-driven escalation is required."}
+                      : "No immediate trend-based escalation is required."}
                   </p>
                   <Link
                     href="/analytics"
