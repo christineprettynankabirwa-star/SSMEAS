@@ -23,7 +23,7 @@ export const rolePermissions: Readonly<Record<UserRole, ReadonlySet<Permission>>
   SUPERVISOR: new Set([
     "dashboard:read", "tanks:read", "readings:live", "readings:history",
     "readings:analytics", "alerts:read",
-    "notifications:read", "maintenance:read", "predictions:read", "reports:read",
+    "notifications:read", "maintenance:read", "predictions:read", "reports:read", "routes:read",
   ]),
   MAINTENANCE_OFFICER: new Set([
     "tanks:read", "readings:live", "readings:history",

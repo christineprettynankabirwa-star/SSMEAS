@@ -9,3 +9,12 @@ export const getOptimizedRoute = async (_request: Request, response: Response): 
     response.status(500).json({ message: "Unable to optimize the maintenance route." });
   }
 };
+
+export const postOptimizedRoute = async (request: Request, response: Response): Promise<void> => {
+  try {
+    response.json(await getOptimizedMaintenanceRoute(request.body ?? {}));
+  } catch (error) {
+    console.error("Route recalculation failed:", error);
+    response.status(500).json({ message: "Unable to recalculate the maintenance route." });
+  }
+};

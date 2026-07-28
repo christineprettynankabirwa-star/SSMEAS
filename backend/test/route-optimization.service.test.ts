@@ -1,15 +1,27 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { haversineDistanceKm, optimizeMaintenanceRoute } from "../src/services/route-optimization.service";
+import type { RouteCandidate } from "../src/types/route-optimization.types";
 
-test("calculates geographic distance and visits the nearest stop first", () => {
+const candidate = (value: Partial<RouteCandidate> & Pick<RouteCandidate, "tankId" | "latitude" | "longitude" | "priority" | "priorityScore">): RouteCandidate => ({
+  tankName: value.tankId, location: value.tankId, task: "Inspect",
+  scheduledFor: new Date(), fillLevel: 70, capacityLiters: 5_000,
+  alertSeverity: null, alertCreatedAt: null, predictedMinutesToFull: null,
+  assignedTo: null, assignedOfficer: null, urgencyFactors: [],
+  estimatedCollectionLiters: 3_500,
+  ...value,
+});
+
+test("calculates geographic fallback distance and visits the urgent nearest stop first", () => {
   const depot = { latitude: 0.3476, longitude: 32.5825 };
   const route = optimizeMaintenanceRoute([
-    { tankId: "far", tankName: "Far", location: "Far", latitude: 0.6, longitude: 32.8, task: "Inspect", scheduledFor: new Date(1), fillLevel: 70, priority: "MEDIUM", priorityScore: 49 },
-    { tankId: "near", tankName: "Near", location: "Near", latitude: 0.35, longitude: 32.59, task: "Pump", scheduledFor: new Date(2), fillLevel: 70, priority: "MEDIUM", priorityScore: 49 },
+    candidate({ tankId: "far", latitude: 0.6, longitude: 32.8, priority: "MEDIUM", priorityScore: 49 }),
+    candidate({ tankId: "near", latitude: 0.35, longitude: 32.59, priority: "MEDIUM", priorityScore: 49 }),
   ], depot);
-  assert.equal(route.stops[0]?.tankId, "near");
-  assert.equal(route.stops[1]?.tankId, "far");
+  const tanks = route.stops.filter((stop) => stop.stopType === "TANK");
+  assert.equal(tanks[0]?.tankId, "near");
+  assert.equal(tanks[1]?.tankId, "far");
+  assert.equal(route.stops.at(-1)?.stopType, "DEPOT_RETURN");
   assert.ok(route.totalDistanceKm > 0);
   assert.equal(route.tankCount, 2);
   assert.ok(route.estimatedDurationMinutes >= 40);
@@ -18,10 +30,29 @@ test("calculates geographic distance and visits the nearest stop first", () => {
 });
 
 test("routes critical tanks before closer lower-priority tanks", () => {
-  const depot = { latitude: 0, longitude: 0 };
   const route = optimizeMaintenanceRoute([
-    { tankId: "near", tankName: "Near", location: "Near", latitude: 0.001, longitude: 0, task: "Collect", scheduledFor: new Date(1), fillLevel: 82, priority: "HIGH", priorityScore: 86 },
-    { tankId: "critical", tankName: "Critical", location: "Far", latitude: 0.1, longitude: 0, task: "Collect", scheduledFor: new Date(2), fillLevel: 98, priority: "CRITICAL", priorityScore: 100 },
-  ], depot);
-  assert.equal(route.stops[0]?.tankId, "critical");
+    candidate({ tankId: "near", latitude: 0.001, longitude: 0, priority: "HIGH", priorityScore: 86 }),
+    candidate({ tankId: "critical", latitude: 0.1, longitude: 0, priority: "CRITICAL", priorityScore: 100 }),
+  ], { latitude: 0, longitude: 0 });
+  assert.equal(route.stops.find((stop) => stop.stopType === "TANK")?.tankId, "critical");
+});
+
+test("injects disposal stops before truck capacity is exceeded", () => {
+  const route = optimizeMaintenanceRoute([
+    candidate({ tankId: "one", latitude: 0.01, longitude: 0, priority: "HIGH", priorityScore: 70, estimatedCollectionLiters: 7_000 }),
+    candidate({ tankId: "two", latitude: 0.02, longitude: 0, priority: "HIGH", priorityScore: 65, estimatedCollectionLiters: 6_000 }),
+  ], { latitude: 0, longitude: 0 }, new Date(), { truckCapacityLiters: 10_000 });
+  assert.ok(route.stops.some((stop) => stop.stopType === "DISPOSAL"));
+  assert.ok(route.stops.filter((stop) => stop.stopType === "TANK").every((stop) => stop.payloadAfterLiters <= 10_000));
+  assert.equal(route.disposalTrips, 1);
+  assert.equal(route.stops.at(-1)?.stopType, "DEPOT_RETURN");
+});
+
+test("honors exclusions and a dispatcher preferred order", () => {
+  const candidates = [
+    candidate({ tankId: "a", latitude: 0.01, longitude: 0, priority: "HIGH", priorityScore: 60 }),
+    candidate({ tankId: "b", latitude: 0.02, longitude: 0, priority: "HIGH", priorityScore: 60 }),
+  ];
+  const route = optimizeMaintenanceRoute(candidates, { latitude: 0, longitude: 0 }, new Date(), { preferredOrder: ["b", "a"] });
+  assert.deepEqual(route.stops.filter((stop) => stop.stopType === "TANK").map((stop) => stop.tankId), ["b", "a"]);
 });

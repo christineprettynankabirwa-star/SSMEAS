@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { AlertItem, AnalyticsRange, AnalyticsResponse, DashboardSummary, HistoricalSensorReading, MaintenanceItem, MaintenanceOfficer, MaintenancePriority, MaintenanceStatus, NotificationItem, NotificationPreferences, OptimizedRoute, OverflowPrediction, PredictionApiResponse, SensorReading, Tank } from "@/components/dashboard/types";
+import type { AlertItem, AnalyticsRange, AnalyticsResponse, DashboardSummary, HistoricalSensorReading, MaintenanceItem, MaintenanceOfficer, MaintenancePriority, MaintenanceStatus, NotificationItem, NotificationPreferences, OptimizedRoute, OverflowPrediction, PredictionApiResponse, RouteOptimizationRequest, SensorReading, Tank } from "@/components/dashboard/types";
 
 const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api", timeout: 10_000 });
 export interface LoginResponse { token: string; }
@@ -62,11 +62,10 @@ export const getOverflowPrediction = async (tankId: string): Promise<OverflowPre
   (await api.get<OverflowPrediction>(`/predictions/${encodeURIComponent(tankId)}`)).data;
 export const getOverflowPredictions = async (): Promise<PredictionApiResponse[]> =>
   (await api.get<PredictionApiResponse[]>("/predictions")).data;
-export const getOptimizedRoute = async (): Promise<OptimizedRoute> => {
-  const route = (await api.get<OptimizedRoute>("/routes/optimized")).data;
-  const stops = route.stops.map((stop) => ({ ...stop, fillLevel: stop.fillLevel ?? null, priority: stop.priority ?? "MEDIUM" as const, priorityScore: stop.priorityScore ?? 35 }));
-  return { ...route, stops, tankCount: route.tankCount ?? stops.length, estimatedDurationMinutes: route.estimatedDurationMinutes ?? Math.round(route.totalDistanceKm * 2 + stops.length * 20), priorityScore: route.priorityScore ?? (stops.length ? Math.round(stops.reduce((sum, stop) => sum + stop.priorityScore, 0) / stops.length) : 0) };
-};
+export const getOptimizedRoute = async (request?: RouteOptimizationRequest): Promise<OptimizedRoute> =>
+  request
+    ? (await api.post<OptimizedRoute>("/routes/optimized", request)).data
+    : (await api.get<OptimizedRoute>("/routes/optimized")).data;
 export const getNotifications = async (): Promise<NotificationItem[]> => (await api.get<NotificationItem[]>("/notifications")).data;
 export const getUnreadNotifications = async (): Promise<NotificationItem[]> => (await api.get<NotificationItem[]>("/notifications/unread")).data;
 export const getUnreadNotificationCount = async (): Promise<number> => (await api.get<{ count: number }>("/notifications/unread-count")).data.count;

@@ -12,11 +12,12 @@ export default function HighlightsCarousel({ tanks, readings, alerts, maintenanc
     const fullest = tanks.map((tank) => ({ tank, reading: byTank.get(tank.id) })).filter((item) => item.reading?.level != null).sort((a, b) => (b.reading!.level ?? 0) - (a.reading!.level ?? 0))[0];
     const latestAlert = [...alerts].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))[0];
     const nextJob = [...maintenance].filter((item) => item.status !== "COMPLETED").sort((a, b) => +new Date(a.scheduled_for) - +new Date(b.scheduled_for))[0];
+    const nextRouteStop = route?.stops.find((stop) => stop.stopType === "TANK");
     return [
       fullest && { id: `tank-${fullest.tank.id}`, eyebrow: "Capacity watch", title: fullest.tank.tank_name, value: `${fullest.reading!.level!.toFixed(1)}% full`, detail: fullest.tank.location, tone: "from-cyan-50 to-blue-100", href: `/tanks/${fullest.tank.id}` },
       latestAlert && { id: `alert-${latestAlert.id}`, eyebrow: `${latestAlert.severity} alert`, title: latestAlert.alert_type, value: latestAlert.tank_name, detail: latestAlert.message, tone: latestAlert.severity === "critical" ? "from-red-50 to-rose-100" : "from-amber-50 to-orange-100", href: `/tanks/${latestAlert.tank_id}` },
       nextJob && { id: `job-${nextJob.id}`, eyebrow: "Upcoming maintenance", title: nextJob.task, value: nextJob.tank_name, detail: new Date(nextJob.scheduled_for).toLocaleString(), tone: "from-emerald-50 to-teal-100", href: `/tanks/${nextJob.tank_id}` },
-      route?.stops[0] && { id: `route-${route.stops[0].tankId}`, eyebrow: "Next collection stop", title: route.stops[0].tankName, value: `${route.stops[0].priority} priority`, detail: `${route.totalDistanceKm.toFixed(1)} km optimized route`, tone: "from-violet-50 to-indigo-100", href: "/route" },
+      nextRouteStop && { id: `route-${nextRouteStop.tankId}`, eyebrow: "Next collection stop", title: nextRouteStop.tankName, value: `${nextRouteStop.priority} priority`, detail: `${route!.totalDistanceKm.toFixed(1)} km optimized route`, tone: "from-violet-50 to-indigo-100", href: "/route" },
     ].filter((slide): slide is NonNullable<typeof slide> => Boolean(slide));
   }, [alerts, maintenance, readings, route, tanks]);
   const active = slides.length ? index % slides.length : 0;
