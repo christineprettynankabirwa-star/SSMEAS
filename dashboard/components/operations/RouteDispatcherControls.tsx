@@ -10,7 +10,11 @@ const trucks = [
 ];
 
 export default function RouteDispatcherControls({ route, busy, onRecalculate }: { route: OptimizedRoute; busy: boolean; onRecalculate: (request: RouteOptimizationRequest) => void }) {
-  const tankStops = route.stops.filter((stop): stop is RouteTankStop => stop.stopType === "TANK");
+  const tankStops = [...new Map(
+    route.stops
+      .filter((stop): stop is RouteTankStop => stop.stopType === "TANK")
+      .map((stop) => [stop.tankId, stop]),
+  ).values()];
   const [order, setOrder] = useState(tankStops.map((stop) => stop.tankId));
   const [excluded, setExcluded] = useState<string[]>([]);
   const [locked, setLocked] = useState<string[]>([]);
