@@ -1,5 +1,5 @@
 import { pool } from "../config/database";
-import type { PredictionStatus, ThresholdProjection } from "../types/prediction.types";
+import type { PredictionQualityStatus, PredictionStatus, ThresholdProjection } from "../types/prediction.types";
 
 export interface PredictionReading {
   tank_id?: string;
@@ -31,10 +31,13 @@ export interface StoredPrediction {
   tankId: string;
   fillVelocityPercentPerHour: number;
   currentLevel: number | null;
+  currentVolumeCubicMeters: number | null;
+  remainingVolumeCubicMeters: number | null;
   warning: ThresholdProjection;
   danger: ThresholdProjection;
   overflow: ThresholdProjection;
   predictionStatus: PredictionStatus;
+  qualityStatus: PredictionQualityStatus;
   confidence: number;
   sampleCount: number;
   calculatedAt: string;
@@ -44,13 +47,16 @@ export const storePrediction = async (prediction: StoredPrediction): Promise<voi
   await pool.query(
     `INSERT INTO overflow_predictions(
        tank_id, fill_velocity_percent_per_hour, current_level,
+       current_volume_cubic_meters, remaining_volume_cubic_meters,
        warning_arrival_at, warning_hours_remaining, danger_arrival_at, danger_hours_remaining,
        predicted_overflow_at, overflow_hours_remaining, prediction_status,
-       confidence, sample_count, calculated_at
-     ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       prediction_quality_status, confidence, sample_count, calculated_at
+     ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
      ON CONFLICT(tank_id) DO UPDATE SET
        fill_velocity_percent_per_hour=EXCLUDED.fill_velocity_percent_per_hour,
        current_level=EXCLUDED.current_level,
+       current_volume_cubic_meters=EXCLUDED.current_volume_cubic_meters,
+       remaining_volume_cubic_meters=EXCLUDED.remaining_volume_cubic_meters,
        warning_arrival_at=EXCLUDED.warning_arrival_at,
        warning_hours_remaining=EXCLUDED.warning_hours_remaining,
        danger_arrival_at=EXCLUDED.danger_arrival_at,
@@ -58,15 +64,18 @@ export const storePrediction = async (prediction: StoredPrediction): Promise<voi
        predicted_overflow_at=EXCLUDED.predicted_overflow_at,
        overflow_hours_remaining=EXCLUDED.overflow_hours_remaining,
        prediction_status=EXCLUDED.prediction_status,
+       prediction_quality_status=EXCLUDED.prediction_quality_status,
        confidence=EXCLUDED.confidence,
        sample_count=EXCLUDED.sample_count,
        calculated_at=EXCLUDED.calculated_at`,
     [
       prediction.tankId, prediction.fillVelocityPercentPerHour, prediction.currentLevel,
+      prediction.currentVolumeCubicMeters, prediction.remainingVolumeCubicMeters,
       prediction.warning.estimatedArrivalAt, prediction.warning.remainingHours,
       prediction.danger.estimatedArrivalAt, prediction.danger.remainingHours,
       prediction.overflow.estimatedArrivalAt, prediction.overflow.remainingHours,
-      prediction.predictionStatus, prediction.confidence, prediction.sampleCount, prediction.calculatedAt,
+      prediction.predictionStatus, prediction.qualityStatus, prediction.confidence,
+      prediction.sampleCount, prediction.calculatedAt,
     ],
   );
 };

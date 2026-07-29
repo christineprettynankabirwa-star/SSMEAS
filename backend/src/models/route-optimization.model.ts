@@ -7,6 +7,7 @@ interface RouteRow {
   capacity_liters: number; task: string; scheduled_for: Date; fill_level: number | null;
   alert_severity: "critical" | "warning" | null; alert_created_at: Date | null;
   danger_hours_remaining: number | null; overflow_hours_remaining: number | null;
+  prediction_quality_status: "GOOD" | "LIMITED" | "POOR" | "INSUFFICIENT_DATA" | null;
   assigned_to: string | null; assigned_officer: string | null;
 }
 
@@ -27,7 +28,8 @@ const urgency = (row: RouteRow, fillLevel: number | null, now: Date) => {
         : Math.min(10, Math.round(fillLevel * 0.15));
     factors.push({ label: "Sewage level", points, detail: `${fillLevel.toFixed(0)}% full` });
   }
-  if (row.danger_hours_remaining !== null) {
+  if (row.danger_hours_remaining !== null
+    && (row.prediction_quality_status === "GOOD" || row.prediction_quality_status === "LIMITED")) {
     const hours = Number(row.danger_hours_remaining);
     const points = hours <= 2 ? 25 : hours <= 6 ? 18 : hours <= 24 ? 10 : 3;
     factors.push({ label: "85% threshold projection", points, detail: `Approximately ${Math.max(0, hours).toFixed(1)} hours to danger` });
@@ -72,6 +74,7 @@ export const getOpenMaintenanceStops = async (now = new Date()): Promise<RouteCa
        COALESCE(open_work.scheduled_for,NOW()) AS scheduled_for, latest_reading.level AS fill_level,
        unresolved_alert.severity AS alert_severity, unresolved_alert.created_at AS alert_created_at,
        prediction.danger_hours_remaining, prediction.overflow_hours_remaining,
+       prediction.prediction_quality_status,
        open_work.assigned_to, open_work.assigned_officer
      FROM tanks tank
      LEFT JOIN latest_reading ON latest_reading.tank_id=tank.id
@@ -83,6 +86,7 @@ export const getOpenMaintenanceStops = async (now = new Date()): Promise<RouteCa
         OR unresolved_alert.tank_id IS NOT NULL
         OR (
           prediction.prediction_status IN ('PROJECTED','THRESHOLD_REACHED')
+          AND prediction.prediction_quality_status IN ('GOOD','LIMITED')
           AND prediction.danger_hours_remaining <= 24
           AND prediction.calculated_at >= NOW() - INTERVAL '15 minutes'
         )`,

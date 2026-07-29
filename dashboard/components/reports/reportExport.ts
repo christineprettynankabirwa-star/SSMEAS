@@ -54,16 +54,22 @@ const telemetryDataset = async (request: ResolvedReportRequest, tanks: Tank[]): 
     .filter((reading: AnalyticsReading) => inRange(reading.recorded_at, request))
     .map((reading: AnalyticsReading): ReportRow => {
       const prediction = projections.get(reading.tank_id);
+      const interval = prediction?.overflow_projection.predictionInterval95;
       return {
         tank: tankNames.get(reading.tank_id) ?? reading.tank_id,
         recorded: displayDate(reading.recorded_at),
         sewageLevel: reading.level === null ? "" : Number(reading.level.toFixed(2)),
         gasLevel: reading.gas_level === null ? "" : Number(reading.gas_level.toFixed(2)),
+        currentVolume: prediction?.current_volume_cubic_meters ?? "",
+        remainingVolume: prediction?.remaining_capacity_cubic_meters ?? "",
         velocity: prediction?.fill_velocity_percent_per_hour ?? "",
         warningHours: prediction?.warning_projection.remainingHours ?? "",
         dangerHours: prediction?.danger_projection.remainingHours ?? "",
         overflowHours: prediction?.overflow_projection.remainingHours ?? "",
         predictionStatus: prediction?.overflow_projection.status.replaceAll("_", " ") ?? "",
+        predictionInterval: interval?.minimumHours == null
+          ? "" : `${interval.minimumHours}–${interval.maximumHours ?? "unbounded"}`,
+        predictionQuality: prediction?.prediction_quality_status.replaceAll("_", " ") ?? "",
         confidence: prediction?.confidence ?? "",
       };
     });
@@ -74,11 +80,15 @@ const telemetryDataset = async (request: ResolvedReportRequest, tanks: Tank[]): 
       { key: "recorded", label: "Recorded At" },
       { key: "sewageLevel", label: "Sewage Level (%)" },
       { key: "gasLevel", label: "Gas Level (ppm)" },
+      { key: "currentVolume", label: "Current Volume (m³)" },
+      { key: "remainingVolume", label: "Remaining Volume (m³)" },
       { key: "velocity", label: "OLS Fill Velocity (%/h)" },
       { key: "warningHours", label: "Hours to 65%" },
       { key: "dangerHours", label: "Hours to 85%" },
       { key: "overflowHours", label: "Hours to 100%" },
       { key: "predictionStatus", label: "Prediction Status" },
+      { key: "predictionInterval", label: "95% Overflow Interval (hours)" },
+      { key: "predictionQuality", label: "Prediction Quality" },
       { key: "confidence", label: "Confidence (%)" },
     ],
     rows,

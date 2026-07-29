@@ -91,7 +91,7 @@ export default function DashboardClient() {
     .filter((m) => ["SCHEDULED", "ASSIGNED", "IN_PROGRESS"].includes(m.status))
     .sort((a, b) => +new Date(a.scheduled_for) - +new Date(b.scheduled_for))
     .slice(0, 5);
-  const highRisk = predictions.filter((p) => p.risk >= 70).length;
+  const highRisk = predictions.filter((p) => p.risk_level === "HIGH" || p.risk_level === "CRITICAL").length;
   return (
     <AppShell>
       <DashboardHeader

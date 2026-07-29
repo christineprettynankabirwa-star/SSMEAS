@@ -73,18 +73,26 @@ never exposed to the dashboard or ESP32.
 - `GET /api/predictions` — calculates timestamp-aware OLS forecasts for every registered tank.
 - `GET /api/predictions/:tankId` — returns the detailed OLS forecast for one tank.
 
-The response contains current OLS fill velocity, historical daily increase, remaining capacity in percent and cubic metres, and projections for the 65%, 85%, and 100% thresholds. Every threshold projection contains:
+The response contains current level and volume, OLS fill velocity, historical daily increase, remaining volume in percent and cubic metres, data-quality findings, and projections for the 65%, 85%, and 100% thresholds. Every threshold projection contains:
 
 ```json
 {
   "thresholdPercent": 85,
   "estimatedArrivalAt": "2026-07-20T16:24:00.000Z",
   "remainingHours": 4.4,
-  "status": "PROJECTED"
+  "status": "PROJECTED",
+  "predictionInterval95": {
+    "earliestArrivalAt": "2026-07-20T15:48:00.000Z",
+    "latestArrivalAt": "2026-07-20T17:12:00.000Z",
+    "minimumHours": 3.8,
+    "maximumHours": 5.2
+  }
 }
 ```
 
-Remaining hours are zero when a threshold has already been reached. They are `null` when the status is `STABLE_OR_FALLING` or `INSUFFICIENT_DATA`. Risk and confidence are percentages from 0 to 100. Maintenance timing is scheduled ahead of the projected 85% danger threshold. This is deterministic predictive analytics; no AI or machine-learning model is used.
+Remaining hours are zero when a threshold has already been reached. They are `null` when the status is `STABLE_OR_FALLING` or `INSUFFICIENT_DATA`. Prediction quality is `GOOD`, `LIMITED`, `POOR`, or `INSUFFICIENT_DATA`. Maintenance timing is suppressed for poor-quality forecasts.
+
+Risk is based only on projected time to the 85% danger threshold: critical within 8 hours, high within 24 hours, moderate within 72 hours, and low beyond 72 hours. These bands and all data-quality tolerances are configurable in `config/predictive-analytics.json`. This is deterministic predictive analytics; no AI or machine-learning model is used.
 
 ## Collection route optimization
 

@@ -1,4 +1,4 @@
-export type OverflowRisk = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type OverflowRisk = "UNKNOWN" | "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
 export type PredictionStatus =
   | "PROJECTED"
   | "THRESHOLD_REACHED"
@@ -10,22 +10,42 @@ export interface ThresholdProjection {
   estimatedArrivalAt: string | null;
   remainingHours: number | null;
   status: PredictionStatus;
+  predictionInterval95: {
+    earliestArrivalAt: string | null;
+    latestArrivalAt: string | null;
+    minimumHours: number | null;
+    maximumHours: number | null;
+  };
 }
+
+export type PredictionQualityStatus = "GOOD" | "LIMITED" | "POOR" | "INSUFFICIENT_DATA";
+export type DataQualityIssue =
+  | "INVALID_LEVEL"
+  | "NEGATIVE_GAS"
+  | "FUTURE_TIMESTAMP"
+  | "DUPLICATE_READING"
+  | "STALE_READING"
+  | "COMMUNICATION_GAP"
+  | "IMPOSSIBLE_OSCILLATION"
+  | "EMPTYING_EVENT";
 
 export interface OverflowPrediction {
   tankId: string;
   currentLevel: number | null;
+  currentVolumeCubicMeters: number | null;
   fillVelocityPercentPerHour: number;
   historicalAverageDailyIncrease: number;
   diagnosticEndpointRatePercentPerHour: number;
   remainingCapacityPercent: number | null;
   remainingCapacityCubicMeters: number | null;
+  predictionQualityStatus: PredictionQualityStatus;
+  dataQualityIssues: DataQualityIssue[];
+  fillingCycleStartedAt: string | null;
   warningProjection: ThresholdProjection;
   dangerProjection: ThresholdProjection;
   overflowProjection: ThresholdProjection;
   recommendedMaintenanceAt: string | null;
   risk: OverflowRisk;
-  riskPercentage: number;
   confidence: number;
   samples: number;
   generatedAt: string;
@@ -34,14 +54,17 @@ export interface OverflowPrediction {
 export interface PredictionApiResponse {
   tank_id: string;
   current_level: number | null;
+  current_volume_cubic_meters: number | null;
   fill_velocity_percent_per_hour: number;
   historical_average_daily_increase: number;
   remaining_capacity_percent: number | null;
   remaining_capacity_cubic_meters: number | null;
+  prediction_quality_status: PredictionQualityStatus;
+  data_quality_issues: DataQualityIssue[];
+  filling_cycle_started_at: string | null;
   warning_projection: ThresholdProjection;
   danger_projection: ThresholdProjection;
   overflow_projection: ThresholdProjection;
-  risk: number;
   risk_level: OverflowRisk;
   confidence: number;
   recommended_maintenance_date: string | null;

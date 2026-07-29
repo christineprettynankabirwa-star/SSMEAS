@@ -62,6 +62,7 @@ export const dispatchAlertNotifications = async (
       `Location: ${alert.location}`,
       `Alert type: ${alert.alert_type}`,
       `OLS overflow projection: ${predicted}`,
+      `Prediction quality: ${prediction?.predictionQualityStatus ?? "Unavailable"}`,
       `Time: ${(reading?.recorded_at ?? new Date()).toISOString()}`,
       `Coordinates: ${alert.latitude},${alert.longitude}`,
       `Google Maps: https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`,
