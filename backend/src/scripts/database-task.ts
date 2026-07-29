@@ -18,6 +18,7 @@ const applySeedPrerequisites = async (): Promise<void> => {
   await runSqlFile("expand_maintenance_workflow.sql");
   await runSqlFile("create_notifications_subsystem.sql");
   await runSqlFile("add_emergency_alert_system.sql");
+  await runSqlFile("refactor_predictive_analytics_ols.sql");
 };
 
 const resetDemoRecords = async (): Promise<void> => {
@@ -66,6 +67,7 @@ const demo = async (): Promise<void> => {
     "add_demo_status_support.sql",
     "create_notifications_subsystem.sql",
     "add_emergency_alert_system.sql",
+    "refactor_predictive_analytics_ols.sql",
     "add_testing_simulation_support.sql",
     "add_alert_acknowledgement_lifecycle.sql",
     "add_device_sms_notification_channels.sql",
@@ -87,6 +89,7 @@ const main = async (): Promise<void> => {
   if (task === "migrate") {
     await runSqlFile("create_notifications_subsystem.sql");
     await runSqlFile("add_emergency_alert_system.sql");
+    await runSqlFile("refactor_predictive_analytics_ols.sql");
     await runSqlFile("add_testing_simulation_support.sql");
     await runSqlFile("add_alert_acknowledgement_lifecycle.sql");
     await runSqlFile("add_device_sms_notification_channels.sql");

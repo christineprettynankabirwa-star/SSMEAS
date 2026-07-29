@@ -6,7 +6,8 @@ interface RouteRow {
   tank_id: string; tank_name: string; location: string; latitude: number; longitude: number;
   capacity_liters: number; task: string; scheduled_for: Date; fill_level: number | null;
   alert_severity: "critical" | "warning" | null; alert_created_at: Date | null;
-  predicted_minutes_to_full: number | null; assigned_to: string | null; assigned_officer: string | null;
+  danger_hours_remaining: number | null; overflow_hours_remaining: number | null;
+  assigned_to: string | null; assigned_officer: string | null;
 }
 
 const urgency = (row: RouteRow, fillLevel: number | null, now: Date) => {
@@ -26,10 +27,10 @@ const urgency = (row: RouteRow, fillLevel: number | null, now: Date) => {
         : Math.min(10, Math.round(fillLevel * 0.15));
     factors.push({ label: "Sewage level", points, detail: `${fillLevel.toFixed(0)}% full` });
   }
-  if (row.predicted_minutes_to_full !== null) {
-    const minutes = Number(row.predicted_minutes_to_full);
-    const points = minutes <= 120 ? 25 : minutes <= 360 ? 18 : minutes <= 1440 ? 10 : 3;
-    factors.push({ label: "Overflow forecast", points, detail: `Approximately ${Math.max(0, Math.round(minutes))} minutes to full` });
+  if (row.danger_hours_remaining !== null) {
+    const hours = Number(row.danger_hours_remaining);
+    const points = hours <= 2 ? 25 : hours <= 6 ? 18 : hours <= 24 ? 10 : 3;
+    factors.push({ label: "85% threshold projection", points, detail: `Approximately ${Math.max(0, hours).toFixed(1)} hours to danger` });
   }
   if (row.alert_created_at) {
     const hours = Math.max(0, (now.getTime() - row.alert_created_at.getTime()) / 3_600_000);
@@ -70,7 +71,8 @@ export const getOpenMaintenanceStops = async (now = new Date()): Promise<RouteCa
        tank.capacity_liters, COALESCE(open_work.task,'Priority tank collection') AS task,
        COALESCE(open_work.scheduled_for,NOW()) AS scheduled_for, latest_reading.level AS fill_level,
        unresolved_alert.severity AS alert_severity, unresolved_alert.created_at AS alert_created_at,
-       prediction.predicted_minutes_to_full, open_work.assigned_to, open_work.assigned_officer
+       prediction.danger_hours_remaining, prediction.overflow_hours_remaining,
+       open_work.assigned_to, open_work.assigned_officer
      FROM tanks tank
      LEFT JOIN latest_reading ON latest_reading.tank_id=tank.id
      LEFT JOIN open_work ON open_work.tank_id=tank.id
@@ -78,7 +80,12 @@ export const getOpenMaintenanceStops = async (now = new Date()): Promise<RouteCa
      LEFT JOIN overflow_predictions prediction ON prediction.tank_id=tank.id
      WHERE open_work.tank_id IS NOT NULL
         OR latest_reading.level >= $1
-        OR unresolved_alert.tank_id IS NOT NULL`,
+        OR unresolved_alert.tank_id IS NOT NULL
+        OR (
+          prediction.prediction_status IN ('PROJECTED','THRESHOLD_REACHED')
+          AND prediction.danger_hours_remaining <= 24
+          AND prediction.calculated_at >= NOW() - INTERVAL '15 minutes'
+        )`,
     [alertThresholdConfig.sewageLevel.warningMinimum],
   );
   return result.rows.map((row) => {
@@ -93,7 +100,8 @@ export const getOpenMaintenanceStops = async (now = new Date()): Promise<RouteCa
       capacityLiters: Number(row.capacity_liters), task: row.task,
       scheduledFor: new Date(row.scheduled_for), fillLevel,
       alertSeverity: row.alert_severity, alertCreatedAt: row.alert_created_at ? new Date(row.alert_created_at) : null,
-      predictedMinutesToFull: row.predicted_minutes_to_full === null ? null : Number(row.predicted_minutes_to_full),
+      predictedHoursToDanger: row.danger_hours_remaining === null ? null : Number(row.danger_hours_remaining),
+      predictedHoursToOverflow: row.overflow_hours_remaining === null ? null : Number(row.overflow_hours_remaining),
       assignedTo: row.assigned_to, assignedOfficer: row.assigned_officer,
       priority, priorityScore: score, urgencyFactors: factors,
       estimatedCollectionLiters: Math.max(0, Math.round(Number(row.capacity_liters) * (fillLevel ?? 0) / 100)),

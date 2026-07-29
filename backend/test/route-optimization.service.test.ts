@@ -6,7 +6,8 @@ import type { RouteCandidate } from "../src/types/route-optimization.types";
 const candidate = (value: Partial<RouteCandidate> & Pick<RouteCandidate, "tankId" | "latitude" | "longitude" | "priority" | "priorityScore">): RouteCandidate => ({
   tankName: value.tankId, location: value.tankId, task: "Inspect",
   scheduledFor: new Date(), fillLevel: 70, capacityLiters: 5_000,
-  alertSeverity: null, alertCreatedAt: null, predictedMinutesToFull: null,
+  alertSeverity: null, alertCreatedAt: null, predictedHoursToDanger: null,
+  predictedHoursToOverflow: null,
   assignedTo: null, assignedOfficer: null, urgencyFactors: [],
   estimatedCollectionLiters: 3_500,
   ...value,

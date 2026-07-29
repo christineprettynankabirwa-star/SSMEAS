@@ -2,48 +2,55 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { calculateOverflowPrediction } from "../src/services/prediction.service";
 
-test("predicts overflow from a rising level trend", () => {
-  const prediction = calculateOverflowPrediction("tank", [
-    { level: 70, recordedAt: new Date("2026-07-17T08:00:00Z") },
-    { level: 80, recordedAt: new Date("2026-07-17T09:00:00Z") },
-    { level: 90, recordedAt: new Date("2026-07-17T10:00:00Z") },
-  ], new Date("2026-07-17T10:00:00Z"));
-  assert.equal(prediction.trendPercentPerHour, 10);
-  assert.equal(prediction.hoursUntilOverflow, 1);
-  assert.equal(prediction.risk, "CRITICAL");
-  assert.equal(prediction.riskPercentage, 99);
-  assert.ok(prediction.confidence > 0 && prediction.confidence <= 100);
-  assert.equal(prediction.samples, 3);
+test("uses timestamp-aware OLS for all operational threshold projections", () => {
+  const now = new Date("2026-07-17T10:00:00Z");
+  const prediction = calculateOverflowPrediction("tank", 10_000, [
+    { level: 60, recordedAt: new Date("2026-07-17T08:00:00Z") },
+    { level: 70, recordedAt: new Date("2026-07-17T09:00:00Z") },
+    { level: 80, recordedAt: now },
+  ], now);
+  assert.equal(prediction.fillVelocityPercentPerHour, 10);
+  assert.equal(prediction.warningProjection.remainingHours, 0);
+  assert.equal(prediction.dangerProjection.remainingHours, 0.5);
+  assert.equal(prediction.overflowProjection.remainingHours, 2);
+  assert.equal(prediction.remainingCapacityPercent, 20);
+  assert.equal(prediction.remainingCapacityCubicMeters, 2);
+  assert.equal(prediction.historicalAverageDailyIncrease, 240);
 });
 
-test("does not invent an overflow time for a flat trend", () => {
-  const prediction = calculateOverflowPrediction("tank", [
+test("returns zero when a threshold is already reached", () => {
+  const prediction = calculateOverflowPrediction("tank", 5_000, [
+    { level: 85, recordedAt: new Date("2026-07-17T08:00:00Z") },
+    { level: 90, recordedAt: new Date("2026-07-17T09:00:00Z") },
+  ]);
+  assert.equal(prediction.warningProjection.remainingHours, 0);
+  assert.equal(prediction.dangerProjection.remainingHours, 0);
+  assert.equal(prediction.dangerProjection.status, "THRESHOLD_REACHED");
+});
+
+test("does not project future thresholds for a stable or falling trend", () => {
+  const prediction = calculateOverflowPrediction("tank", 5_000, [
     { level: 40, recordedAt: new Date("2026-07-17T08:00:00Z") },
     { level: 40, recordedAt: new Date("2026-07-17T09:00:00Z") },
   ]);
-  assert.equal(prediction.predictedOverflowAt, null);
-  assert.equal(prediction.risk, "LOW");
-  assert.equal(prediction.riskPercentage, 40);
+  assert.equal(prediction.overflowProjection.estimatedArrivalAt, null);
+  assert.equal(prediction.overflowProjection.status, "STABLE_OR_FALLING");
 });
 
-test("reduces confidence for stale or sparse telemetry", () => {
-  const now = new Date("2026-07-18T12:00:00Z");
-  const sparse = calculateOverflowPrediction("tank", [
+test("marks sparse telemetry as insufficient for projection", () => {
+  const prediction = calculateOverflowPrediction("tank", 5_000, [
     { level: 55, recordedAt: new Date("2026-07-16T08:00:00Z") },
-  ], now);
-  const recent = calculateOverflowPrediction("tank", Array.from({ length: 20 }, (_, index) => ({
-    level: 50 + index,
-    recordedAt: new Date(now.getTime() - (19 - index) * 3_600_000),
-  })), now);
-  assert.ok(sparse.confidence < recent.confidence);
+  ], new Date("2026-07-18T12:00:00Z"));
+  assert.equal(prediction.overflowProjection.status, "INSUFFICIENT_DATA");
+  assert.equal(prediction.overflowProjection.remainingHours, null);
 });
 
-test("uses gas history and alert history for maintenance recommendations", () => {
-  const now = new Date("2026-07-18T12:00:00Z");
-  const prediction = calculateOverflowPrediction("tank", [
-    { level: 45, gasLevel: 350, recordedAt: new Date("2026-07-18T11:00:00Z") },
-    { level: 45, gasLevel: 380, recordedAt: now },
-  ], now, 3);
-  assert.equal(prediction.risk, "CRITICAL");
-  assert.equal(prediction.recommendedMaintenanceAt, now.toISOString());
+test("rejects out-of-range levels from the regression input", () => {
+  const prediction = calculateOverflowPrediction("tank", 5_000, [
+    { level: -10, recordedAt: new Date("2026-07-17T07:00:00Z") },
+    { level: 50, recordedAt: new Date("2026-07-17T08:00:00Z") },
+    { level: 60, recordedAt: new Date("2026-07-17T09:00:00Z") },
+  ]);
+  assert.equal(prediction.samples, 2);
+  assert.equal(prediction.fillVelocityPercentPerHour, 10);
 });

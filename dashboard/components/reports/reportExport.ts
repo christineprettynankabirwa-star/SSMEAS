@@ -1,5 +1,5 @@
 import type { AlertItem, AnalyticsReading, MaintenanceItem, Tank } from "@/components/dashboard/types";
-import { getAlerts, getAnalytics, getMaintenance } from "@/services/api";
+import { getAlerts, getAnalytics, getMaintenance, getOverflowPredictions } from "@/services/api";
 import {
   REPORT_TYPE_LABELS,
   type ReportDataset,
@@ -44,16 +44,29 @@ const displayDate = (value: string | null): string => value ? new Date(value).to
 
 const telemetryDataset = async (request: ResolvedReportRequest, tanks: Tank[]): Promise<ReportDataset> => {
   const selected = request.tankId === "all" ? tanks : tanks.filter((tank) => tank.id === request.tankId);
-  const response = selected.length ? await getAnalytics(selected.map((tank) => tank.id), "all", true) : null;
+  const [response, predictions] = selected.length ? await Promise.all([
+    getAnalytics(selected.map((tank) => tank.id), "all", true),
+    getOverflowPredictions(),
+  ]) : [null, []];
   const tankNames = new Map(tanks.map((tank) => [tank.id, tank.tank_name]));
+  const projections = new Map(predictions.map((prediction) => [prediction.tank_id, prediction]));
   const rows = (response?.readings ?? [])
     .filter((reading: AnalyticsReading) => inRange(reading.recorded_at, request))
-    .map((reading: AnalyticsReading): ReportRow => ({
-      tank: tankNames.get(reading.tank_id) ?? reading.tank_id,
-      recorded: displayDate(reading.recorded_at),
-      sewageLevel: reading.level === null ? "" : Number(reading.level.toFixed(2)),
-      gasLevel: reading.gas_level === null ? "" : Number(reading.gas_level.toFixed(2)),
-    }));
+    .map((reading: AnalyticsReading): ReportRow => {
+      const prediction = projections.get(reading.tank_id);
+      return {
+        tank: tankNames.get(reading.tank_id) ?? reading.tank_id,
+        recorded: displayDate(reading.recorded_at),
+        sewageLevel: reading.level === null ? "" : Number(reading.level.toFixed(2)),
+        gasLevel: reading.gas_level === null ? "" : Number(reading.gas_level.toFixed(2)),
+        velocity: prediction?.fill_velocity_percent_per_hour ?? "",
+        warningHours: prediction?.warning_projection.remainingHours ?? "",
+        dangerHours: prediction?.danger_projection.remainingHours ?? "",
+        overflowHours: prediction?.overflow_projection.remainingHours ?? "",
+        predictionStatus: prediction?.overflow_projection.status.replaceAll("_", " ") ?? "",
+        confidence: prediction?.confidence ?? "",
+      };
+    });
   return {
     title: "Tank Telemetry Summary",
     columns: [
@@ -61,6 +74,12 @@ const telemetryDataset = async (request: ResolvedReportRequest, tanks: Tank[]): 
       { key: "recorded", label: "Recorded At" },
       { key: "sewageLevel", label: "Sewage Level (%)" },
       { key: "gasLevel", label: "Gas Level (ppm)" },
+      { key: "velocity", label: "OLS Fill Velocity (%/h)" },
+      { key: "warningHours", label: "Hours to 65%" },
+      { key: "dangerHours", label: "Hours to 85%" },
+      { key: "overflowHours", label: "Hours to 100%" },
+      { key: "predictionStatus", label: "Prediction Status" },
+      { key: "confidence", label: "Confidence (%)" },
     ],
     rows,
   };

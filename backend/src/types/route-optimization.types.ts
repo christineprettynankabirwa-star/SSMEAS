@@ -21,7 +21,8 @@ export interface RouteCandidate extends Coordinate {
   capacityLiters: number;
   alertSeverity: "critical" | "warning" | null;
   alertCreatedAt: Date | null;
-  predictedMinutesToFull: number | null;
+  predictedHoursToDanger: number | null;
+  predictedHoursToOverflow: number | null;
   assignedTo: string | null;
   assignedOfficer: string | null;
   priority: RoutePriority;

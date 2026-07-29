@@ -3,6 +3,7 @@ import { getRoadMatrix, getRoadRoute, haversineDistanceKm } from "./road-network
 import type {
   Coordinate, OptimizedRoute, OptimizedRouteStop, RouteCandidate, RouteOptimizationRequest,
 } from "../types/route-optimization.types";
+import { predictAllOverflows } from "./prediction.service";
 
 export { haversineDistanceKm };
 
@@ -176,6 +177,7 @@ export const getOptimizedMaintenanceRoute = async (
   request: RouteOptimizationRequest = {},
 ): Promise<OptimizedRoute> => {
   const start = depot();
+  await predictAllOverflows();
   const [all, availableDrivers] = await Promise.all([
     routeModel.getOpenMaintenanceStops(),
     routeModel.getAvailableDrivers(),

@@ -68,25 +68,23 @@ uses Nodemailer with the backend-only `SMTP_*` settings. SMS delivery uses the i
 `SmsProvider` interface and defaults to `MockSmsProvider` in development; credentials are
 never exposed to the dashboard or ESP32.
 
-## Predictive Analytics Module
+## Predictive Analytics & Risk Engine
 
-- `GET /api/predictions` — calculates statistical forecasts for every registered tank from recent PostgreSQL sewage-level readings.
-- `GET /api/predictions/:tankId` — returns the detailed, backward-compatible forecast response for one tank.
+- `GET /api/predictions` — calculates timestamp-aware OLS forecasts for every registered tank.
+- `GET /api/predictions/:tankId` — returns the detailed OLS forecast for one tank.
 
-The collection endpoint returns an array. Each item follows this contract:
+The response contains current OLS fill velocity, historical daily increase, remaining capacity in percent and cubic metres, and projections for the 65%, 85%, and 100% thresholds. Every threshold projection contains:
 
 ```json
 {
-  "tank_id": "00000000-0000-4000-8000-000000000001",
-  "predicted_overflow_time": "2026-07-20T16:30:00.000Z",
-  "hours_remaining": 4.5,
-  "risk": 92,
-  "confidence": 87,
-  "recommended_maintenance_date": "2026-07-20T10:30:00.000Z"
+  "thresholdPercent": 85,
+  "estimatedArrivalAt": "2026-07-20T16:24:00.000Z",
+  "remainingHours": 4.4,
+  "status": "PROJECTED"
 }
 ```
 
-`predicted_overflow_time` and `hours_remaining` are `null` when readings are stable or falling. `risk` and `confidence` are percentages from 0 to 100. The deterministic forecast calculates average fill rate and a linear trend from timestamped PostgreSQL readings. Confidence reflects sample count, recency, and trend consistency. Risk combines configured warning and danger thresholds, estimated fill time, gas conditions, and recent alert history. The maintenance recommendation is scheduled ahead of expected overflow or immediately when conditions require intervention. No learned model is used.
+Remaining hours are zero when a threshold has already been reached. They are `null` when the status is `STABLE_OR_FALLING` or `INSUFFICIENT_DATA`. Risk and confidence are percentages from 0 to 100. Maintenance timing is scheduled ahead of the projected 85% danger threshold. This is deterministic predictive analytics; no AI or machine-learning model is used.
 
 ## Collection route optimization
 

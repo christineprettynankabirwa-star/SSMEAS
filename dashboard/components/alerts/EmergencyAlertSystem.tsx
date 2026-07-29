@@ -100,11 +100,9 @@ export default function EmergencyAlertSystem() {
   };
 
   if (!alert) return null;
-  const predictedText = prediction?.predicted_minutes_to_full == null
-    ? prediction?.predicted_overflow_time
-      ? new Date(prediction.predicted_overflow_time).toLocaleString("en-UG")
-      : "Not available"
-    : `${Math.ceil(prediction.predicted_minutes_to_full)} minutes`;
+  const predictedText = prediction?.overflow_projection.remainingHours == null
+    ? "Not available"
+    : `${prediction.overflow_projection.remainingHours.toFixed(1)} hours`;
 
   return <>
     <div aria-label={`${alerts.length} active critical alerts`}

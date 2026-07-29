@@ -46,9 +46,10 @@ export const dispatchAlertNotifications = async (
     await client.query("BEGIN");
     const recipients = await notificationModel.getRecipients(client, alert);
     const prediction = await predictOverflow(alert.tank_id).catch(() => null);
-    const predicted = prediction?.predictedMinutesToFull === null || prediction?.predictedMinutesToFull === undefined
+    const projectedHours = prediction?.overflowProjection.remainingHours;
+    const predicted = projectedHours === null || projectedHours === undefined
       ? "Unavailable"
-      : `${Math.ceil(prediction.predictedMinutesToFull)} minutes`;
+      : `${projectedHours.toFixed(1)} hours`;
     const subject = alert.severity === "critical"
       ? `Critical Sewer Alert - ${alert.tank_name}`
       : `Warning - ${alert.tank_name}`;
@@ -60,7 +61,7 @@ export const dispatchAlertNotifications = async (
       `Current status: ${reading?.status ?? alert.severity.toUpperCase()}`,
       `Location: ${alert.location}`,
       `Alert type: ${alert.alert_type}`,
-      `Predicted overflow: ${predicted}`,
+      `OLS overflow projection: ${predicted}`,
       `Time: ${(reading?.recorded_at ?? new Date()).toISOString()}`,
       `Coordinates: ${alert.latitude},${alert.longitude}`,
       `Google Maps: https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`,
