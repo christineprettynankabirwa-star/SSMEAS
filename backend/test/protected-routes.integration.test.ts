@@ -16,6 +16,8 @@ const protectedEndpoints = [
   ["GET", "/api/maintenance"],
   ["POST", "/api/maintenance"],
   ["GET", "/api/predictions/00000000-0000-4000-8000-000000000001"],
+  ["GET", "/api/predictions/history"],
+  ["GET", "/api/predictions/evaluation"],
   ["GET", "/api/routes/optimized"],
   ["GET", "/api/notifications"],
   ["GET", "/api/notifications/unread"],

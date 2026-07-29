@@ -4,6 +4,7 @@ import type {
   Coordinate, OptimizedRoute, OptimizedRouteStop, RouteCandidate, RouteOptimizationRequest,
 } from "../types/route-optimization.types";
 import { predictAllOverflows } from "./prediction.service";
+import { predictiveAnalyticsConfig } from "../config/predictive-analytics";
 
 export { haversineDistanceKm };
 
@@ -72,6 +73,8 @@ const orderCandidates = (
       if (priority) return priority;
       const urgency = right.priorityScore - left.priorityScore;
       if (urgency) return urgency;
+      const service = serviceMinutes(left) - serviceMinutes(right);
+      if (service) return service;
       return durations[current]![a]! - durations[current]![b]!;
     });
     current = remaining.shift()!;
@@ -178,8 +181,10 @@ export const getOptimizedMaintenanceRoute = async (
 ): Promise<OptimizedRoute> => {
   const start = depot();
   await predictAllOverflows();
+  const planningHorizonHours = request.planningHorizonHours
+    ?? predictiveAnalyticsConfig.routeOptimization.planningHorizonHours;
   const [all, availableDrivers] = await Promise.all([
-    routeModel.getOpenMaintenanceStops(),
+    routeModel.getOpenMaintenanceStops(planningHorizonHours),
     routeModel.getAvailableDrivers(),
   ]);
   const excluded = new Set(request.excludedTankIds ?? []);

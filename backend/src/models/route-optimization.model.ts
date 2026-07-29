@@ -1,6 +1,5 @@
 import { pool } from "../config/database";
 import type { RouteCandidate, UrgencyFactor } from "../types/route-optimization.types";
-import { alertThresholdConfig } from "../config/alert-thresholds";
 
 interface RouteRow {
   tank_id: string; tank_name: string; location: string; latitude: number; longitude: number;
@@ -11,28 +10,18 @@ interface RouteRow {
   assigned_to: string | null; assigned_officer: string | null;
 }
 
-const urgency = (row: RouteRow, fillLevel: number | null, now: Date) => {
+const urgency = (row: RouteRow, now: Date) => {
   const factors: UrgencyFactor[] = [];
-  if (row.alert_severity) {
-    factors.push({
-      label: `${row.alert_severity === "critical" ? "Critical" : "Warning"} unresolved alert`,
-      points: row.alert_severity === "critical" ? 35 : 18,
-      detail: row.alert_created_at
-        ? `Open for ${Math.max(0, Math.floor((now.getTime() - row.alert_created_at.getTime()) / 3_600_000))} hours`
-        : "Open incident",
-    });
-  }
-  if (fillLevel !== null) {
-    const points = fillLevel >= alertThresholdConfig.sewageLevel.dangerMinimum ? 30
-      : fillLevel >= alertThresholdConfig.sewageLevel.warningMinimum ? 18
-        : Math.min(10, Math.round(fillLevel * 0.15));
-    factors.push({ label: "Sewage level", points, detail: `${fillLevel.toFixed(0)}% full` });
-  }
   if (row.danger_hours_remaining !== null
     && (row.prediction_quality_status === "GOOD" || row.prediction_quality_status === "LIMITED")) {
     const hours = Number(row.danger_hours_remaining);
-    const points = hours <= 2 ? 25 : hours <= 6 ? 18 : hours <= 24 ? 10 : 3;
+    const points = hours <= 8 ? 60 : hours <= 24 ? 45 : hours <= 72 ? 30 : 15;
     factors.push({ label: "85% threshold projection", points, detail: `Approximately ${Math.max(0, hours).toFixed(1)} hours to danger` });
+    factors.push({
+      label: "Prediction quality",
+      points: row.prediction_quality_status === "GOOD" ? 15 : 7,
+      detail: `${row.prediction_quality_status} quality OLS forecast`,
+    });
   }
   if (row.alert_created_at) {
     const hours = Math.max(0, (now.getTime() - row.alert_created_at.getTime()) / 3_600_000);
@@ -44,11 +33,19 @@ const urgency = (row: RouteRow, fillLevel: number | null, now: Date) => {
   if (/emergency|empty|pump|overflow/i.test(row.task)) {
     factors.push({ label: "Task type", points: /emergency/i.test(row.task) ? 10 : 6, detail: row.task });
   }
+  factors.push({
+    label: "Service duration",
+    points: /emergency/i.test(row.task) ? 0 : 5,
+    detail: /emergency/i.test(row.task) ? "30-minute emergency service" : "20-minute standard service",
+  });
   const score = Math.min(100, factors.reduce((sum, factor) => sum + factor.points, 0));
   return { factors, score };
 };
 
-export const getOpenMaintenanceStops = async (now = new Date()): Promise<RouteCandidate[]> => {
+export const getOpenMaintenanceStops = async (
+  planningHorizonHours: number,
+  now = new Date(),
+): Promise<RouteCandidate[]> => {
   const result = await pool.query<RouteRow>(
     `WITH latest_reading AS (
        SELECT DISTINCT ON (tank_id) tank_id, level
@@ -70,7 +67,7 @@ export const getOpenMaintenanceStops = async (now = new Date()): Promise<RouteCa
        GROUP BY tank_id
      )
      SELECT tank.id AS tank_id, tank.tank_name, tank.location, tank.latitude, tank.longitude,
-       tank.capacity_liters, COALESCE(open_work.task,'Priority tank collection') AS task,
+       tank.capacity_liters, COALESCE(open_work.task,'Predictive collection recommendation') AS task,
        COALESCE(open_work.scheduled_for,NOW()) AS scheduled_for, latest_reading.level AS fill_level,
        unresolved_alert.severity AS alert_severity, unresolved_alert.created_at AS alert_created_at,
        prediction.danger_hours_remaining, prediction.overflow_hours_remaining,
@@ -82,22 +79,20 @@ export const getOpenMaintenanceStops = async (now = new Date()): Promise<RouteCa
      LEFT JOIN unresolved_alert ON unresolved_alert.tank_id=tank.id
      LEFT JOIN overflow_predictions prediction ON prediction.tank_id=tank.id
      WHERE open_work.tank_id IS NOT NULL
-        OR latest_reading.level >= $1
-        OR unresolved_alert.tank_id IS NOT NULL
         OR (
           prediction.prediction_status IN ('PROJECTED','THRESHOLD_REACHED')
           AND prediction.prediction_quality_status IN ('GOOD','LIMITED')
-          AND prediction.danger_hours_remaining <= 24
+          AND prediction.danger_hours_remaining <= $1
           AND prediction.calculated_at >= NOW() - INTERVAL '15 minutes'
         )`,
-    [alertThresholdConfig.sewageLevel.warningMinimum],
+    [planningHorizonHours],
   );
   return result.rows.map((row) => {
     const fillLevel = row.fill_level === null ? null : Number(row.fill_level);
-    const { factors, score } = urgency(row, fillLevel, now);
-    const priority = row.alert_severity === "critical"
-      || (fillLevel ?? 0) >= alertThresholdConfig.sewageLevel.dangerMinimum || score >= 75
-      ? "CRITICAL" as const : score >= 45 ? "HIGH" as const : "MEDIUM" as const;
+    const { factors, score } = urgency(row, now);
+    const dangerHours = row.danger_hours_remaining === null ? null : Number(row.danger_hours_remaining);
+    const priority = dangerHours !== null && dangerHours <= 8
+      ? "CRITICAL" as const : dangerHours !== null && dangerHours <= 24 ? "HIGH" as const : "MEDIUM" as const;
     return {
       tankId: row.tank_id, tankName: row.tank_name, location: row.location,
       latitude: Number(row.latitude), longitude: Number(row.longitude),
@@ -106,9 +101,12 @@ export const getOpenMaintenanceStops = async (now = new Date()): Promise<RouteCa
       alertSeverity: row.alert_severity, alertCreatedAt: row.alert_created_at ? new Date(row.alert_created_at) : null,
       predictedHoursToDanger: row.danger_hours_remaining === null ? null : Number(row.danger_hours_remaining),
       predictedHoursToOverflow: row.overflow_hours_remaining === null ? null : Number(row.overflow_hours_remaining),
+      predictionQuality: row.prediction_quality_status ?? "INSUFFICIENT_DATA",
       assignedTo: row.assigned_to, assignedOfficer: row.assigned_officer,
       priority, priorityScore: score, urgencyFactors: factors,
-      estimatedCollectionLiters: Math.max(0, Math.round(Number(row.capacity_liters) * (fillLevel ?? 0) / 100)),
+      estimatedCollectionLiters: Math.max(0, Math.round(
+        Number(row.capacity_liters) * Math.max(fillLevel ?? 0, dangerHours !== null ? 85 : 0) / 100,
+      )),
     };
   });
 };

@@ -11,5 +11,11 @@
     "criticalMaximum": 8,
     "highMaximum": 24,
     "moderateMaximum": 72
+  },
+  "maintenanceRecommendation": {
+    "safetyBufferHours": 6
+  },
+  "routeOptimization": {
+    "planningHorizonHours": 24
   }
 }

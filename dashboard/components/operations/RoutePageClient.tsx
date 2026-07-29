@@ -38,7 +38,7 @@ export default function RoutePageClient() {
     catch { setError("The route could not be recalculated with those dispatcher controls."); }
     finally { setRecalculating(false); }
   };
-  return <ModuleScaffold eyebrow="Collection planning" title="Route Optimization" description="Road-network routing with transparent urgency, truck capacity, disposal trips, shift limits, and dispatcher control.">
+  return <ModuleScaffold eyebrow="Collection planning" title="Predictive Route Optimization" description="Selects tanks projected to reach 85% within the planning horizon, then balances urgency, forecast quality, travel, service time, and truck capacity.">
     {loading ? <ModuleLoading /> : error && !route ? <ModuleError message={error} retry={() => void load()} /> : route ? <div className="space-y-5">
       {error && <ModuleError message={error} />}
       <RouteDispatcherControls key={route.generatedAt} route={route} busy={recalculating} onRecalculate={(request) => void recalculate(request)} />

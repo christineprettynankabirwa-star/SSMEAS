@@ -23,6 +23,7 @@ export interface RouteCandidate extends Coordinate {
   alertCreatedAt: Date | null;
   predictedHoursToDanger: number | null;
   predictedHoursToOverflow: number | null;
+  predictionQuality: "GOOD" | "LIMITED" | "POOR" | "INSUFFICIENT_DATA";
   assignedTo: string | null;
   assignedOfficer: string | null;
   priority: RoutePriority;
@@ -60,6 +61,7 @@ export interface RouteOptimizationRequest {
   excludedTankIds?: string[];
   preferredOrder?: string[];
   lockedTankIds?: string[];
+  planningHorizonHours?: number;
 }
 
 export interface OptimizedRoute {

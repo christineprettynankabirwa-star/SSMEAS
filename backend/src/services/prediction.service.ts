@@ -216,11 +216,19 @@ export const calculateOverflowPrediction = (
   const confidence = Math.round(100 * (sampleScore * 0.45 + regression.fit * 0.4 + recencyScore * 0.15));
   const predictionQualityStatus = qualityStatus(prepared.cycle.length, prepared.issues);
   const risk = riskFromDangerHours(dangerProjection.remainingHours);
-  const recommendedMaintenanceAt = predictionQualityStatus !== "POOR"
+  const safetyBufferHours = predictiveAnalyticsConfig.maintenanceRecommendation.safetyBufferHours;
+  const recommendedAt = predictionQualityStatus !== "POOR"
     && predictionQualityStatus !== "INSUFFICIENT_DATA"
     && dangerProjection.estimatedArrivalAt
-    ? new Date(Math.max(now.getTime(), new Date(dangerProjection.estimatedArrivalAt).getTime() - 6 * 3_600_000)).toISOString()
+    ? new Date(Math.max(
+      now.getTime(), new Date(dangerProjection.estimatedArrivalAt).getTime() - safetyBufferHours * 3_600_000,
+    )).toISOString()
     : null;
+  const recommendationReason = recommendedAt
+    ? `Service before the projected 85% danger threshold, allowing a ${safetyBufferHours}-hour safety buffer.`
+    : predictionQualityStatus === "POOR" || predictionQualityStatus === "INSUFFICIENT_DATA"
+      ? "No recommendation issued because prediction quality is not sufficient for maintenance planning."
+      : "No rising trend is projected to reach the 85% danger threshold.";
 
   return {
     tankId, currentLevel,
@@ -228,13 +236,21 @@ export const calculateOverflowPrediction = (
     fillVelocityPercentPerHour: Number(regression.slope.toFixed(3)),
     historicalAverageDailyIncrease: Number((regression.slope * 24).toFixed(3)),
     diagnosticEndpointRatePercentPerHour: Number(diagnosticRate.toFixed(3)),
+    regressionRSquared: Number(regression.fit.toFixed(4)),
     remainingCapacityPercent: remainingCapacityPercent === null ? null : Number(remainingCapacityPercent.toFixed(2)),
     remainingCapacityCubicMeters: remainingCapacityCubicMeters === null ? null : Number(remainingCapacityCubicMeters.toFixed(3)),
     predictionQualityStatus,
     dataQualityIssues: prepared.issues,
     fillingCycleStartedAt: prepared.cycle[0]?.recordedAt.toISOString() ?? null,
     warningProjection, dangerProjection, overflowProjection,
-    recommendedMaintenanceAt, risk, confidence,
+    maintenanceRecommendation: {
+      recommendedAt,
+      reason: recommendationReason,
+      predictionConfidence: confidence,
+      safetyBufferHours,
+      approvalRequired: true,
+    },
+    risk, confidence,
     samples: prepared.cycle.length, generatedAt: now.toISOString(),
   };
 };
@@ -255,7 +271,7 @@ const toApiResponse = (prediction: OverflowPrediction): PredictionApiResponse =>
   overflow_projection: prediction.overflowProjection,
   risk_level: prediction.risk,
   confidence: prediction.confidence,
-  recommended_maintenance_date: prediction.recommendedMaintenanceAt,
+  maintenance_recommendation: prediction.maintenanceRecommendation,
   samples: prediction.samples,
   generated_at: prediction.generatedAt,
 });
@@ -271,6 +287,8 @@ const persist = (prediction: OverflowPrediction) => predictionModel.storePredict
   overflow: prediction.overflowProjection,
   predictionStatus: prediction.overflowProjection.status,
   qualityStatus: prediction.predictionQualityStatus,
+  regressionRSquared: prediction.regressionRSquared,
+  fillingCycleStartedAt: prediction.fillingCycleStartedAt,
   confidence: prediction.confidence,
   sampleCount: prediction.samples,
   calculatedAt: prediction.generatedAt,
@@ -317,3 +335,17 @@ export const predictOverflow = async (tankId: string): Promise<OverflowPredictio
   await persist(prediction);
   return prediction;
 };
+
+const optionalTankId = (value: unknown): string | undefined => {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value !== "string" || !uuidPattern.test(value)) {
+    throw new PredictionValidationError("tankId must be a valid UUID.");
+  }
+  return value;
+};
+
+export const listPredictionHistory = (tankId: unknown) =>
+  predictionModel.getPredictionHistory(optionalTankId(tankId));
+
+export const evaluatePredictions = (tankId: unknown) =>
+  predictionModel.getPredictionEvaluation(optionalTankId(tankId));

@@ -15,6 +15,8 @@ interface PredictiveAnalyticsConfig {
     highMaximum: number;
     moderateMaximum: number;
   };
+  maintenanceRecommendation: { safetyBufferHours: number };
+  routeOptimization: { planningHorizonHours: number };
 }
 
 const configPath = path.resolve(__dirname, "../../../config/predictive-analytics.json");

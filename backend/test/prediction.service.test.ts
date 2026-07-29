@@ -102,4 +102,7 @@ test("calculates a 95 percent interval and configurable time-to-danger risk band
   ], now);
   assert.equal(prediction.risk, "CRITICAL");
   assert.notEqual(prediction.overflowProjection.predictionInterval95.minimumHours, null);
+  assert.equal(prediction.maintenanceRecommendation.approvalRequired, true);
+  assert.equal(prediction.maintenanceRecommendation.safetyBufferHours, 6);
+  assert.equal(prediction.maintenanceRecommendation.predictionConfidence, prediction.confidence);
 });

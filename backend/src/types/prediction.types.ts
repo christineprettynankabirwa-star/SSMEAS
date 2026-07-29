@@ -29,6 +29,14 @@ export type DataQualityIssue =
   | "IMPOSSIBLE_OSCILLATION"
   | "EMPTYING_EVENT";
 
+export interface MaintenanceRecommendation {
+  recommendedAt: string | null;
+  reason: string;
+  predictionConfidence: number;
+  safetyBufferHours: number;
+  approvalRequired: true;
+}
+
 export interface OverflowPrediction {
   tankId: string;
   currentLevel: number | null;
@@ -36,6 +44,7 @@ export interface OverflowPrediction {
   fillVelocityPercentPerHour: number;
   historicalAverageDailyIncrease: number;
   diagnosticEndpointRatePercentPerHour: number;
+  regressionRSquared: number;
   remainingCapacityPercent: number | null;
   remainingCapacityCubicMeters: number | null;
   predictionQualityStatus: PredictionQualityStatus;
@@ -44,7 +53,7 @@ export interface OverflowPrediction {
   warningProjection: ThresholdProjection;
   dangerProjection: ThresholdProjection;
   overflowProjection: ThresholdProjection;
-  recommendedMaintenanceAt: string | null;
+  maintenanceRecommendation: MaintenanceRecommendation;
   risk: OverflowRisk;
   confidence: number;
   samples: number;
@@ -67,7 +76,30 @@ export interface PredictionApiResponse {
   overflow_projection: ThresholdProjection;
   risk_level: OverflowRisk;
   confidence: number;
-  recommended_maintenance_date: string | null;
+  maintenance_recommendation: MaintenanceRecommendation;
   samples: number;
   generated_at: string;
+}
+
+export interface PredictionEvaluation {
+  evaluatedForecasts: number;
+  meanAbsoluteErrorHours: number | null;
+  rootMeanSquaredErrorHours: number | null;
+}
+
+export interface PredictionHistoryRecord {
+  id: string;
+  tank_id: string;
+  prediction_time: string;
+  threshold_percent: 65 | 85 | 100;
+  forecast_at: string | null;
+  actual_arrival_at: string | null;
+  regression_slope: number;
+  regression_r_squared: number;
+  interval_earliest_at: string | null;
+  interval_latest_at: string | null;
+  forecast_error_hours: number | null;
+  prediction_quality_status: PredictionQualityStatus;
+  sample_count: number;
+  filling_cycle_started_at: string | null;
 }

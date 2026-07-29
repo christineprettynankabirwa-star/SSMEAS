@@ -1,5 +1,5 @@
 import type { AlertItem, AnalyticsReading, MaintenanceItem, Tank } from "@/components/dashboard/types";
-import { getAlerts, getAnalytics, getMaintenance, getOverflowPredictions } from "@/services/api";
+import { getAlerts, getAnalytics, getMaintenance, getOverflowPredictions, getPredictionEvaluation } from "@/services/api";
 import {
   REPORT_TYPE_LABELS,
   type ReportDataset,
@@ -44,10 +44,11 @@ const displayDate = (value: string | null): string => value ? new Date(value).to
 
 const telemetryDataset = async (request: ResolvedReportRequest, tanks: Tank[]): Promise<ReportDataset> => {
   const selected = request.tankId === "all" ? tanks : tanks.filter((tank) => tank.id === request.tankId);
-  const [response, predictions] = selected.length ? await Promise.all([
+  const [response, predictions, evaluation] = selected.length ? await Promise.all([
     getAnalytics(selected.map((tank) => tank.id), "all", true),
     getOverflowPredictions(),
-  ]) : [null, []];
+    getPredictionEvaluation(request.tankId === "all" ? undefined : request.tankId),
+  ]) : [null, [], { evaluatedForecasts: 0, meanAbsoluteErrorHours: null, rootMeanSquaredErrorHours: null }];
   const tankNames = new Map(tanks.map((tank) => [tank.id, tank.tank_name]));
   const projections = new Map(predictions.map((prediction) => [prediction.tank_id, prediction]));
   const rows = (response?.readings ?? [])
@@ -71,6 +72,9 @@ const telemetryDataset = async (request: ResolvedReportRequest, tanks: Tank[]): 
           ? "" : `${interval.minimumHours}–${interval.maximumHours ?? "unbounded"}`,
         predictionQuality: prediction?.prediction_quality_status.replaceAll("_", " ") ?? "",
         confidence: prediction?.confidence ?? "",
+        evaluatedForecasts: evaluation.evaluatedForecasts,
+        maeHours: evaluation.meanAbsoluteErrorHours ?? "",
+        rmseHours: evaluation.rootMeanSquaredErrorHours ?? "",
       };
     });
   return {
@@ -90,6 +94,9 @@ const telemetryDataset = async (request: ResolvedReportRequest, tanks: Tank[]): 
       { key: "predictionInterval", label: "95% Overflow Interval (hours)" },
       { key: "predictionQuality", label: "Prediction Quality" },
       { key: "confidence", label: "Confidence (%)" },
+      { key: "evaluatedForecasts", label: "Evaluated Forecasts" },
+      { key: "maeHours", label: "MAE (hours)" },
+      { key: "rmseHours", label: "RMSE (hours)" },
     ],
     rows,
   };

@@ -7,7 +7,7 @@ const candidate = (value: Partial<RouteCandidate> & Pick<RouteCandidate, "tankId
   tankName: value.tankId, location: value.tankId, task: "Inspect",
   scheduledFor: new Date(), fillLevel: 70, capacityLiters: 5_000,
   alertSeverity: null, alertCreatedAt: null, predictedHoursToDanger: null,
-  predictedHoursToOverflow: null,
+  predictedHoursToOverflow: null, predictionQuality: "GOOD",
   assignedTo: null, assignedOfficer: null, urgencyFactors: [],
   estimatedCollectionLiters: 3_500,
   ...value,

@@ -36,4 +36,31 @@ ALTER TABLE overflow_predictions
 COMMENT ON TABLE overflow_predictions IS
   'Predictive Analytics & Risk Engine results produced by timestamp-aware OLS linear regression; no AI or machine learning is used.';
 
+CREATE TABLE IF NOT EXISTS prediction_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tank_id UUID NOT NULL REFERENCES tanks(id) ON DELETE CASCADE,
+  prediction_time TIMESTAMPTZ NOT NULL,
+  threshold_percent SMALLINT NOT NULL CHECK (threshold_percent IN (65,85,100)),
+  forecast_at TIMESTAMPTZ,
+  actual_arrival_at TIMESTAMPTZ,
+  regression_slope DOUBLE PRECISION NOT NULL,
+  regression_r_squared DOUBLE PRECISION NOT NULL,
+  interval_earliest_at TIMESTAMPTZ,
+  interval_latest_at TIMESTAMPTZ,
+  forecast_error_hours DOUBLE PRECISION,
+  prediction_quality_status VARCHAR(32) NOT NULL,
+  sample_count INTEGER NOT NULL,
+  filling_cycle_started_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS prediction_history_tank_time_idx
+  ON prediction_history(tank_id, prediction_time DESC);
+CREATE INDEX IF NOT EXISTS prediction_history_evaluation_idx
+  ON prediction_history(tank_id, threshold_percent, actual_arrival_at)
+  WHERE forecast_at IS NOT NULL;
+
+COMMENT ON TABLE prediction_history IS
+  'Append-only, reproducible OLS threshold forecasts and their later observed arrival times.';
+
 COMMIT;

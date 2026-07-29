@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { AlertItem, AnalyticsRange, AnalyticsResponse, DashboardSummary, HistoricalSensorReading, MaintenanceItem, MaintenanceOfficer, MaintenancePriority, MaintenanceStatus, NotificationItem, NotificationPreferences, OptimizedRoute, OverflowPrediction, PredictionApiResponse, RouteOptimizationRequest, SensorReading, Tank } from "@/components/dashboard/types";
+import type { AlertItem, AnalyticsRange, AnalyticsResponse, DashboardSummary, HistoricalSensorReading, MaintenanceItem, MaintenanceOfficer, MaintenancePriority, MaintenanceStatus, NotificationItem, NotificationPreferences, OptimizedRoute, OverflowPrediction, PredictionApiResponse, PredictionEvaluation, RouteOptimizationRequest, SensorReading, Tank } from "@/components/dashboard/types";
 
 const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api", timeout: 10_000 });
 export interface LoginResponse { token: string; }
@@ -63,6 +63,8 @@ export const getOverflowPrediction = async (tankId: string): Promise<OverflowPre
   (await api.get<OverflowPrediction>(`/predictions/${encodeURIComponent(tankId)}`)).data;
 export const getOverflowPredictions = async (): Promise<PredictionApiResponse[]> =>
   (await api.get<PredictionApiResponse[]>("/predictions")).data;
+export const getPredictionEvaluation = async (tankId?: string): Promise<PredictionEvaluation> =>
+  (await api.get<PredictionEvaluation>("/predictions/evaluation", { params: tankId ? { tankId } : undefined })).data;
 export const getOptimizedRoute = async (request?: RouteOptimizationRequest): Promise<OptimizedRoute> =>
   request
     ? (await api.post<OptimizedRoute>("/routes/optimized", request)).data

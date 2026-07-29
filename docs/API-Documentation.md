@@ -72,6 +72,8 @@ never exposed to the dashboard or ESP32.
 
 - `GET /api/predictions` — calculates timestamp-aware OLS forecasts for every registered tank.
 - `GET /api/predictions/:tankId` — returns the detailed OLS forecast for one tank.
+- `GET /api/predictions/history?tankId=UUID` — returns append-only threshold forecast history.
+- `GET /api/predictions/evaluation?tankId=UUID` — returns evaluated forecast count, MAE, and RMSE in hours.
 
 The response contains current level and volume, OLS fill velocity, historical daily increase, remaining volume in percent and cubic metres, data-quality findings, and projections for the 65%, 85%, and 100% thresholds. Every threshold projection contains:
 
@@ -92,13 +94,19 @@ The response contains current level and volume, OLS fill velocity, historical da
 
 Remaining hours are zero when a threshold has already been reached. They are `null` when the status is `STABLE_OR_FALLING` or `INSUFFICIENT_DATA`. Prediction quality is `GOOD`, `LIMITED`, `POOR`, or `INSUFFICIENT_DATA`. Maintenance timing is suppressed for poor-quality forecasts.
 
-Risk is based only on projected time to the 85% danger threshold: critical within 8 hours, high within 24 hours, moderate within 72 hours, and low beyond 72 hours. These bands and all data-quality tolerances are configurable in `config/predictive-analytics.json`. This is deterministic predictive analytics; no AI or machine-learning model is used.
+Risk is based only on projected time to the 85% danger threshold: critical within 8 hours, high within 24 hours, moderate within 72 hours, and low beyond 72 hours. These bands and all data-quality tolerances are configurable in `config/predictive-analytics.json`. Maintenance output is advisory and contains the recommended time, reason, confidence, safety buffer, and an explicit approval requirement; it never creates a work order. This is deterministic predictive analytics; no AI or machine-learning model is used.
+
+Each forecast appends three trace records (65%, 85%, and 100%) to `prediction_history`. When later immutable telemetry first reaches a threshold, the system records the actual arrival and signed forecast error. Evaluation uses:
+
+`MAE = AVG(ABS(actual arrival - forecast arrival))`
+
+`RMSE = SQRT(AVG((actual arrival - forecast arrival)^2))`
 
 ## Collection route optimization
 
 - `GET /api/routes/optimized` — all three roles; returns a critical-first, distance-optimized collection route.
 
-Candidates include tanks at or above the configured fill warning threshold, tanks with active warning or critical alerts, and tanks with open maintenance work. The Route Optimization Module consumes urgency and fill-time forecasts, ranks critical work first, groups nearby stops where appropriate, observes truck capacity, and refines the service order to reduce travel distance, response time, and fuel consumption.
+Candidates include approved open maintenance work and tanks with GOOD or LIMITED OLS forecasts expected to reach 85% within the configurable planning horizon. Current WARNING or DANGER status alone does not select a predictive route candidate. Ordering considers forecast urgency, prediction quality, service duration, road travel, truck capacity, disposal trips, and shift limits.
 
 ## Maintenance
 

@@ -1,5 +1,8 @@
 import { pool } from "../config/database";
-import type { PredictionQualityStatus, PredictionStatus, ThresholdProjection } from "../types/prediction.types";
+import type {
+  PredictionEvaluation, PredictionHistoryRecord, PredictionQualityStatus,
+  PredictionStatus, ThresholdProjection,
+} from "../types/prediction.types";
 
 export interface PredictionReading {
   tank_id?: string;
@@ -38,6 +41,8 @@ export interface StoredPrediction {
   overflow: ThresholdProjection;
   predictionStatus: PredictionStatus;
   qualityStatus: PredictionQualityStatus;
+  regressionRSquared: number;
+  fillingCycleStartedAt: string | null;
   confidence: number;
   sampleCount: number;
   calculatedAt: string;
@@ -78,6 +83,82 @@ export const storePrediction = async (prediction: StoredPrediction): Promise<voi
       prediction.sampleCount, prediction.calculatedAt,
     ],
   );
+  await resolveActualArrivals(prediction.tankId);
+  await Promise.all([prediction.warning, prediction.danger, prediction.overflow].map((projection) =>
+    pool.query(
+      `INSERT INTO prediction_history(
+         tank_id, prediction_time, threshold_percent, forecast_at,
+         regression_slope, regression_r_squared, interval_earliest_at, interval_latest_at,
+         prediction_quality_status, sample_count, filling_cycle_started_at
+       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [
+        prediction.tankId, prediction.calculatedAt, projection.thresholdPercent,
+        projection.estimatedArrivalAt, prediction.fillVelocityPercentPerHour,
+        prediction.regressionRSquared, projection.predictionInterval95.earliestArrivalAt,
+        projection.predictionInterval95.latestArrivalAt, prediction.qualityStatus,
+        prediction.sampleCount, prediction.fillingCycleStartedAt,
+      ],
+    )));
+};
+
+export const resolveActualArrivals = async (tankId: string): Promise<void> => {
+  await pool.query(
+    `UPDATE prediction_history history
+     SET actual_arrival_at=(
+           SELECT MIN(reading.recorded_at) FROM sensor_readings reading
+           WHERE reading.tank_id=history.tank_id
+             AND reading.recorded_at>=history.prediction_time
+             AND reading.level>=history.threshold_percent
+         ),
+         forecast_error_hours=EXTRACT(EPOCH FROM ((
+           SELECT MIN(reading.recorded_at) FROM sensor_readings reading
+           WHERE reading.tank_id=history.tank_id
+             AND reading.recorded_at>=history.prediction_time
+             AND reading.level>=history.threshold_percent
+         )-history.forecast_at))/3600
+     WHERE history.tank_id=$1
+       AND history.actual_arrival_at IS NULL
+       AND history.forecast_at IS NOT NULL
+       AND EXISTS (
+         SELECT 1 FROM sensor_readings reading
+         WHERE reading.tank_id=history.tank_id
+           AND reading.recorded_at>=history.prediction_time
+           AND reading.level>=history.threshold_percent
+       )`,
+    [tankId],
+  );
+};
+
+export const getPredictionHistory = async (
+  tankId?: string,
+): Promise<PredictionHistoryRecord[]> =>
+  (await pool.query<PredictionHistoryRecord>(
+    `SELECT * FROM prediction_history
+     WHERE ($1::uuid IS NULL OR tank_id=$1)
+     ORDER BY prediction_time DESC, threshold_percent ASC
+     LIMIT 1000`,
+    [tankId ?? null],
+  )).rows;
+
+export const getPredictionEvaluation = async (tankId?: string): Promise<PredictionEvaluation> => {
+  const row = (await pool.query<{
+    evaluated_forecasts: number;
+    mean_absolute_error_hours: number | null;
+    root_mean_squared_error_hours: number | null;
+  }>(
+    `SELECT COUNT(*)::int AS evaluated_forecasts,
+       AVG(ABS(forecast_error_hours))::float AS mean_absolute_error_hours,
+       SQRT(AVG(POWER(forecast_error_hours,2)))::float AS root_mean_squared_error_hours
+     FROM prediction_history
+     WHERE forecast_error_hours IS NOT NULL
+       AND ($1::uuid IS NULL OR tank_id=$1)`,
+    [tankId ?? null],
+  )).rows[0]!;
+  return {
+    evaluatedForecasts: row.evaluated_forecasts,
+    meanAbsoluteErrorHours: row.mean_absolute_error_hours,
+    rootMeanSquaredErrorHours: row.root_mean_squared_error_hours,
+  };
 };
 
 export const getRecentAlertCounts = async (): Promise<Map<string, number>> => {
