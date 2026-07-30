@@ -126,7 +126,8 @@ export const getAnalyticsSummary = async (
        MAX(sr.level)::float AS highest_fill,
        AVG(sr.level)::float AS average_fill,
        MAX(sr.gas_level)::float AS highest_gas,
-       COUNT(DISTINCT sr.tank_id)::int AS reporting_device_count,
+       (SELECT COUNT(*)::int FROM latest l
+        WHERE l.recorded_at >= NOW() - INTERVAL '5 minutes') AS reporting_device_count,
        (SELECT COUNT(*)::int FROM unnest($1::uuid[]) selected(id)
         LEFT JOIN latest l ON l.tank_id = selected.id
         WHERE l.recorded_at IS NULL OR l.recorded_at < NOW() - INTERVAL '5 minutes') AS offline_device_count

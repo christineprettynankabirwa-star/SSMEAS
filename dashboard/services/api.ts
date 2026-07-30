@@ -42,7 +42,7 @@ export const getAnalytics = (tankIds: string[], range: AnalyticsRange, force = f
       highestFill: fills.length ? Math.max(...fills) : null,
       averageFill: fills.length ? fills.reduce((sum, value) => sum + value, 0) / fills.length : null,
       highestGas: gases.length ? Math.max(...gases) : null,
-      reportingDeviceCount: new Set(readings.map((reading) => reading.tank_id)).size,
+      reportingDeviceCount: latestByTank.filter((reading) => reading && new Date(reading.recorded_at).getTime() >= Date.now() - 300_000).length,
       offlineDeviceCount: latestByTank.filter((reading) => !reading || new Date(reading.recorded_at).getTime() < Date.now() - 300_000).length,
     } };
   });

@@ -10,5 +10,19 @@ export const classifyLevel = (level: number | null | undefined): Exclude<TankCon
   return "SAFE";
 };
 
+export const classifyGas = (gas: number | null | undefined): Exclude<TankCondition, "OFFLINE"> => {
+  if ((gas ?? 0) >= alertThresholds.gasLevel.dangerMinimum) return "DANGER";
+  if ((gas ?? 0) >= alertThresholds.gasLevel.warningMinimum) return "WARNING";
+  return "SAFE";
+};
+
+export const classifyTelemetry = (
+  level: number | null | undefined,
+  gas: number | null | undefined,
+): Exclude<TankCondition, "OFFLINE"> => {
+  const conditions = [classifyLevel(level), classifyGas(gas)];
+  return conditions.includes("DANGER") ? "DANGER" : conditions.includes("WARNING") ? "WARNING" : "SAFE";
+};
+
 export const classifyReading = (reading: SensorReading | null | undefined): TankCondition =>
-  reading ? classifyLevel(reading.level) : "OFFLINE";
+  reading ? classifyTelemetry(reading.level, reading.gas_level) : "OFFLINE";
