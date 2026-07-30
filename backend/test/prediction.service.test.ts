@@ -72,7 +72,7 @@ test("starts a new filling cycle after a tank emptying event", () => {
   assert.ok(prediction.dataQualityIssues.includes("EMPTYING_EVENT"));
 });
 
-test("reports duplicate, future, negative-gas, stale, and gap quality issues without mutating input", () => {
+test("reports sewage data issues without allowing gas values to affect the forecast", () => {
   const now = new Date("2026-07-18T12:00:00Z");
   const readings = [
     { level: 10, gasLevel: 5, recordedAt: new Date("2026-07-17T08:00:00Z") },
@@ -85,9 +85,11 @@ test("reports duplicate, future, negative-gas, stale, and gap quality issues wit
   const original = readings.map(({ level }) => level);
   const prediction = calculateOverflowPrediction("tank", 10_000, readings, now);
   assert.deepEqual(readings.map(({ level }) => level), original);
-  for (const issue of ["DUPLICATE_READING", "NEGATIVE_GAS", "FUTURE_TIMESTAMP", "STALE_READING", "COMMUNICATION_GAP"] as const) {
+  for (const issue of ["DUPLICATE_READING", "FUTURE_TIMESTAMP", "STALE_READING", "COMMUNICATION_GAP"] as const) {
     assert.ok(prediction.dataQualityIssues.includes(issue));
   }
+  assert.ok(!prediction.dataQualityIssues.includes("NEGATIVE_GAS"));
+  assert.equal(prediction.samples, 4);
   assert.equal(prediction.predictionQualityStatus, "POOR");
 });
 

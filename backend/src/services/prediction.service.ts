@@ -53,12 +53,9 @@ const prepareCurrentFillingCycle = (
       issues.add("INVALID_LEVEL");
       continue;
     }
-    if (reading.gasLevel !== null && reading.gasLevel !== undefined
-      && (!Number.isFinite(reading.gasLevel) || reading.gasLevel < 0)) {
-      issues.add("NEGATIVE_GAS");
-      continue;
-    }
-    const duplicateKey = `${timestamp}|${reading.level}|${reading.gasLevel ?? ""}`;
+    // Sewage forecasting is deliberately level-only. Gas telemetry is a
+    // separate signal and must never reject or weight a sewage sample.
+    const duplicateKey = `${timestamp}|${reading.level}`;
     if (unique.has(duplicateKey)) {
       issues.add("DUPLICATE_READING");
       continue;
@@ -169,7 +166,7 @@ const qualityStatus = (
 ): PredictionQualityStatus => {
   if (samples < predictiveAnalyticsConfig.dataQuality.minimumSamples) return "INSUFFICIENT_DATA";
   if (issues.some((issue) => [
-    "INVALID_LEVEL", "NEGATIVE_GAS", "FUTURE_TIMESTAMP", "STALE_READING", "IMPOSSIBLE_OSCILLATION",
+    "INVALID_LEVEL", "FUTURE_TIMESTAMP", "STALE_READING", "IMPOSSIBLE_OSCILLATION",
   ].includes(issue))) return "POOR";
   if (issues.some((issue) => ["DUPLICATE_READING", "COMMUNICATION_GAP"].includes(issue))) return "LIMITED";
   return "GOOD";
