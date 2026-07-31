@@ -1,0 +1,3 @@
+import Link from "next/link";
+import AppShell from "@/components/ui/AppShell";
+export default function SettingsPage() { return <AppShell><main className="mx-auto max-w-4xl p-6 pt-20"><p className="text-xs font-black uppercase tracking-widest text-cyan-700">Administration</p><h1 className="mt-2 text-3xl font-black">System settings</h1><div className="mt-6 grid gap-4 sm:grid-cols-2"><Link href="/notifications" className="rounded-2xl bg-white p-6 font-bold shadow-sm">Notification settings →</Link><div className="rounded-2xl bg-white p-6 shadow-sm"><p className="font-bold">Monitoring thresholds</p><p className="mt-2 text-sm text-slate-500">Thresholds are managed through secured backend environment configuration.</p></div></div></main></AppShell>; }

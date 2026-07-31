@@ -1,6 +1,7 @@
 // Applies tank validation and coordinates storage operations for controllers.
 import * as tankModel from "../models/tank.model";
 import type { CreateTankRequest, Tank, TankStatus, UpdateTankRequest } from "../types/tank";
+import type { AuthenticatedUser } from "../types/auth.types";
 
 export class ValidationError extends Error {}
 export class NotFoundError extends Error {}
@@ -13,6 +14,7 @@ const statuses = [
 const updatableFields = new Set<keyof UpdateTankRequest>([
   "tank_name",
   "owner_name",
+  "owner_user_id",
   "location",
   "latitude",
   "longitude",
@@ -20,6 +22,9 @@ const updatableFields = new Set<keyof UpdateTankRequest>([
   "status",
   "thingspeak_channel_id",
   "thingspeak_read_api_key",
+  "hardware_id",
+  "warning_fill_threshold",
+  "critical_fill_threshold",
 ]);
 
 const validateText = (value: unknown, field: string, maxLength: number): void => {
@@ -64,11 +69,31 @@ const validateTank = (tank: CreateTankRequest | UpdateTankRequest, isCreate: boo
     }
   }
   if (tank.status !== undefined) validateStatus(tank.status);
+  if (tank.hardware_id !== undefined && tank.hardware_id !== null) validateText(tank.hardware_id, "hardware_id", 100);
+  if (isCreate || tank.warning_fill_threshold !== undefined) {
+    validateNumber(tank.warning_fill_threshold ?? 80, "warning_fill_threshold", 0, 99);
+  }
+  if (isCreate || tank.critical_fill_threshold !== undefined) {
+    validateNumber(tank.critical_fill_threshold ?? 95, "critical_fill_threshold", 1, 100);
+  }
+  const warning = tank.warning_fill_threshold ?? 80;
+  const critical = tank.critical_fill_threshold ?? 95;
+  if (warning >= critical) throw new ValidationError("warning_fill_threshold must be below critical_fill_threshold.");
+  if (tank.owner_user_id !== undefined && tank.owner_user_id !== null
+    && !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(tank.owner_user_id)) {
+    throw new ValidationError("owner_user_id must be a valid user UUID or null.");
+  }
 };
 
-export const listTanks = async (): Promise<Tank[]> => tankModel.getAllTanks();
+export const listTanks = async (user?: AuthenticatedUser): Promise<Tank[]> =>
+  user?.role === "MAINTENANCE_OFFICER" ? tankModel.getAssignedTanks(user.id) : tankModel.getAllTanks();
 
-export const findTankById = async (id: string): Promise<Tank> => {
+export const findTankById = async (id: string, user?: AuthenticatedUser): Promise<Tank> => {
+  if (user?.role === "MAINTENANCE_OFFICER") {
+    const tank = (await tankModel.getAssignedTanks(user.id)).find((value) => value.id === id);
+    if (!tank) throw new NotFoundError("Tank not found.");
+    return tank;
+  }
   const tank = await tankModel.getTankById(id);
   if (!tank) throw new NotFoundError("Tank not found.");
   return tank;

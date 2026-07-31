@@ -32,9 +32,9 @@ const getTankId = (request: Request): string => {
   return id;
 };
 
-export const getTanks = async (_request: Request, response: Response): Promise<void> => {
+export const getTanks = async (request: Request, response: Response): Promise<void> => {
   try {
-    response.status(200).json(await listTanks());
+    response.status(200).json(await listTanks(request.user));
   } catch (error) {
     handleError(error, response);
   }
@@ -42,7 +42,7 @@ export const getTanks = async (_request: Request, response: Response): Promise<v
 
 export const getTank = async (request: Request, response: Response): Promise<void> => {
   try {
-    response.status(200).json(await findTankById(getTankId(request)));
+    response.status(200).json(await findTankById(getTankId(request), request.user));
   } catch (error) {
     handleError(error, response);
   }

@@ -1,13 +1,20 @@
 import * as maintenanceModel from "../models/maintenance.model";
 import * as tankModel from "../models/tank.model";
-import type { CreateMaintenanceRequest, MaintenanceRecord, MaintenanceStatus } from "../types/maintenance.types";
+import type { Alert } from "../types/alerts.types";
+import type { CreateMaintenanceRequest, MaintenancePriority, MaintenanceRecord, MaintenanceStatus, UpdateMaintenanceRequest } from "../types/maintenance.types";
+import type { SensorReading } from "../types/readings.types";
+import type { AuthenticatedUser } from "../types/auth.types";
+import { alertThresholdConfig, classifySewageLevel } from "../config/alert-thresholds";
 
 export class MaintenanceValidationError extends Error {}
 export class MaintenanceTankNotFoundError extends Error {}
+export class MaintenanceForbiddenError extends Error {}
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const statuses = new Set<MaintenanceStatus>(["SCHEDULED", "IN_PROGRESS", "COMPLETED"]);
+const statuses = new Set<MaintenanceStatus>(["SCHEDULED", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]);
+const priorities = new Set<MaintenancePriority>(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
 
-export const listMaintenance = async (): Promise<MaintenanceRecord[]> => maintenanceModel.getAllMaintenance();
+export const listMaintenance = async (user?: AuthenticatedUser): Promise<MaintenanceRecord[]> =>
+  maintenanceModel.getAllMaintenance(user?.role === "MAINTENANCE_OFFICER" ? user.id : undefined);
 
 export const addMaintenance = async (
   maintenance: CreateMaintenanceRequest,
@@ -22,8 +29,100 @@ export const addMaintenance = async (
   const scheduledFor = new Date(maintenance.scheduled_for);
   if (Number.isNaN(scheduledFor.getTime())) throw new MaintenanceValidationError("scheduled_for must be a valid ISO date-time.");
   if (maintenance.status !== undefined && !statuses.has(maintenance.status)) {
-    throw new MaintenanceValidationError("status must be SCHEDULED, IN_PROGRESS, or COMPLETED.");
+    throw new MaintenanceValidationError("maintenance status is invalid.");
+  }
+  if (maintenance.priority !== undefined && !priorities.has(maintenance.priority)) throw new MaintenanceValidationError("priority is invalid.");
+  if (maintenance.assigned_to && !uuidPattern.test(maintenance.assigned_to)) throw new MaintenanceValidationError("assigned_to must be a valid UUID.");
+  if (maintenance.status && ["IN_PROGRESS", "COMPLETED"].includes(maintenance.status) && !maintenance.assigned_to) {
+    throw new MaintenanceValidationError("Assign a maintenance officer before starting or completing this task.");
   }
   if (!(await tankModel.getTankById(maintenance.tank_id))) throw new MaintenanceTankNotFoundError("Tank not found.");
   return maintenanceModel.createMaintenance({ ...maintenance, scheduled_for: scheduledFor.toISOString() });
 };
+
+export const changeMaintenance = async (id: string, update: UpdateMaintenanceRequest): Promise<MaintenanceRecord> => {
+  if (!uuidPattern.test(id)) throw new MaintenanceValidationError("maintenance id must be a valid UUID.");
+  if (update.status !== undefined && !statuses.has(update.status)) throw new MaintenanceValidationError("maintenance status is invalid.");
+  if (update.priority !== undefined && !priorities.has(update.priority)) throw new MaintenanceValidationError("priority is invalid.");
+  if (update.assigned_to && !uuidPattern.test(update.assigned_to)) throw new MaintenanceValidationError("assigned_to must be a valid UUID.");
+  if (update.scheduled_for && Number.isNaN(new Date(update.scheduled_for).getTime())) throw new MaintenanceValidationError("scheduled_for must be a valid ISO date-time.");
+  const current = await maintenanceModel.getMaintenanceById(id);
+  if (!current) throw new MaintenanceTankNotFoundError("Maintenance record not found.");
+  const hasAssignmentUpdate = Object.prototype.hasOwnProperty.call(update, "assigned_to");
+  const effectiveOfficer = hasAssignmentUpdate ? update.assigned_to : current.assigned_to;
+  if (update.status && ["IN_PROGRESS", "COMPLETED"].includes(update.status) && !effectiveOfficer) {
+    throw new MaintenanceValidationError("Assign a maintenance officer before starting or completing this task.");
+  }
+  const record = await maintenanceModel.updateMaintenance(id, update);
+  if (!record) throw new MaintenanceTankNotFoundError("Maintenance record not found.");
+  return record;
+};
+
+export const changeMaintenanceForUser = async (
+  id: string, update: UpdateMaintenanceRequest, user: AuthenticatedUser,
+): Promise<MaintenanceRecord> => {
+  if (user.role !== "MAINTENANCE_OFFICER") return changeMaintenance(id, update);
+  const keys = Object.keys(update);
+  const allowed = new Set<MaintenanceStatus>(["ASSIGNED", "IN_PROGRESS", "COMPLETED"]);
+  if (keys.length !== 1 || keys[0] !== "status" || !update.status || !allowed.has(update.status)) {
+    throw new MaintenanceForbiddenError("Maintenance officers may only update assigned task status.");
+  }
+  const record = await maintenanceModel.updateAssignedMaintenanceStatus(
+    id, user.id, update.status as "ASSIGNED" | "IN_PROGRESS" | "COMPLETED",
+  );
+  if (!record) throw new MaintenanceForbiddenError("This task is not assigned to you.");
+  return record;
+};
+
+export const removeMaintenance = async (id: string): Promise<void> => {
+  if (!uuidPattern.test(id)) throw new MaintenanceValidationError("maintenance id must be a valid UUID.");
+  if (!(await maintenanceModel.deleteMaintenance(id))) throw new MaintenanceTankNotFoundError("Maintenance record not found.");
+};
+
+const automaticDelayMinutes = (): number => {
+  const configured = Number(process.env.CRITICAL_MAINTENANCE_DELAY_MINUTES ?? 30);
+  return Number.isFinite(configured) && configured >= 0 ? configured : 30;
+};
+
+export const generateAutomaticMaintenanceRequests = (
+  reading: SensorReading,
+  now: Date = new Date(),
+): CreateMaintenanceRequest[] => {
+  const baseTime = Math.max(now.getTime(), new Date(reading.recorded_at).getTime());
+  const scheduledFor = new Date(baseTime + automaticDelayMinutes() * 60_000).toISOString();
+
+  const reasons: string[] = [];
+  const condition = classifySewageLevel(reading.level);
+  if (condition === "DANGER") reasons.push("Critical sewage level");
+  if (condition === "WARNING" && alertThresholdConfig.maintenanceOnWarning) {
+    reasons.push("Warning sewage level");
+  }
+  return reasons.map((reason) => ({
+      tank_id: reading.tank_id,
+      task: `Emergency response: ${reason}`,
+      scheduled_for: scheduledFor,
+      status: "SCHEDULED",
+      priority: "HIGH",
+    }));
+};
+
+export const createCriticalAlertMaintenance = async (alert: Alert): Promise<void> => {
+  if (alert.severity !== "critical") return;
+  const assignedTo = await maintenanceModel.getOfficerForTank(alert.tank_id);
+  await maintenanceModel.createEmergencyInspectionUnlessOpen(alert.id, alert.tank_id, assignedTo);
+};
+
+export const createAutomaticMaintenanceForReading = async (reading: SensorReading): Promise<void> => {
+  const assignedTo = await maintenanceModel.getOfficerForTank(reading.tank_id);
+  await Promise.all(
+    generateAutomaticMaintenanceRequests(reading).map((maintenance) =>
+      maintenanceModel.createMaintenanceUnlessOpen({ ...maintenance, assigned_to: assignedTo }),
+    ),
+  );
+};
+
+export const cancelUnstartedAutomaticMaintenance = (tankId: string): Promise<number> =>
+  maintenanceModel.cancelUnstartedAutomaticMaintenance(tankId);
+
+export const completeAutomaticMaintenanceForTank = (tankId: string): Promise<number> =>
+  maintenanceModel.completeAutomaticMaintenanceForTank(tankId);

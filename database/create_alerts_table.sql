@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     message TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CHECK (severity IN ('critical', 'warning', 'info')),
-    CHECK (status IN ('ACTIVE', 'RESOLVED'))
+    CHECK (status IN ('ACTIVE', 'ACKNOWLEDGED', 'RESOLVED'))
 );
 
 CREATE INDEX IF NOT EXISTS alerts_status_created_at_idx

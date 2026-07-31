@@ -6,8 +6,9 @@ export const createTank = async (tank: CreateTankRequest): Promise<Tank> => {
   const result = await pool.query<Tank>(
     `INSERT INTO tanks (
       tank_name, owner_name, location, latitude, longitude, capacity_liters, status,
-      thingspeak_channel_id, thingspeak_read_api_key
-    ) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'ACTIVE'), $8, $9)
+      thingspeak_channel_id, thingspeak_read_api_key, owner_user_id, hardware_id,
+      warning_fill_threshold, critical_fill_threshold
+    ) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'ACTIVE'), $8, $9, $10, $11, COALESCE($12, 80), COALESCE($13, 95))
     RETURNING *`,
     [
       tank.tank_name,
@@ -19,6 +20,10 @@ export const createTank = async (tank: CreateTankRequest): Promise<Tank> => {
       tank.status ?? null,
       tank.thingspeak_channel_id ?? null,
       tank.thingspeak_read_api_key ?? null,
+      tank.owner_user_id ?? null,
+      tank.hardware_id ?? null,
+      tank.warning_fill_threshold ?? null,
+      tank.critical_fill_threshold ?? null,
     ],
   );
 
@@ -29,6 +34,16 @@ export const getAllTanks = async (): Promise<Tank[]> => {
   const result = await pool.query<Tank>("SELECT * FROM tanks ORDER BY created_at DESC");
   return result.rows;
 };
+
+export const getAssignedTanks = async (officerId: string): Promise<Tank[]> =>
+  (await pool.query<Tank>(
+    `SELECT DISTINCT tank.* FROM tanks tank
+     JOIN maintenance ON maintenance.tank_id=tank.id
+     WHERE maintenance.assigned_to=$1
+       AND maintenance.status IN ('SCHEDULED','ASSIGNED','IN_PROGRESS')
+     ORDER BY tank.created_at DESC`,
+    [officerId],
+  )).rows;
 
 export const getTankById = async (id: string): Promise<Tank | null> => {
   const result = await pool.query<Tank>("SELECT * FROM tanks WHERE id = $1", [id]);

@@ -1,0 +1,25 @@
+import Link from "next/link";
+import type { OptimizedRoute } from "./types";
+
+const priorityStyle = { CRITICAL: "bg-red-100 text-red-700", HIGH: "bg-orange-100 text-orange-700", MEDIUM: "bg-yellow-100 text-yellow-700" } as const;
+const duration = (minutes: number) => minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes} min`;
+
+export default function OptimizedRoutePanel({ route }: { route: OptimizedRoute | null }) {
+  const metrics = route ? [
+    { label: "Road distance", value: `${route.totalDistanceKm.toFixed(1)} km` },
+    { label: "Total duration", value: duration(route.estimatedDurationMinutes) },
+    { label: "Tanks", value: route.tankCount },
+    { label: "Urgency", value: `${route.priorityScore}/100` },
+  ] : [];
+  return <section className="h-full rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div><p className="text-xs font-bold uppercase tracking-[.14em] text-slate-500">Collection intelligence</p><h2 className="mt-1 text-lg font-semibold text-slate-900">Capacity-aware truck route</h2><p className="mt-1 text-sm text-slate-500">Road-time optimization with urgency, payload, disposal, and depot return.</p></div>
+    {route && <><div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-slate-200 sm:grid-cols-4">{metrics.map((metric) => <div key={metric.label} className="bg-slate-50 p-3"><p className="text-[10px] font-bold uppercase text-slate-500">{metric.label}</p><p className="mt-1 text-lg font-extrabold text-slate-900">{metric.value}</p></div>)}</div>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600"><span>Driving: <b>{duration(route.totalDrivingMinutes)}</b></span><span>Service: <b>{duration(route.totalServiceMinutes)}</b></span><span>Unloading: <b>{duration(route.totalUnloadingMinutes)}</b></span><span>Disposal trips: <b>{route.disposalTrips}</b></span></div>
+      {route.exceedsShift && <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">This route exceeds the configured {duration(route.shiftDurationMinutes)} shift.</p>}
+      {route.deferredTankIds.length > 0 && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">{route.deferredTankIds.length} lower-urgency tank{route.deferredTankIds.length === 1 ? "" : "s"} deferred to keep this run within the configured shift.</p>}
+      {route.routingSource === "FALLBACK" && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">Road service unavailable. Showing the safe offline estimate.</p>}</>}
+    {!route || route.stops.length === 0 ? <p className="mt-6 text-sm text-slate-500">No tanks currently meet collection or open-work criteria.</p> : <ol className="mt-5 space-y-3">{route.stops.map((stop) => stop.stopType === "TANK" ? <li key={`${stop.tankId}-${stop.sequence}`}><article className="rounded-lg border border-slate-200 bg-slate-50 p-3"><div className="flex gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-slate-900 text-xs font-bold text-white">{stop.sequence}</span><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><Link href={`/tanks/${encodeURIComponent(stop.tankId)}`} className="font-semibold text-slate-900 hover:text-cyan-800">{stop.tankName}</Link><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${priorityStyle[stop.priority]}`}>{stop.priority} · {stop.priorityScore}</span></div><p className="text-xs text-slate-500">{stop.location} · {stop.distanceFromPreviousKm.toFixed(1)} km · {stop.drivingMinutesFromPrevious} min drive</p><p className="mt-1 text-xs font-medium text-slate-700">{stop.task}{stop.fillLevel != null ? ` · ${stop.fillLevel.toFixed(0)}% full` : ""}</p><p className="mt-1 text-xs text-slate-500">Pickup {stop.estimatedCollectionLiters.toLocaleString()} L · Payload {stop.payloadAfterLiters.toLocaleString()} / {route.truckCapacityLiters.toLocaleString()} L</p></div></div>
+          <details className="mt-2 border-t border-slate-200 pt-2"><summary className="cursor-pointer text-xs font-bold text-cyan-800">Why this urgency score?</summary><ul className="mt-2 space-y-1">{stop.urgencyFactors.map((factor) => <li key={`${factor.label}-${factor.detail}`} className="flex justify-between gap-3 text-xs text-slate-600"><span>{factor.label}: {factor.detail}</span><b>+{factor.points}</b></li>)}</ul></details>
+        </article></li> : <li key={`${stop.stopType}-${stop.sequence}`} className="flex gap-3 rounded-lg border border-violet-200 bg-violet-50 p-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-violet-700 text-xs font-bold text-white">{stop.sequence}</span><div><p className="font-semibold text-violet-950">{stop.name}</p><p className="text-xs text-violet-700">{stop.distanceFromPreviousKm.toFixed(1)} km · {stop.drivingMinutesFromPrevious} min drive{stop.stopType === "DISPOSAL" ? ` · unload ${stop.payloadBeforeLiters.toLocaleString()} L` : " · end of route"}</p></div></li>)}</ol>}
+  </section>;
+}

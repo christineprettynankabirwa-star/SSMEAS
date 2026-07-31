@@ -5,6 +5,7 @@ export interface Tank {
   id: string;
   tank_name: string;
   owner_name: string;
+  owner_user_id: string | null;
   location: string;
   latitude: number;
   longitude: number;
@@ -12,6 +13,9 @@ export interface Tank {
   status: TankStatus;
   thingspeak_channel_id?: number;
   thingspeak_read_api_key?: string;
+  hardware_id?: string | null;
+  warning_fill_threshold: number;
+  critical_fill_threshold: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -19,6 +23,7 @@ export interface Tank {
 export interface CreateTankRequest {
   tank_name: string;
   owner_name: string;
+  owner_user_id?: string | null;
   location: string;
   latitude: number;
   longitude: number;
@@ -26,11 +31,15 @@ export interface CreateTankRequest {
   status?: TankStatus;
   thingspeak_channel_id?: number;
   thingspeak_read_api_key?: string;
+  hardware_id?: string | null;
+  warning_fill_threshold?: number;
+  critical_fill_threshold?: number;
 }
 
 export interface UpdateTankRequest {
   tank_name?: string;
   owner_name?: string;
+  owner_user_id?: string | null;
   location?: string;
   latitude?: number;
   longitude?: number;
@@ -38,4 +47,7 @@ export interface UpdateTankRequest {
   status?: TankStatus;
   thingspeak_channel_id?: number;
   thingspeak_read_api_key?: string;
+  hardware_id?: string | null;
+  warning_fill_threshold?: number;
+  critical_fill_threshold?: number;
 }

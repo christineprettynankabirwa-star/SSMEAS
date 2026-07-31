@@ -10,7 +10,7 @@ export const createUser = async (
   const result = await pool.query<UserRecord>(
     `INSERT INTO users (full_name, email, password_hash, role)
      VALUES ($1, LOWER($2), $3, $4)
-     RETURNING id, full_name, email, password_hash, role, created_at, updated_at`,
+     RETURNING id, full_name, email, phone_number, password_hash, role, created_at, updated_at`,
     [fullName, email, passwordHash, role],
   );
   const user = result.rows[0];
@@ -20,7 +20,7 @@ export const createUser = async (
 
 export const getUserByEmail = async (email: string): Promise<UserRecord | null> => {
   const result = await pool.query<UserRecord>(
-    `SELECT id, full_name, email, password_hash, role, created_at, updated_at
+    `SELECT id, full_name, email, phone_number, password_hash, role, created_at, updated_at
      FROM users
      WHERE LOWER(email) = LOWER($1)
      LIMIT 1`,
@@ -31,7 +31,7 @@ export const getUserByEmail = async (email: string): Promise<UserRecord | null> 
 
 export const getUserById = async (id: string): Promise<UserRecord | null> => {
   const result = await pool.query<UserRecord>(
-    `SELECT id, full_name, email, password_hash, role, created_at, updated_at
+    `SELECT id, full_name, email, phone_number, password_hash, role, created_at, updated_at
      FROM users
      WHERE id = $1
      LIMIT 1`,
@@ -39,3 +39,42 @@ export const getUserById = async (id: string): Promise<UserRecord | null> => {
   );
   return result.rows[0] ?? null;
 };
+
+export const getMaintenanceOfficers = async (): Promise<Array<Pick<UserRecord, "id" | "full_name" | "email" | "role">>> => {
+  const result = await pool.query<Pick<UserRecord, "id" | "full_name" | "email" | "role">>(
+    `SELECT id, full_name, email, role FROM users WHERE role = 'MAINTENANCE_OFFICER' ORDER BY full_name`,
+  );
+  return result.rows;
+};
+
+export const getAllUsers = async (): Promise<Array<Omit<UserRecord, "password_hash">>> =>
+  (await pool.query<Omit<UserRecord, "password_hash">>(
+    `SELECT id,full_name,email,phone_number,role,created_at,updated_at
+     FROM users ORDER BY created_at DESC`,
+  )).rows;
+
+export const updateUserRole = async (id: string, role: UserRole): Promise<Omit<UserRecord, "password_hash"> | null> =>
+  (await pool.query<Omit<UserRecord, "password_hash">>(
+    `UPDATE users SET role=$2,updated_at=NOW() WHERE id=$1
+     RETURNING id,full_name,email,phone_number,role,created_at,updated_at`,
+    [id, role],
+  )).rows[0] ?? null;
+
+export const updateUser = async (
+  id: string,
+  fullName: string,
+  email: string,
+  role: UserRole,
+  passwordHash?: string,
+): Promise<Omit<UserRecord, "password_hash"> | null> =>
+  (await pool.query<Omit<UserRecord, "password_hash">>(
+    `UPDATE users
+     SET full_name=$2,email=LOWER($3),role=$4,
+         password_hash=COALESCE($5,password_hash),updated_at=NOW()
+     WHERE id=$1
+     RETURNING id,full_name,email,phone_number,role,created_at,updated_at`,
+    [id, fullName, email, role, passwordHash ?? null],
+  )).rows[0] ?? null;
+
+export const deleteUser = async (id: string): Promise<boolean> =>
+  ((await pool.query("DELETE FROM users WHERE id=$1", [id])).rowCount ?? 0) > 0;

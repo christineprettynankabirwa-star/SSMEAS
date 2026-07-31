@@ -2,18 +2,16 @@
 
 #include <Arduino.h>
 
-// Set to 1 for realistic generated telemetry, or 0 to read physical sensors.
-#define SSMEAS_SIMULATION_MODE 1
-
 namespace Config {
 
-// Wi-Fi and ThingSpeak credentials. Replace these before uploading.
+// Wi-Fi and SSMEAS API credentials. Replace these before uploading.
 constexpr char WIFI_SSID[] = "YOUR_WIFI_SSID";
 constexpr char WIFI_PASSWORD[] = "YOUR_WIFI_PASSWORD";
-constexpr char THINGSPEAK_WRITE_API_KEY[] = "YOUR_THINGSPEAK_WRITE_API_KEY";
+constexpr char SSMEAS_DEVICE_READINGS_URL[] = "http://192.168.1.100:4000/api/device/readings";
+constexpr char DEVICE_API_KEY[] = "CHANGE_TO_A_LONG_RANDOM_DEVICE_KEY";
 
 // Must match a UUID already registered in the SSMEAS tanks table. The backend
-// rejects ThingSpeak feeds whose field5 is not a registered tank UUID.
+// rejects uploads for unknown tank UUIDs.
 constexpr char TANK_UUID[] = "00000000-0000-4000-8000-000000000000";
 
 constexpr char THINGSPEAK_UPDATE_URL[] = "https://api.thingspeak.com/update";
@@ -46,8 +44,6 @@ constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 20UL * 1000UL;
 constexpr uint8_t ULTRASONIC_TRIGGER_PIN = 5;
 constexpr uint8_t ULTRASONIC_ECHO_PIN = 18;
 constexpr uint8_t MQ135_ANALOG_PIN = 34;
-constexpr uint8_t TEMPERATURE_ANALOG_PIN = 35;
-constexpr uint8_t BATTERY_ANALOG_PIN = 32;
 
 // Tank calibration: sensor-to-liquid distances at empty and full states.
 constexpr float TANK_EMPTY_DISTANCE_CM = 180.0F;
@@ -55,10 +51,8 @@ constexpr float TANK_FULL_DISTANCE_CM = 20.0F;
 constexpr unsigned long ULTRASONIC_TIMEOUT_US = 30000UL;
 
 // Analog conversion/calibration constants. Calibrate these values against the
-// actual MQ-135 module and battery divider before deployment.
-constexpr float ADC_REFERENCE_VOLTAGE = 3.3F;
+// actual MQ-135 module before deployment.
 constexpr float ADC_MAX_READING = 4095.0F;
-constexpr float MQ135_MAX_SIMULATED_PPM = 1000.0F;
-constexpr float BATTERY_DIVIDER_RATIO = 2.0F;
+constexpr float MQ135_FULL_SCALE = 1000.0F;
 
 }  // namespace Config

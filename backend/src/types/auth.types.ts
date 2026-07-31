@@ -1,9 +1,10 @@
-export type UserRole = "ADMINISTRATOR" | "MAINTENANCE_OFFICER" | "SUPERVISOR";
+export type UserRole = "ADMINISTRATOR" | "MAINTENANCE_OFFICER" | "SUPERVISOR" | "CLIENT";
 
 export interface UserRecord {
   id: string;
   full_name: string;
   email: string;
+  phone_number: string | null;
   password_hash: string;
   role: UserRole;
   created_at: Date;
@@ -22,6 +23,13 @@ export interface CreateUserRequest {
   email: string;
   password: string;
   role: UserRole;
+}
+
+export interface UpdateUserRequest {
+  full_name: string;
+  email: string;
+  role: UserRole;
+  password?: string;
 }
 
 export interface JwtUserPayload {

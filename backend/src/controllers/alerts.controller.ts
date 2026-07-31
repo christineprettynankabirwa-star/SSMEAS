@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { AlertTankNotFoundError, AlertValidationError, addAlert, listAlerts } from "../services/alerts.service";
+import { AlertTankNotFoundError, AlertValidationError, acknowledge, addAlert, listAlerts, resolve } from "../services/alerts.service";
 import type { CreateAlertRequest } from "../types/alerts.types";
 
 const handleError = (error: unknown, response: Response): void => {
@@ -9,8 +9,8 @@ const handleError = (error: unknown, response: Response): void => {
   response.status(500).json({ message: "An unexpected server error occurred." });
 };
 
-export const getAlerts = async (_request: Request, response: Response): Promise<void> => {
-  try { response.status(200).json(await listAlerts()); } catch (error) { handleError(error, response); }
+export const getAlerts = async (request: Request, response: Response): Promise<void> => {
+  try { response.status(200).json(await listAlerts(request.user)); } catch (error) { handleError(error, response); }
 };
 
 export const postAlert = async (request: Request, response: Response): Promise<void> => {
@@ -21,4 +21,14 @@ export const postAlert = async (request: Request, response: Response): Promise<v
     }
     response.status(201).json(await addAlert(request.body as CreateAlertRequest));
   } catch (error) { handleError(error, response); }
+};
+
+export const patchAlertAcknowledgement = async (request: Request, response: Response): Promise<void> => {
+  try { response.status(200).json(await acknowledge(String(request.params.id ?? ""), request.user!)); }
+  catch (error) { handleError(error, response); }
+};
+
+export const patchAlertResolution = async (request: Request, response: Response): Promise<void> => {
+  try { response.status(200).json(await resolve(String(request.params.id ?? ""))); }
+  catch (error) { handleError(error, response); }
 };

@@ -3,19 +3,31 @@ import { Router } from "express";
 import alertsRoutes from "./alerts.routes";
 import authRoutes from "./auth.routes";
 import dashboardRoutes from "./dashboard.routes";
+import deviceRoutes from "./device.routes";
 import healthRoutes from "./health.routes";
 import maintenanceRoutes from "./maintenance.routes";
+import notificationsRoutes from "./notifications.routes";
+import predictionRoutes from "./prediction.routes";
 import readingsRoutes from "./readings.routes";
+import routeOptimizationRoutes from "./route-optimization.routes";
 import tankRoutes from "./tank.routes";
+import usersRoutes from "./users.routes";
+import simulationRoutes from "./simulation.routes";
 
 const router = Router();
 
 router.use("/health", healthRoutes);
 router.use(authRoutes);
+router.use("/device", deviceRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/readings", readingsRoutes);
 router.use("/tanks", tankRoutes);
 router.use("/alerts", alertsRoutes);
 router.use("/maintenance", maintenanceRoutes);
+router.use("/notifications", notificationsRoutes);
+router.use("/predictions", predictionRoutes);
+router.use("/routes", routeOptimizationRoutes);
+router.use("/users", usersRoutes);
+router.use("/simulation", simulationRoutes);
 
 export default router;

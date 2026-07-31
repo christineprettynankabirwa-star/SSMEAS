@@ -3,8 +3,6 @@
 struct SensorReadings {
   float sewageLevelPercent;
   float gasLevel;
-  float temperatureCelsius;
-  float batteryVoltage;
   bool valid;
 };
 

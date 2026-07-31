@@ -15,7 +15,7 @@ Table of Contents
 8. Database Requirements
 9. API Requirements
 10. User Interface Requirements
-11. AI Prediction Module
+11. Predictive Analytics Module
 12. External Interfaces
 13. Security Requirements
 14. Performance Requirements
@@ -27,7 +27,7 @@ Table of Contents
 Introduction
 
 Purpose
-Develop an intelligent IoT platform that continuously monitors septic tanks and assists sanitation authorities with monitoring, maintenance scheduling, overflow prediction, and route planning.
+Develop an IoT platform that continuously monitors septic tanks and assists sanitation authorities with monitoring, maintenance scheduling, statistical overflow forecasting, and route planning.
 
 Problem Statement
 Current septic tanks are inspected manually.
@@ -50,10 +50,8 @@ The system shall:
 ✔ Optimize cesspool truck routes
 
 2 Overall Description
-The system consists of five major components.
+The system consists of four major components.
 ESP32
-↓
-ThingSpeak
 ↓
 Backend API
 ↓
@@ -61,31 +59,26 @@ PostgreSQL
 ↓
 Dashboard
 
-The prediction engine communicates with the backend and database.
+The Predictive Analytics Module operates in the TypeScript backend and reads historical sensor data from PostgreSQL.
 
 3 System Architecture
 
                   +---------------------------+
                   |      ESP32 Controller     |
                   +---------------------------+
-                     |      |        |
-             Ultrasonic   Gas     Battery
-                Sensor    Sensor   Monitor
+                     |      |
+             Ultrasonic   Gas
+                Sensor    Sensor
                      |
                      ▼
-               Wi-Fi Internet
+               Wi-Fi Network
                      |
                      ▼
-              ThingSpeak Cloud
-                     |
-              ThingSpeak Service
-                     |
-                     ▼
-         Express Backend (TypeScript)
+         Express Backend API (TypeScript)
                      |
        +-------------+--------------+
        |                            |
- PostgreSQL Database        AI Prediction Engine
+ PostgreSQL Database      Predictive Analytics Module
        |                            |
        +-------------+--------------+
                      |
@@ -113,7 +106,6 @@ Live Monitoring
 The system shall:
 Display current fill level
 Display gas concentration
-Display battery level
 Display last update time
 
 Historical Monitoring
@@ -142,11 +134,14 @@ Weekly
 Monthly
 Annual reports.
 
-AI Prediction
-Predict:
-Overflow date
-Remaining days
-Priority ranking
+Predictive Analytics
+Calculate using historical sensor readings and statistical trend analysis:
+Average fill rate
+Time remaining to warning and danger thresholds
+Expected overflow date and time
+Confidence based on data consistency
+Maintenance recommendation
+Urgency priority
 
 Route Optimization
 Generate:
@@ -194,7 +189,7 @@ Supervisor
 View:
 Dashboard
 Reports
-Predictions
+Predictive analytics
 
 7 System Modules
 Backend
@@ -217,13 +212,12 @@ Hardware
 ESP32
 Ultrasonic
 Gas sensor
-Battery monitor
 Wi-Fi
 
-AI
-Prediction
-Scheduling
-Route optimization
+Predictive Analytics Module
+Statistical forecasting
+Maintenance recommendations
+Urgency ranking for route optimization
 
 8 Database Requirements
 Tables:
@@ -232,7 +226,7 @@ Tanks
 SensorReadings
 Alerts
 Maintenance
-Predictions
+PredictiveAnalyticsResults
 TruckRoutes
 
 Relationships:
@@ -240,7 +234,7 @@ Tank
 ↓
 SensorReadings
 ↓
-Predictions
+PredictiveAnalyticsResults
 ↓
 Maintenance
 
@@ -271,7 +265,7 @@ GET /api/maintenance
 
 POST /api/maintenance
 
-Predictions
+Predictive Analytics
 GET /api/predictions
 
 10 User Interface Requirements
@@ -291,10 +285,10 @@ Display:
 Current status
 Historical graph
 Maintenance history
-Prediction
+Predictive analytics
 Registered tank location on a map
 
-11 AI Module
+11 Predictive Analytics Module
 Input
 
 Historical levels
@@ -304,10 +298,18 @@ Time
 
 Output
 
-Predicted overflow
+Average fill rate
+Estimated time to warning threshold
+Estimated time to danger threshold
+Expected overflow date and time
 Confidence
-Priority
+Urgency priority
 Suggested maintenance date
+
+The module shall use deterministic statistical trend analysis over historical
+PostgreSQL readings. It shall not use a learned model. Its urgency outputs are
+passed to the Route Optimization Module to prioritize tanks, group nearby work,
+reduce travel distance, reduce response time, and improve fuel efficiency.
 
 12 External Interfaces
 ThingSpeak REST API
@@ -320,8 +322,6 @@ ThingSpeak field mapping:
 
 - field1: sewage level
 - field2: gas level
-- field3: temperature
-- field4: battery voltage
 - field5: registered tank UUID
 - field6: optional device status
 
@@ -345,12 +345,12 @@ SMS
 Email
 Mobile App
 Offline Mode
-Machine Learning
+Additional field calibration and statistical reporting
 Municipality Integration
 
 16 Coding Standards
 
-TypeScript everywhere except AI and ESP32.
+TypeScript throughout the dashboard and backend; C++ is used for ESP32 firmware.
 Folder-based architecture.
 Controllers never access database directly.
 Services contain business logic.
@@ -406,9 +406,16 @@ Tank location map
 Alerts
 Maintenance history
 
-Week 3
-AI prediction
+Week 3 - Predictive Analytics and Route Optimization
+Predictive analytics
+Estimate time until warning threshold
+Estimate time until danger threshold
+Forecast overflow date
+Maintenance recommendation
 Route optimization
+Prioritize tanks
+Optimize cesspool truck routes
+Reduce travel distance, fuel consumption, and response time
 Testing
 Documentation
 Final presentation
@@ -419,3 +426,5 @@ npm run create-user -- "System Administrator" <admin@ssmeas.local> ChangeMe123! 
 npm run create-user -- "System Supervisor" <supervisor@ssmeas.local> ChangeMe123! SUPERVISOR
 
 npm run create-user -- "Maintenance Officer" <maintenance@ssmeas.local> ChangeMe123! MAINTENANCE_OFFICER
+
+protected endpoint = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYWI1YWNlYi1iMGJmLTQ3OGItYWI0OC05MzRiYzUyNzU1ZTEiLCJlbWFpbCI6ImFkbWluQHNzbWVhcy5sb2NhbCIsInJvbGUiOiJBRE1JTklTVFJBVE9SIiwiaWF0IjoxNzg0MTQ1MDk5LCJleHAiOjE3ODQxNzM4OTl9.G202QySGjboTGl3s7ERu1OsRLBIoWGv5AlN-KL9WR3I"

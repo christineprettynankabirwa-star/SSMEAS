@@ -2,21 +2,36 @@
 
 All endpoints are served by the Express backend under `/api`. The dashboard communicates only with this backend; it never requests ThingSpeak directly.
 
+Except for health and login, send `Authorization: Bearer <JWT>`. Errors use `{ "message": "..." }`. Missing/invalid authentication returns `401`; an authenticated but unauthorized role returns `403`.
+
+## Authentication
+
+- `POST /api/login` — body `{ "email": string, "password": string }`; returns `{ "token": string }`.
+- `GET /api/profile` — returns the authenticated user without a password hash.
+
 ## Health
 
 - `GET /api/health` — confirms API availability.
 
 ## Tanks
 
-- `GET /api/tanks` — returns tanks, including their fixed `latitude` and `longitude` registration coordinates.
-- `GET /api/tanks/:id`
-- `POST /api/tanks`
-- `PUT /api/tanks/:id`
-- `DELETE /api/tanks/:id`
+- `GET /api/tanks` — administrator, supervisor; returns tanks, including fixed registration coordinates.
+- `GET /api/tanks/:id` — administrator, supervisor.
+- `POST /api/tanks` — administrator; body includes `tank_name`, `owner_name`, `location`, `latitude`, `longitude`, `capacity_liters`, optional status and ThingSpeak configuration.
+- `PUT /api/tanks/:id` — administrator; accepts editable tank fields.
+- `DELETE /api/tanks/:id` — administrator; returns `204` when deleted.
 
 ## Readings
 
+- `POST /api/device/readings` — device ingestion endpoint authenticated with
+  `X-Device-API-Key`. The body contains `tank_id`, unique `reading_id`, `level`,
+  `gas_level`, required `status`, and optional `recorded_at`.
+  It validates the registered tank and writes the reading to PostgreSQL.
+
 - `GET /api/readings/live` — retrieves the latest ThingSpeak feed through the backend, validates it, resolves `field5` to a registered tank, checks its configured channel when present, stores the idempotent historical reading, and returns it.
+- `GET /api/readings/history/:tankId` — returns stored readings for a tank in chart order.
+
+All three roles may read telemetry.
 
 ThingSpeak mapping:
 
@@ -24,9 +39,92 @@ ThingSpeak mapping:
 | --- | --- |
 | field1 | sewage level |
 | field2 | gas level |
-| field3 | temperature |
-| field4 | battery voltage |
 | field5 | registered tank UUID |
 | field6 | optional device status (not persisted) |
 
 Reading responses contain `tank_id`, telemetry values, the source ThingSpeak identifiers, and `recorded_at`. They never contain latitude or longitude. Use `GET /api/tanks` for tank location data.
+
+## Dashboard and alerts
+
+- `GET /api/dashboard/summary` — administrator, supervisor; returns `totalTanks`, `onlineTanks`, `activeAlerts`, and `averageFillLevel`.
+- `GET /api/alerts` — administrator, supervisor; returns alerts. The dashboard displays records whose status is `ACTIVE`.
+
+## Notifications
+
+All notification endpoints require authentication and operate only on the signed-in user's records.
+
+- `GET /api/notifications` — dashboard notification history.
+- `GET /api/notifications/unread` — unread in-app notifications.
+- `GET /api/notifications/unread-count` — current unread badge count.
+- `PATCH /api/notifications/:id/read` — mark one dashboard notification read.
+- `PATCH /api/notifications/read-all` — mark all dashboard notifications read.
+- `GET /api/notifications/preferences` — current channel and severity preferences.
+- `PUT /api/notifications/preferences` — replace notification preferences.
+- `POST /api/notifications/test-email` — test the configured email provider.
+- `POST /api/notifications/test-sms` — test the configured SMS provider.
+
+Apply `npm run migrate` from `backend/` before deploying this subsystem. Email delivery
+uses Nodemailer with the backend-only `SMTP_*` settings. SMS delivery uses the injectable
+`SmsProvider` interface and defaults to `MockSmsProvider` in development; credentials are
+never exposed to the dashboard or ESP32.
+
+## Predictive Analytics & Risk Engine
+
+- `GET /api/predictions` — calculates timestamp-aware OLS forecasts for every registered tank.
+- `GET /api/predictions/:tankId` — returns the detailed OLS forecast for one tank.
+- `GET /api/predictions/history?tankId=UUID` — returns append-only threshold forecast history.
+- `GET /api/predictions/evaluation?tankId=UUID` — returns evaluated forecast count, MAE, and RMSE in hours.
+
+The response contains current level and volume, OLS fill velocity, historical daily increase, remaining volume in percent and cubic metres, data-quality findings, and projections for the 65%, 85%, and 100% thresholds. Every threshold projection contains:
+
+```json
+{
+  "thresholdPercent": 85,
+  "estimatedArrivalAt": "2026-07-20T16:24:00.000Z",
+  "remainingHours": 4.4,
+  "status": "PROJECTED",
+  "predictionInterval95": {
+    "earliestArrivalAt": "2026-07-20T15:48:00.000Z",
+    "latestArrivalAt": "2026-07-20T17:12:00.000Z",
+    "minimumHours": 3.8,
+    "maximumHours": 5.2
+  }
+}
+```
+
+Remaining hours are zero when a threshold has already been reached. They are `null` when the status is `STABLE_OR_FALLING` or `INSUFFICIENT_DATA`. Prediction quality is `GOOD`, `LIMITED`, `POOR`, or `INSUFFICIENT_DATA`. Maintenance timing is suppressed for poor-quality forecasts.
+
+Risk is based only on projected time to the 85% danger threshold: critical within 8 hours, high within 24 hours, moderate within 72 hours, and low beyond 72 hours. These bands and all data-quality tolerances are configurable in `config/predictive-analytics.json`. Maintenance output is advisory and contains the recommended time, reason, confidence, safety buffer, and an explicit approval requirement; it never creates a work order. This is deterministic predictive analytics; no AI or machine-learning model is used.
+
+Each forecast appends three trace records (65%, 85%, and 100%) to `prediction_history`. When later immutable telemetry first reaches a threshold, the system records the actual arrival and signed forecast error. Evaluation uses:
+
+`MAE = AVG(ABS(actual arrival - forecast arrival))`
+
+`RMSE = SQRT(AVG((actual arrival - forecast arrival)^2))`
+
+## Collection route optimization
+
+- `GET /api/routes/optimized` — all three roles; returns a critical-first, distance-optimized collection route.
+
+Candidates include approved open maintenance work and tanks with GOOD or LIMITED OLS forecasts expected to reach 85% within the configurable planning horizon. Current WARNING or DANGER status alone does not select a predictive route candidate. Ordering considers forecast urgency, prediction quality, service duration, road travel, truck capacity, disposal trips, and shift limits.
+
+## Maintenance
+
+- `GET /api/maintenance` — all three roles; returns maintenance records joined with tank display data.
+- `POST /api/maintenance` — administrator, maintenance officer; body `{ "tank_id": UUID, "task": string, "scheduled_for": ISO-8601 timestamp, "status"?: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" }`; returns `201`.
+
+## Authorization matrix
+
+| Endpoint group | Administrator | Maintenance officer | Supervisor |
+| --- | --- | --- | --- |
+| Dashboard summary and alerts | Allow | 403 | Allow |
+| Readings | Allow | Allow | Allow |
+| Predictive analytics | Allow | Allow | Allow |
+| List maintenance | Allow | Allow | Allow |
+| Create maintenance | Allow | Allow | 403 |
+| Read tanks | Allow | 403 | Allow |
+| Create/update/delete tanks | Allow | 403 | 403 |
+
+## Common status codes
+
+`200` success, `201` created, `204` deleted, `400` invalid request, `401` missing/invalid login, `403` role denied, `404` resource not found, `409` conflicting data, and `500` server/configuration failure.

@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { AuthValidationError, InvalidCredentialsError, login } from "../services/auth.service";
 import type { LoginRequest } from "../types/auth.types";
+import { getMaintenanceOfficers } from "../models/user.model";
 
 export const postLogin = async (request: Request, response: Response): Promise<void> => {
   try {
@@ -29,4 +30,8 @@ export const postLogin = async (request: Request, response: Response): Promise<v
 
 export const getCurrentProfile = (request: Request, response: Response): void => {
   response.status(200).json(request.user);
+};
+
+export const getOfficers = async (_request: Request, response: Response): Promise<void> => {
+  response.status(200).json(await getMaintenanceOfficers());
 };

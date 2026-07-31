@@ -15,7 +15,7 @@ To develop an IoT-based sewage monitoring system that:
 - Monitors septic tank fill levels.
 - Detects hazardous gases.
 - Displays real-time information on a web dashboard.
-- Predicts future overflow dates.
+- Uses historical sewage readings and statistical trends to forecast threshold and overflow times.
 - Schedules maintenance.
 - Optimizes cesspool truck routes.
 
@@ -25,26 +25,21 @@ To develop an IoT-based sewage monitoring system that:
                   +---------------------------+
                   |      ESP32 Controller     |
                   +---------------------------+
-                     |      |        |
-                     |      |        |
-             Ultrasonic   Gas     Battery
-               Sensor    Sensor    Monitor
+                     |      |
+                     |      |
+             Ultrasonic   Gas
+               Sensor    Sensor
                      |
                      v
-               Wi-Fi Internet
+               Wi-Fi Network
                      |
                      v
-              ThingSpeak Cloud
-                     |
-             REST API (Read)
-                     |
-                     v
-         Node.js + Express Backend
+         Node.js + Express Backend API
                      |
        +-------------+-------------+
        |                           |
- PostgreSQL                 Prediction Engine
- Database                     (Python)
+ PostgreSQL              Predictive Analytics
+ Database                     Module
        |                           |
        +-------------+-------------+
                      |
@@ -63,8 +58,7 @@ To develop an IoT-based sewage monitoring system that:
 | Frontend | Next.js + TypeScript |
 | Backend | Express + TypeScript |
 | Database | PostgreSQL |
-| AI | Python |
-| IoT Cloud | ThingSpeak |
+| Predictive analytics | TypeScript statistical trend analysis |
 | Maps | Leaflet + OpenStreetMap |
 | Charts | Recharts |
 | Authentication | JWT |
@@ -77,7 +71,7 @@ To develop an IoT-based sewage monitoring system that:
 SSMEAS/
 |-- backend/
 |-- dashboard/
-|-- prediction-engine/
+|-- backend/src/services/prediction.service.ts
 |-- hardware/
 |-- database/
 |-- docs/
@@ -138,7 +132,7 @@ Supervisor can:
 - View dashboard.
 - View reports.
 - View truck routes.
-- View predictions.
+- View predictive analytics forecasts.
 
 Supervisor cannot modify data.
 
@@ -175,8 +169,6 @@ Sensor Readings
 | tank_id | UUID |
 | level | FLOAT |
 | gas_level | FLOAT |
-| temperature | FLOAT |
-| battery | FLOAT |
 | recorded_at | TIMESTAMP |
 
 Tank coordinates are fixed registration data. `sensor_readings.tank_id` references `tanks.id`; latitude and longitude are stored only in `tanks`.
@@ -202,7 +194,7 @@ Maintenance
 | emptied_at | TIMESTAMP |
 | remarks | TEXT |
 
-Predictions (Week 3)
+Predictive Analytics (Week 3)
 
 | Field | Type |
 | --- | --- |
@@ -251,7 +243,7 @@ Maintenance
 - `GET /api/maintenance`
 - `POST /api/maintenance`
 
-Predictions
+Predictive analytics
 
 - `GET /api/predictions`
 
@@ -322,11 +314,14 @@ Dashboard
 User
 ```
 
-ThingSpeak field mapping is: `field1` sewage level, `field2` gas level, `field3` temperature, `field4` battery voltage, `field5` registered tank UUID, and optional `field6` device status. The backend validates `field5`, resolves it against `tanks`, and persists telemetry with that `tank_id`. GPS is not sent by ESP32 or stored in ThingSpeak.
+ThingSpeak field mapping is: `field1` sewage level, `field2` gas level, `field5` registered tank UUID, and `field6` device status. The backend validates `field5`, resolves it against `tanks`, and persists telemetry with that `tank_id`. GPS is not sent by ESP32 or stored in ThingSpeak.
 
-1. AI Module Interfaces (Week 3)
+1. Predictive Analytics Module and Route Optimization (Week 3)
 
-The prediction engine reads historical sensor data and writes results back to the database.
+The Predictive Analytics Module reads historical sewage-level data from PostgreSQL.
+It calculates average fill rates and a linear statistical trend, estimates time
+remaining before configured warning and danger conditions and expected overflow,
+and calculates confidence from sample count, recency, and trend consistency.
 
 Inputs:
 
@@ -337,8 +332,16 @@ Inputs:
 
 Outputs:
 
-- Predicted overflow date.
-- Estimated days remaining.
+- Estimated time to warning and danger thresholds.
+- Expected overflow date and time.
+- Average tank fill rate.
 - Confidence score.
+- Maintenance recommendation and urgency priority.
 
-The backend exposes these predictions through `/api/predictions`.
+The backend exposes these forecasts through the backward-compatible
+`/api/predictions` endpoint. The Route Optimization Module consumes the forecast
+and urgency information to rank tanks, group nearby work, minimize travel
+distance and response time, and improve fuel and operational efficiency.
+
+No artificial intelligence, machine learning, deep learning, neural networks,
+or learned models are used.

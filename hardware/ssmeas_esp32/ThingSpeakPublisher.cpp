@@ -15,8 +15,6 @@ bool publish(const SensorReadings& readings, const char* deviceStatus) {
   String body = "api_key=" + String(Config::THINGSPEAK_WRITE_API_KEY);
   body += "&field1=" + String(readings.sewageLevelPercent, 1);
   body += "&field2=" + String(readings.gasLevel, 1);
-  body += "&field3=" + String(readings.temperatureCelsius, 1);
-  body += "&field4=" + String(readings.batteryVoltage, 2);
   body += "&field5=" + String(Config::TANK_UUID);
   body += "&field6=" + String(deviceStatus);
 
