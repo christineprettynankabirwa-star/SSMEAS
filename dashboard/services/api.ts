@@ -22,6 +22,11 @@ export const getHealth = async (): Promise<HealthStatus> => (await api.get<Healt
 export const getTanks = async (): Promise<Tank[]> => (await api.get<Tank[]>("/tanks")).data;
 export const getTank = async (tankId: string): Promise<Tank> =>
   (await api.get<Tank>(`/tanks/${encodeURIComponent(tankId)}`)).data;
+export type TankConfigurationInput = Pick<Tank, "tank_name" | "owner_name" | "location" | "latitude" | "longitude" | "capacity_liters"> & Partial<Pick<Tank, "status" | "thingspeak_channel_id" | "hardware_id" | "warning_fill_threshold" | "critical_fill_threshold">>;
+export const createTank = async (input: TankConfigurationInput): Promise<Tank> =>
+  (await api.post<Tank>("/tanks", input)).data;
+export const updateTank = async (tankId: string, input: Partial<TankConfigurationInput>): Promise<Tank> =>
+  (await api.put<Tank>(`/tanks/${encodeURIComponent(tankId)}`, input)).data;
 export const getLiveReading = async (): Promise<SensorReading> => (await api.get<SensorReading>("/readings/live")).data;
 export const getLatestReadings = async (): Promise<SensorReading[]> => (await api.get<SensorReading[]>("/readings/latest")).data;
 export const getReadingHistory = async (tankId: string): Promise<HistoricalSensorReading[]> => (await api.get<HistoricalSensorReading[]>(`/readings/history/${encodeURIComponent(tankId)}`)).data;

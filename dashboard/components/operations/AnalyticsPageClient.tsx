@@ -33,9 +33,12 @@ export default function AnalyticsPageClient() {
       .then((value) => ({ ok: true as const, value }))
       .catch(() => ({ ok: false as const, value: [] }));
     setTanks(tanksResult.value);
-    setSelectedTankIds((current) => current.length
-      ? current.filter((id) => tanksResult.value.some((tank) => tank.id === id)).slice(0, 7)
-      : tanksResult.value[0] ? [tanksResult.value[0].id] : []);
+    const requestedTankId = new URLSearchParams(window.location.search).get("tank");
+    setSelectedTankIds((current) => requestedTankId && tanksResult.value.some((tank) => tank.id === requestedTankId)
+      ? [requestedTankId]
+      : current.length
+        ? current.filter((id) => tanksResult.value.some((tank) => tank.id === id)).slice(0, 7)
+        : tanksResult.value[0] ? [tanksResult.value[0].id] : []);
     const [analyticsResult, predictionResult] = await Promise.allSettled([
       tanksResult.value.length
         ? getAnalytics(tanksResult.value.map(({ id }) => id), "all", true)

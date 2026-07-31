@@ -1,5 +1,5 @@
 export type TankStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
-export interface Tank { id: string; tank_name: string; owner_name: string; owner_user_id?: string | null; location: string; latitude: number; longitude: number; capacity_liters: number; status: TankStatus; thingspeak_channel_id?: number; thingspeak_read_api_key?: string; created_at: string; updated_at: string; }
+export interface Tank { id: string; tank_name: string; owner_name: string; owner_user_id?: string | null; location: string; latitude: number; longitude: number; capacity_liters: number; status: TankStatus; thingspeak_channel_id?: number; thingspeak_read_api_key?: string; hardware_id?: string | null; warning_fill_threshold?: number; critical_fill_threshold?: number; created_at: string; updated_at: string; }
 export interface SensorReading { id: string; tank_id: string; thingspeak_channel_id: number | null; thingspeak_entry_id: number | null; device_reading_id?: string | null; level: number | null; gas_level: number | null; status?: "SAFE" | "WARNING" | "CRITICAL" | null; recorded_at: string; created_at: string; }
 export interface HistoricalSensorReading { recorded_at: string; level: number | null; gas_level: number | null; }
 export type AnalyticsRange = "1h" | "24h" | "7d" | "30d" | "all";

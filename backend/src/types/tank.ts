@@ -13,6 +13,9 @@ export interface Tank {
   status: TankStatus;
   thingspeak_channel_id?: number;
   thingspeak_read_api_key?: string;
+  hardware_id?: string | null;
+  warning_fill_threshold: number;
+  critical_fill_threshold: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -28,6 +31,9 @@ export interface CreateTankRequest {
   status?: TankStatus;
   thingspeak_channel_id?: number;
   thingspeak_read_api_key?: string;
+  hardware_id?: string | null;
+  warning_fill_threshold?: number;
+  critical_fill_threshold?: number;
 }
 
 export interface UpdateTankRequest {
@@ -41,4 +47,7 @@ export interface UpdateTankRequest {
   status?: TankStatus;
   thingspeak_channel_id?: number;
   thingspeak_read_api_key?: string;
+  hardware_id?: string | null;
+  warning_fill_threshold?: number;
+  critical_fill_threshold?: number;
 }

@@ -59,6 +59,7 @@ const demo = async (): Promise<void> => {
   for (const migration of [
     "create_users_table.sql",
     "create_tanks_table.sql",
+    "add_tank_asset_configuration.sql",
     "create_sensor_readings_table.sql",
     "create_maintenance_table.sql",
     "create_alerts_table.sql",
@@ -87,6 +88,7 @@ const main = async (): Promise<void> => {
   }
   if (task === "demo") return demo();
   if (task === "migrate") {
+    await runSqlFile("add_tank_asset_configuration.sql");
     await runSqlFile("create_notifications_subsystem.sql");
     await runSqlFile("add_emergency_alert_system.sql");
     await runSqlFile("refactor_predictive_analytics_ols.sql");

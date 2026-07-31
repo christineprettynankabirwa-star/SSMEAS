@@ -6,8 +6,9 @@ export const createTank = async (tank: CreateTankRequest): Promise<Tank> => {
   const result = await pool.query<Tank>(
     `INSERT INTO tanks (
       tank_name, owner_name, location, latitude, longitude, capacity_liters, status,
-      thingspeak_channel_id, thingspeak_read_api_key, owner_user_id
-    ) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'ACTIVE'), $8, $9, $10)
+      thingspeak_channel_id, thingspeak_read_api_key, owner_user_id, hardware_id,
+      warning_fill_threshold, critical_fill_threshold
+    ) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'ACTIVE'), $8, $9, $10, $11, COALESCE($12, 80), COALESCE($13, 95))
     RETURNING *`,
     [
       tank.tank_name,
@@ -20,6 +21,9 @@ export const createTank = async (tank: CreateTankRequest): Promise<Tank> => {
       tank.thingspeak_channel_id ?? null,
       tank.thingspeak_read_api_key ?? null,
       tank.owner_user_id ?? null,
+      tank.hardware_id ?? null,
+      tank.warning_fill_threshold ?? null,
+      tank.critical_fill_threshold ?? null,
     ],
   );
 
