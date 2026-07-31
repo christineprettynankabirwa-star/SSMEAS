@@ -22,9 +22,11 @@ import DashboardHeader from "./DashboardHeader";
 import LoginForm from "./LoginForm";
 import SummaryCards from "./SummaryCards";
 import HighlightsCarousel from "./HighlightsCarousel";
-import TankMap from "./TankMap";
 import ActivityFeed from "./ActivityFeed";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/auth/AuthContext";
+
+const TankMap = dynamic(() => import("./TankMap"), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-lg bg-slate-200"/> });
 import { subscribeDataRefresh } from "@/services/data-refresh";
 import { isLiveReading } from "./telemetry";
 export default function DashboardClient() {
@@ -73,16 +75,16 @@ export default function DashboardClient() {
       unsubscribe();
     };
   }, [user, load]);
+  const onlineCount = useMemo(() => {
+    const liveIds = new Set(readings.filter((r) => isLiveReading(r)).map((r) => r.tank_id));
+    return liveIds.size;
+  }, [readings]);
   if (authLoading) return null;
   if (!user) return <LoginForm onAuthenticated={() => void refresh()} />;
   const latest = readings.reduce<SensorReading | null>(
     (a, b) => (!a || new Date(b.recorded_at) > new Date(a.recorded_at) ? b : a),
     null,
   );
-  const onlineCount = useMemo(() => {
-    const liveIds = new Set(readings.filter((r) => isLiveReading(r)).map((r) => r.tank_id));
-    return liveIds.size;
-  }, [readings]);
   const critical = alerts
     .filter((a) => a.status === "ACTIVE" && a.severity === "critical")
     .slice(0, 5);

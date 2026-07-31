@@ -8,39 +8,6 @@ import { getAnalytics, getOverflowPredictions, getTanks } from "@/services/api";
 import { ModuleError, ModuleLoading, ModuleScaffold } from "./ModuleScaffold";
 import { useApiSession } from "./useApiSession";
 
-const DEMO_TANKS: Tank[] = [
-  {
-    id: "demo-warning-tank",
-    tank_name: "Demo Warning Tank",
-    owner_name: "Demo Owner",
-    location: "Demo Location",
-    latitude: 0.3476,
-    longitude: 32.5825,
-    capacity_liters: 10_000,
-    status: "ACTIVE",
-    hardware_id: "DEMO-WARNING-001",
-    warning_fill_threshold: 65,
-    critical_fill_threshold: 85,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: "demo-critical-tank",
-    tank_name: "Demo Critical Tank",
-    owner_name: "Demo Owner",
-    location: "Demo Location",
-    latitude: 0.3476,
-    longitude: 32.5825,
-    capacity_liters: 10_000,
-    status: "ACTIVE",
-    hardware_id: "DEMO-CRITICAL-001",
-    warning_fill_threshold: 65,
-    critical_fill_threshold: 85,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
-
 const average = (values: number[]) =>
   values.length ? values.reduce((left, right) => left + right, 0) / values.length : 0;
 const riskStyle: Record<PredictionApiResponse["risk_level"], string> = {
@@ -63,8 +30,8 @@ export default function AnalyticsPageClient() {
     setLoading(true);
     setError(null);
     const tanksResult = await getTanks()
-      .then((value) => ({ ok: true as const, value: [...DEMO_TANKS, ...value] }))
-      .catch(() => ({ ok: false as const, value: [...DEMO_TANKS] }));
+      .then((value) => ({ ok: true as const, value }))
+      .catch(() => ({ ok: false as const, value: [] }));
     setTanks(tanksResult.value);
     const requestedTankId = new URLSearchParams(window.location.search).get("tank");
     setSelectedTankIds((current) => requestedTankId && tanksResult.value.some((tank) => tank.id === requestedTankId)
