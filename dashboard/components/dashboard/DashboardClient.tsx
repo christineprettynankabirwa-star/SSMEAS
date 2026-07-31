@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getAlerts,
   getDashboardSummary,
@@ -22,16 +22,11 @@ import DashboardHeader from "./DashboardHeader";
 import LoginForm from "./LoginForm";
 import SummaryCards from "./SummaryCards";
 import HighlightsCarousel from "./HighlightsCarousel";
+import TankMap from "./TankMap";
+import ActivityFeed from "./ActivityFeed";
 import { useAuth } from "@/auth/AuthContext";
 import { subscribeDataRefresh } from "@/services/data-refresh";
-const links = [
-  ["Tanks", "Asset registry", "/tanks"],
-  ["Analytics", "Network trends", "/analytics"],
-  ["GIS Map", "Spatial monitoring", "/map"],
-  ["Alerts", "Incident management", "/alerts"],
-  ["Maintenance", "Field operations", "/maintenance"],
-  ["Routes", "Collection planning", "/route"],
-];
+import { isLiveReading } from "./telemetry";
 export default function DashboardClient() {
   const { user, loading: authLoading, refresh, signOut, can } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -84,6 +79,10 @@ export default function DashboardClient() {
     (a, b) => (!a || new Date(b.recorded_at) > new Date(a.recorded_at) ? b : a),
     null,
   );
+  const onlineCount = useMemo(() => {
+    const liveIds = new Set(readings.filter((r) => isLiveReading(r)).map((r) => r.tank_id));
+    return liveIds.size;
+  }, [readings]);
   const critical = alerts
     .filter((a) => a.status === "ACTIVE" && a.severity === "critical")
     .slice(0, 5);
@@ -115,7 +114,7 @@ export default function DashboardClient() {
             <div className="mt-6 grid gap-3 sm:grid-cols-4">
               {[
                 ["Registered tanks", summary?.totalTanks ?? tanks.length],
-                ["Reporting devices", summary?.onlineTanks ?? 0],
+                ["Reporting devices", summary?.onlineTanks ?? onlineCount],
                 ["Active alerts", summary?.activeAlerts ?? 0],
                 [
                   "Average fill",
@@ -147,8 +146,8 @@ export default function DashboardClient() {
                 maintenance={maintenance}
                 route={null}
               />
-              <div className="grid gap-5 xl:grid-cols-3">
-                <section className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="grid items-stretch gap-5 xl:grid-cols-3">
+                <section className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
                   <div className="flex justify-between">
                     <h2 className="font-bold">Recent critical alerts</h2>
                     <Link
@@ -159,9 +158,9 @@ export default function DashboardClient() {
                     </Link>
                   </div>
                   {critical.length ? (
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-4 flex-1 space-y-3">
                       {critical.map((a) => (
-                        <div key={a.id} className="rounded-xl bg-red-50 p-3">
+                        <div key={a.id} className="rounded-xl border-l-4 border-red-500 bg-red-50 p-3 shadow-sm">
                           <p className="font-bold text-red-800">
                             {a.alert_type}
                           </p>
@@ -173,12 +172,14 @@ export default function DashboardClient() {
                       ))}
                     </div>
                   ) : (
-                    <p className="mt-5 text-sm text-slate-500">
-                      No active critical alerts.
-                    </p>
+                    <div className="mt-5 flex flex-1 flex-col items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50/70 p-6 text-center">
+                      <svg viewBox="0 0 24 24" className="size-10 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                      <p className="mt-3 text-sm font-bold text-emerald-800">All Systems Normal</p>
+                      <p className="mt-1 text-xs text-emerald-700">No active critical alerts right now.</p>
+                    </div>
                   )}
                 </section>
-                <section className="rounded-2xl bg-white p-5 shadow-sm">
+                <section className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
                   <div className="flex justify-between">
                     <h2 className="font-bold">Upcoming maintenance</h2>
                     <Link
@@ -189,7 +190,7 @@ export default function DashboardClient() {
                     </Link>
                   </div>
                   {upcoming.length ? (
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-4 flex-1 space-y-3">
                       {upcoming.map((m) => (
                         <div
                           key={m.id}
@@ -204,55 +205,58 @@ export default function DashboardClient() {
                       ))}
                     </div>
                   ) : (
-                    <p className="mt-5 text-sm text-slate-500">
-                      No upcoming work.
-                    </p>
+                    <div className="mt-5 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                      <p className="text-sm font-semibold text-slate-600">No upcoming work</p>
+                      <p className="mt-1 text-xs text-slate-500">Scheduled maintenance will appear here.</p>
+                    </div>
                   )}
                 </section>
-                {can("predictions") && <section className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-5 text-slate-950 shadow-sm">
+                {can("predictions") && <section className="flex flex-col rounded-xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-5 text-slate-950 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
                   <p className="text-xs font-bold uppercase tracking-[.18em] text-cyan-700">
                     Predictive analytics
                   </p>
-                  <p className="mt-4 text-3xl font-black">
-                    {highRisk} high-risk tanks
-                  </p>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    Statistical trend analysis covers {predictions.length} reporting
-                    tanks.{" "}
-                    {highRisk
-                      ? "Prioritize the highest-risk tanks in collection planning."
-                      : "No immediate trend-based escalation is required."}
-                  </p>
+                  <div className="flex-1">
+                    <p className="mt-4 text-3xl font-black">
+                      {highRisk} high-risk tanks
+                    </p>
+                    <p className="mt-3 text-sm leading-6 text-slate-600">
+                      Statistical trend analysis covers {predictions.length} reporting
+                      tanks.{" "}
+                      {highRisk
+                        ? "Prioritize the highest-risk tanks in collection planning."
+                        : "No immediate trend-based escalation is required."}
+                    </p>
+                  </div>
                   <Link
                     href="/analytics"
-                    className="mt-5 inline-block rounded-lg bg-cyan-400 px-3 py-2 text-sm font-bold text-slate-950"
+                    className="mt-5 inline-block self-start rounded-lg bg-cyan-400 px-3 py-2 text-sm font-bold text-slate-950 shadow-sm"
                   >
                     Open analytics
                   </Link>
                 </section>}
               </div>
-              <section>
-                <h2 className="mb-4 text-lg font-bold text-slate-950">
-                  Operations modules
-                </h2>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {links.filter(([, , href]) => {
-                    if (href === "/analytics") return can("analytics");
-                    if (href === "/route") return can("routes");
-                    return true;
-                  }).map(([name, desc, href]) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className="ui-interactive-card group rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-xl"
-                    >
-                      <p className="font-bold text-slate-950">
-                        {name}{" "}
-                        <span className="float-right text-cyan-600">→</span>
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">{desc}</p>
-                    </Link>
-                  ))}
+              <section className="grid gap-5 lg:grid-cols-[3fr_2fr]">
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h2 className="font-bold text-slate-950">Live asset map</h2>
+                      <p className="text-xs text-slate-500">Current tank locations and status</p>
+                    </div>
+                    <Link href="/map" className="text-xs font-bold text-cyan-700">Open map →</Link>
+                  </div>
+                  <div className="overflow-hidden rounded-lg border border-slate-200">
+                    <TankMap tanks={tanks} readings={readings} route={null} operationalControls={false} />
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h2 className="font-bold text-slate-950">Active system audit log</h2>
+                      <p className="text-xs text-slate-500">Recent user actions and system triggers</p>
+                    </div>
+                    <Link href="/reports" className="text-xs font-bold text-cyan-700">Reports →</Link>
+                  </div>
+                  <ActivityFeed reading={latest} alerts={alerts} maintenance={maintenance} />
                 </div>
               </section>
             </>
