@@ -11,12 +11,12 @@ const matrix: Record<UserRole, ReadonlySet<UiPermission>> = {
   ]),
   SUPERVISOR: new Set([
     "overview", "tanks", "analytics", "map", "alerts", "maintenance",
-    "predictions", "reports",
+    "notifications", "predictions", "reports",
   ]),
   MAINTENANCE_OFFICER: new Set([
-    "overview", "tanks", "map", "alerts", "maintenance",
+    "overview", "tanks", "map", "alerts", "notifications", "maintenance",
   ]),
-  CLIENT: new Set(["tanks", "map", "alerts"]),
+  CLIENT: new Set(["tanks", "map", "alerts", "notifications"]),
 };
 
 export const can = (role: UserRole, permission: UiPermission): boolean =>

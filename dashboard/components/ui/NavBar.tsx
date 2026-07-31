@@ -6,17 +6,17 @@ import { useAuth } from "@/auth/AuthContext";
 import type { UiPermission } from "@/auth/permissions";
 
 const items: Array<{ href: string; label: string; icon: string; permission: UiPermission }> = [
-  { href: "/", label: "Overview", icon: "⌂", permission: "overview" },
-  { href: "/tanks", label: "Tanks", icon: "▦", permission: "tanks" },
-  { href: "/analytics", label: "Analytics", icon: "⌁", permission: "analytics" },
-  { href: "/map", label: "Map", icon: "⌖", permission: "map" },
+  { href: "/", label: "Overview", icon: "O", permission: "overview" },
+  { href: "/tanks", label: "Tanks", icon: "T", permission: "tanks" },
+  { href: "/analytics", label: "Analytics", icon: "A", permission: "analytics" },
+  { href: "/map", label: "Map", icon: "M", permission: "map" },
   { href: "/alerts", label: "Alerts", icon: "!", permission: "alerts" },
-  { href: "/notifications", label: "Notifications", icon: "●", permission: "notifications" },
-  { href: "/maintenance", label: "Maintenance", icon: "✓", permission: "maintenance" },
-  { href: "/route", label: "Route", icon: "↗", permission: "routes" },
-  { href: "/reports", label: "Reports", icon: "▤", permission: "reports" },
-  { href: "/users", label: "Users", icon: "♟", permission: "users" },
-  { href: "/settings", label: "Settings", icon: "⚙", permission: "settings" },
+  { href: "/notifications", label: "Notifications", icon: "N", permission: "notifications" },
+  { href: "/maintenance", label: "Maintenance", icon: "W", permission: "maintenance" },
+  { href: "/route", label: "Route", icon: "R", permission: "routes" },
+  { href: "/reports", label: "Reports", icon: "P", permission: "reports" },
+  { href: "/users", label: "Users", icon: "U", permission: "users" },
+  { href: "/settings", label: "Settings", icon: "S", permission: "settings" },
   { href: "/testing-simulation", label: "Testing", icon: "T", permission: "simulation" },
 ];
 

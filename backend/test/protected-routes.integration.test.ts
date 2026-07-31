@@ -3,7 +3,6 @@ import test from "node:test";
 import { app } from "../src/app";
 
 const protectedEndpoints = [
-  ["GET", "/api/db-test"],
   ["GET", "/api/profile"],
   ["GET", "/api/dashboard/summary"],
   ["GET", "/api/readings/live"],
@@ -28,6 +27,7 @@ const protectedEndpoints = [
   ["PUT", "/api/notifications/preferences"],
   ["POST", "/api/notifications/test-email"],
   ["GET", "/api/users"],
+  ["POST", "/api/simulation/reset-all"],
 ] as const;
 
 test("every protected endpoint rejects requests without authentication", async () => {

@@ -38,64 +38,15 @@ export default function AnalyticsPageClient() {
       ? [requestedTankId]
       : current.length
         ? current.filter((id) => tanksResult.value.some((tank) => tank.id === id)).slice(0, 7)
-        : [tanksResult.value[0]!.id]);
+        : tanksResult.value[0] ? [tanksResult.value[0].id] : []);
     const [analyticsResult, predictionResult] = await Promise.allSettled([
       tanksResult.value.length
         ? getAnalytics(tanksResult.value.map(({ id }) => id), "all", true)
         : Promise.resolve(null),
       getOverflowPredictions(),
     ]);
-    const baseReadings = analyticsResult.status === "fulfilled" ? analyticsResult.value?.readings ?? [] : [];
-    const now = new Date().toISOString();
-    const demoReadings: AnalyticsReading[] = [
-      { recorded_at: now, tank_id: "demo-warning-tank", level: 72, gas_level: 180 },
-      { recorded_at: now, tank_id: "demo-critical-tank", level: 92, gas_level: 350 },
-    ];
-    setAll([...demoReadings, ...baseReadings]);
-    const basePredictions = predictionResult.status === "fulfilled" ? predictionResult.value : [];
-    const demoPredictions: PredictionApiResponse[] = [
-      {
-        tank_id: "demo-warning-tank",
-        current_level: 72,
-        current_volume_cubic_meters: 7.2,
-        fill_velocity_percent_per_hour: 0.5,
-        historical_average_daily_increase: 8,
-        remaining_capacity_percent: 28,
-        remaining_capacity_cubic_meters: 2.8,
-        prediction_quality_status: "GOOD",
-        data_quality_issues: [],
-        filling_cycle_started_at: null,
-        warning_projection: { thresholdPercent: 65, estimatedArrivalAt: null, remainingHours: null, status: "STABLE_OR_FALLING", predictionInterval95: { earliestArrivalAt: null, latestArrivalAt: null, minimumHours: null, maximumHours: null } },
-        danger_projection: { thresholdPercent: 85, estimatedArrivalAt: new Date(Date.now() + 26 * 60 * 60 * 1000).toISOString(), remainingHours: 26, status: "PROJECTED", predictionInterval95: { earliestArrivalAt: null, latestArrivalAt: null, minimumHours: null, maximumHours: null } },
-        overflow_projection: { thresholdPercent: 100, estimatedArrivalAt: null, remainingHours: null, status: "INSUFFICIENT_DATA", predictionInterval95: { earliestArrivalAt: null, latestArrivalAt: null, minimumHours: null, maximumHours: null } },
-        risk_level: "MODERATE",
-        confidence: 0.82,
-        maintenance_recommendation: { recommendedAt: null, reason: "Projected to reach 85% within planning horizon.", predictionConfidence: 0.82, safetyBufferHours: 6, approvalRequired: true },
-        samples: 12,
-        generated_at: now,
-      },
-      {
-        tank_id: "demo-critical-tank",
-        current_level: 92,
-        current_volume_cubic_meters: 9.2,
-        fill_velocity_percent_per_hour: 1.2,
-        historical_average_daily_increase: 15,
-        remaining_capacity_percent: 8,
-        remaining_capacity_cubic_meters: 0.8,
-        prediction_quality_status: "GOOD",
-        data_quality_issues: [],
-        filling_cycle_started_at: null,
-        warning_projection: { thresholdPercent: 65, estimatedArrivalAt: null, remainingHours: null, status: "STABLE_OR_FALLING", predictionInterval95: { earliestArrivalAt: null, latestArrivalAt: null, minimumHours: null, maximumHours: null } },
-        danger_projection: { thresholdPercent: 85, estimatedArrivalAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), remainingHours: -2, status: "THRESHOLD_REACHED", predictionInterval95: { earliestArrivalAt: null, latestArrivalAt: null, minimumHours: null, maximumHours: null } },
-        overflow_projection: { thresholdPercent: 100, estimatedArrivalAt: new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString(), remainingHours: 7, status: "PROJECTED", predictionInterval95: { earliestArrivalAt: null, latestArrivalAt: null, minimumHours: null, maximumHours: null } },
-        risk_level: "CRITICAL",
-        confidence: 0.91,
-        maintenance_recommendation: { recommendedAt: new Date().toISOString(), reason: "Tank has exceeded the 85% danger threshold and is projected to overflow.", predictionConfidence: 0.91, safetyBufferHours: 6, approvalRequired: true },
-        samples: 24,
-        generated_at: now,
-      },
-    ];
-    setPredictions([...demoPredictions, ...basePredictions]);
+    setAll(analyticsResult.status === "fulfilled" ? analyticsResult.value?.readings ?? [] : []);
+    setPredictions(predictionResult.status === "fulfilled" ? predictionResult.value : []);
     const unavailable = [
       !tanksResult.ok && "tank registry",
       analyticsResult.status === "rejected" && "historical analytics",

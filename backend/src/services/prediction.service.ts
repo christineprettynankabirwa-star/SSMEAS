@@ -8,7 +8,7 @@ import type {
 
 export class PredictionValidationError extends Error {}
 export class PredictionTankNotFoundError extends Error {}
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export interface TimedLevel { level: number; gasLevel?: number | null; recordedAt: Date }
 
