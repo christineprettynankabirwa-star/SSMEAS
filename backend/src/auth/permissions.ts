@@ -23,14 +23,14 @@ export const rolePermissions: Readonly<Record<UserRole, ReadonlySet<Permission>>
   SUPERVISOR: new Set([
     "dashboard:read", "tanks:read", "readings:live", "readings:history",
     "readings:analytics", "alerts:read",
-    "notifications:read", "maintenance:read", "predictions:read", "reports:read", "routes:read",
+    "notifications:read", "notifications:configure", "maintenance:read", "predictions:read", "reports:read", "routes:read",
   ]),
   MAINTENANCE_OFFICER: new Set([
     "tanks:read", "readings:live", "readings:history",
-    "alerts:read", "notifications:read", "maintenance:read",
+    "alerts:read", "notifications:read", "notifications:configure", "maintenance:read",
     "maintenance:update",
   ]),
-  CLIENT: new Set(["tanks:read", "readings:live", "alerts:read", "notifications:read"]),
+  CLIENT: new Set(["tanks:read", "readings:live", "alerts:read", "notifications:read", "notifications:configure"]),
 };
 
 export const hasPermission = (role: UserRole, permission: Permission): boolean =>

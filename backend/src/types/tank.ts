@@ -1,5 +1,5 @@
 // Defines the tank data contracts shared across the tank management module.
-export type TankStatus = "ACTIVE" | "INACTIVE";
+export type TankStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
 
 export interface Tank {
   id: string;

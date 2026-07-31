@@ -16,6 +16,9 @@ const publicUser = ({ password_hash: _passwordHash, ...user }: UserRecord): Auth
 const userRoles = new Set<UserRole>(["ADMINISTRATOR", "MAINTENANCE_OFFICER", "SUPERVISOR", "CLIENT"]);
 
 export const createUser = async (input: CreateUserRequest): Promise<AuthenticatedUser> => {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new AuthValidationError("Request body must be a JSON object.");
+  }
   if (typeof input.full_name !== "string" || !input.full_name.trim() || input.full_name.length > 150) {
     throw new AuthValidationError("Full name is required and must not exceed 150 characters.");
   }
@@ -74,6 +77,9 @@ export const changeUserRole = async (id: string, role: unknown): Promise<Authent
 };
 
 export const updateUser = async (id: string, input: UpdateUserRequest): Promise<AuthenticatedUser> => {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new AuthValidationError("Request body must be a JSON object.");
+  }
   if (typeof input.full_name !== "string" || !input.full_name.trim() || input.full_name.length > 150) {
     throw new AuthValidationError("Full name is required and must not exceed 150 characters.");
   }

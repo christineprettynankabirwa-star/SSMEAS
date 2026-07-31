@@ -65,6 +65,22 @@ test("maintenance officers cannot access predictions or create maintenance", () 
   }
 });
 
+test("every authenticated role can manage only its own notification preferences", () => {
+  for (const role of [
+    "ADMINISTRATOR", "SUPERVISOR", "MAINTENANCE_OFFICER", "CLIENT",
+  ] as const) {
+    const request = {
+      user: { id: "id", email: "user@example.com", full_name: "User", role },
+    } as unknown as Request;
+    const mock = responseMock();
+    let called = false;
+    authorizePermission("notifications:configure")(
+      request, mock.response, (() => { called = true; }) as NextFunction,
+    );
+    assert.equal(called, true);
+  }
+});
+
 test("only administrators can manage testing and simulation", () => {
   for (const [role, allowed] of [
     ["ADMINISTRATOR", true], ["SUPERVISOR", false],

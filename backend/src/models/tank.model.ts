@@ -2,6 +2,11 @@
 import { pool } from "../config/database";
 import type { CreateTankRequest, Tank, UpdateTankRequest } from "../types/tank";
 
+const publicTankColumns = `
+  id, tank_name, owner_name, owner_user_id, location, latitude, longitude,
+  capacity_liters, status, thingspeak_channel_id, hardware_id,
+  warning_fill_threshold, critical_fill_threshold, created_at, updated_at`;
+
 export const createTank = async (tank: CreateTankRequest): Promise<Tank> => {
   const result = await pool.query<Tank>(
     `INSERT INTO tanks (
@@ -9,7 +14,7 @@ export const createTank = async (tank: CreateTankRequest): Promise<Tank> => {
       thingspeak_channel_id, thingspeak_read_api_key, owner_user_id, hardware_id,
       warning_fill_threshold, critical_fill_threshold
     ) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'ACTIVE'), $8, $9, $10, $11, COALESCE($12, 80), COALESCE($13, 95))
-    RETURNING *`,
+    RETURNING ${publicTankColumns}`,
     [
       tank.tank_name,
       tank.owner_name,
@@ -31,13 +36,18 @@ export const createTank = async (tank: CreateTankRequest): Promise<Tank> => {
 };
 
 export const getAllTanks = async (): Promise<Tank[]> => {
-  const result = await pool.query<Tank>("SELECT * FROM tanks ORDER BY created_at DESC");
+  const result = await pool.query<Tank>(`SELECT ${publicTankColumns} FROM tanks ORDER BY created_at DESC`);
   return result.rows;
 };
 
 export const getAssignedTanks = async (officerId: string): Promise<Tank[]> =>
   (await pool.query<Tank>(
-    `SELECT DISTINCT tank.* FROM tanks tank
+    `SELECT DISTINCT
+       tank.id, tank.tank_name, tank.owner_name, tank.owner_user_id, tank.location,
+       tank.latitude, tank.longitude, tank.capacity_liters, tank.status,
+       tank.thingspeak_channel_id, tank.hardware_id, tank.warning_fill_threshold,
+       tank.critical_fill_threshold, tank.created_at, tank.updated_at
+     FROM tanks tank
      JOIN maintenance ON maintenance.tank_id=tank.id
      WHERE maintenance.assigned_to=$1
        AND maintenance.status IN ('SCHEDULED','ASSIGNED','IN_PROGRESS')
@@ -46,7 +56,7 @@ export const getAssignedTanks = async (officerId: string): Promise<Tank[]> =>
   )).rows;
 
 export const getTankById = async (id: string): Promise<Tank | null> => {
-  const result = await pool.query<Tank>("SELECT * FROM tanks WHERE id = $1", [id]);
+  const result = await pool.query<Tank>(`SELECT ${publicTankColumns} FROM tanks WHERE id = $1`, [id]);
   return result.rows[0] ?? null;
 };
 
@@ -64,7 +74,7 @@ export const updateTank = async (
     `UPDATE tanks
      SET ${setClause}, updated_at = CURRENT_TIMESTAMP
      WHERE id = $${values.length + 1}
-     RETURNING *`,
+     RETURNING ${publicTankColumns}`,
     [...values, id],
   );
 

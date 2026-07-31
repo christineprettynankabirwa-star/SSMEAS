@@ -53,6 +53,17 @@ const validateStatus = (value: unknown): void => {
   }
 };
 
+const validateOptionalPositiveInteger = (value: unknown, field: string): void => {
+  if (value !== null && value !== undefined
+    && (!Number.isSafeInteger(value) || (value as number) <= 0)) {
+    throw new ValidationError(`${field} must be a positive integer when supplied.`);
+  }
+};
+
+const validateOptionalSecret = (value: unknown, field: string): void => {
+  if (value !== null && value !== undefined) validateText(value, field, 255);
+};
+
 const validateTank = (tank: CreateTankRequest | UpdateTankRequest, isCreate: boolean): void => {
   if (isCreate || tank.tank_name !== undefined) validateText(tank.tank_name, "tank_name", 100);
   if (isCreate || tank.owner_name !== undefined) validateText(tank.owner_name, "owner_name", 100);
@@ -69,6 +80,12 @@ const validateTank = (tank: CreateTankRequest | UpdateTankRequest, isCreate: boo
     }
   }
   if (tank.status !== undefined) validateStatus(tank.status);
+  if (tank.thingspeak_channel_id !== undefined) {
+    validateOptionalPositiveInteger(tank.thingspeak_channel_id, "thingspeak_channel_id");
+  }
+  if (tank.thingspeak_read_api_key !== undefined) {
+    validateOptionalSecret(tank.thingspeak_read_api_key, "thingspeak_read_api_key");
+  }
   if (tank.hardware_id !== undefined && tank.hardware_id !== null) validateText(tank.hardware_id, "hardware_id", 100);
   if (isCreate || tank.warning_fill_threshold !== undefined) {
     validateNumber(tank.warning_fill_threshold ?? 80, "warning_fill_threshold", 0, 99);
@@ -100,11 +117,17 @@ export const findTankById = async (id: string, user?: AuthenticatedUser): Promis
 };
 
 export const addTank = async (tank: CreateTankRequest): Promise<Tank> => {
+  if (!tank || typeof tank !== "object" || Array.isArray(tank)) {
+    throw new ValidationError("Request body must be a JSON object.");
+  }
   validateTank(tank, true);
   return tankModel.createTank(tank);
 };
 
 export const editTank = async (id: string, tank: UpdateTankRequest): Promise<Tank> => {
+  if (!tank || typeof tank !== "object" || Array.isArray(tank)) {
+    throw new ValidationError("Request body must be a JSON object.");
+  }
   const suppliedFields = Object.keys(tank);
   if (suppliedFields.length === 0) {
     throw new ValidationError("At least one field is required to update a tank.");

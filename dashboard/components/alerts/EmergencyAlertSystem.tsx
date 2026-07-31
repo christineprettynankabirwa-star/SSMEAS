@@ -13,7 +13,7 @@ import { useAuth } from "@/auth/AuthContext";
 const alarmPath = "/audio/mixkit-facility-alarm-sound-999.wav";
 
 export default function EmergencyAlertSystem() {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [readings, setReadings] = useState<SensorReading[]>([]);
   const [predictions, setPredictions] = useState<PredictionApiResponse[]>([]);
@@ -23,7 +23,8 @@ export default function EmergencyAlertSystem() {
   const load = useCallback(async () => {
     try {
       const [nextAlerts, nextReadings, nextPredictions] = await Promise.all([
-        getAlerts(), getLatestReadings(), getOverflowPredictions(),
+        getAlerts(), getLatestReadings(),
+        can("predictions") ? getOverflowPredictions() : Promise.resolve([]),
       ]);
       setAlerts(nextAlerts.filter((alert) =>
         alert.status === "ACTIVE" && alert.severity === "critical"));
@@ -33,7 +34,7 @@ export default function EmergencyAlertSystem() {
     } catch {
       // Keep the last confirmed emergency visible during transient API failures.
     }
-  }, []);
+  }, [can]);
 
   useEffect(() => {
     const initial = window.setTimeout(() => void load(), 0);

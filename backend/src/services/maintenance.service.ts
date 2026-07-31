@@ -41,6 +41,9 @@ export const addMaintenance = async (
 };
 
 export const changeMaintenance = async (id: string, update: UpdateMaintenanceRequest): Promise<MaintenanceRecord> => {
+  if (!update || typeof update !== "object" || Array.isArray(update)) {
+    throw new MaintenanceValidationError("Request body must be a JSON object.");
+  }
   if (!uuidPattern.test(id)) throw new MaintenanceValidationError("maintenance id must be a valid UUID.");
   if (update.status !== undefined && !statuses.has(update.status)) throw new MaintenanceValidationError("maintenance status is invalid.");
   if (update.priority !== undefined && !priorities.has(update.priority)) throw new MaintenanceValidationError("priority is invalid.");
@@ -61,6 +64,9 @@ export const changeMaintenance = async (id: string, update: UpdateMaintenanceReq
 export const changeMaintenanceForUser = async (
   id: string, update: UpdateMaintenanceRequest, user: AuthenticatedUser,
 ): Promise<MaintenanceRecord> => {
+  if (!update || typeof update !== "object" || Array.isArray(update)) {
+    throw new MaintenanceValidationError("Request body must be a JSON object.");
+  }
   if (user.role !== "MAINTENANCE_OFFICER") return changeMaintenance(id, update);
   const keys = Object.keys(update);
   const allowed = new Set<MaintenanceStatus>(["ASSIGNED", "IN_PROGRESS", "COMPLETED"]);

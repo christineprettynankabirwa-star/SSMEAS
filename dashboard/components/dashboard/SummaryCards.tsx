@@ -2,12 +2,12 @@ import AnimatedValue from "@/components/ui/AnimatedValue";
 import MetricCard from "@/components/ui/MetricCard";
 import type { SensorReading } from "./types";
 import { isLiveReading } from "./telemetry";
-import { classifyLevel } from "@/services/alert-thresholds";
+import { classifyTelemetry } from "@/services/alert-thresholds";
 
 const Icon = ({ path }: { path: string }) => <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={path}/></svg>;
 export default function SummaryCards({ reading, lastUpdated }: { reading: SensorReading | null; lastUpdated: Date | null }) {
   const offline = !isLiveReading(reading);
-  const status = offline ? "OFFLINE" : classifyLevel(reading?.level);
+  const status = offline ? "OFFLINE" : classifyTelemetry(reading?.level, reading?.gas_level);
   const statusTone = status === "DANGER" ? "bg-red-100 text-red-700" : status === "WARNING" ? "bg-amber-100 text-amber-700" : status === "SAFE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600";
   const staleSince = offline && lastUpdated
     ? new Intl.DateTimeFormat("en-UG", { hour: "2-digit", minute: "2-digit" }).format(lastUpdated)
