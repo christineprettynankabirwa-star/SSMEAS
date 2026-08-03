@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AlertItem, PredictionApiResponse, SensorReading } from "@/components/dashboard/types";
@@ -12,15 +13,26 @@ import { useAuth } from "@/auth/AuthContext";
 
 const alarmPath = "/audio/mixkit-facility-alarm-sound-999.wav";
 
+const acknowledgementError = (cause: unknown): string => {
+  if (axios.isAxiosError<{ message?: string }>(cause)) {
+    const message = cause.response?.data?.message;
+    if (message) return message;
+    if (cause.response?.status === 401) return "Your session has expired. Sign in again and retry.";
+    if (cause.response?.status === 403) return "Only an administrator can acknowledge this alert.";
+  }
+  return "The server did not confirm the acknowledgement. Check your connection and retry.";
+};
+
 export default function EmergencyAlertSystem() {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [readings, setReadings] = useState<SensorReading[]>([]);
   const [predictions, setPredictions] = useState<PredictionApiResponse[]>([]);
   const [error, setError] = useState("");
+  const [acknowledging, setAcknowledging] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (clearError = true) => {
     try {
       const [nextAlerts, nextReadings, nextPredictions] = await Promise.all([
         getAlerts(), getLatestReadings(), getOverflowPredictions(),
@@ -29,7 +41,7 @@ export default function EmergencyAlertSystem() {
         alert.status === "ACTIVE" && alert.severity === "critical"));
       setReadings(nextReadings);
       setPredictions(nextPredictions);
-      setError("");
+      if (clearError) setError("");
     } catch {
       // Keep the last confirmed emergency visible during transient API failures.
     }
@@ -85,17 +97,21 @@ export default function EmergencyAlertSystem() {
   );
 
   const acknowledge = async () => {
-    if (!alert) return;
-    audio.current?.pause();
-    if (audio.current) audio.current.currentTime = 0;
-    setAlerts((current) => current.filter(({ id }) => id !== alert.id));
+    if (!alert || acknowledging) return;
+    setAcknowledging(true);
+    setError("");
     try {
       await acknowledgeAlert(alert.id);
+      // Dismiss only after the server has confirmed the acknowledgement.  This
+      // keeps a real emergency visible when an auth or network request fails.
+      setAlerts((current) => current.filter(({ id }) => id !== alert.id));
       announceDataRefresh();
-      await load();
-    } catch {
-      setError("The alert could not be acknowledged. Check your role and try again.");
-      await load();
+      void load();
+    } catch (cause) {
+      setError(`The alert remains active: ${acknowledgementError(cause)}`);
+      await load(false);
+    } finally {
+      setAcknowledging(false);
     }
   };
 
@@ -142,8 +158,10 @@ export default function EmergencyAlertSystem() {
         {error && <p className="mt-3 text-center text-sm font-bold text-amber-300">{error}</p>}
         <div className="mt-7 grid gap-3 sm:grid-cols-3">
           {user?.role === "ADMINISTRATOR" && <button type="button" onClick={() => void acknowledge()}
-            className="rounded-xl bg-red-600 px-4 py-3 font-black text-white hover:bg-red-500">
-            Acknowledge Alert
+            disabled={acknowledging}
+            aria-busy={acknowledging}
+            className="rounded-xl bg-red-600 px-4 py-3 font-black text-white hover:bg-red-500 disabled:cursor-wait disabled:opacity-60">
+            {acknowledging ? "Acknowledging…" : "Acknowledge Alert"}
           </button>}
           <Link href={`/tanks/${encodeURIComponent(alert.tank_id)}`}
             className="rounded-xl border border-red-300 px-4 py-3 text-center font-bold hover:bg-white/10">

@@ -30,7 +30,14 @@ export const acknowledge = async (id: string, user: AuthenticatedUser): Promise<
   if (!uuidPattern.test(id)) throw new AlertValidationError("alert id must be a valid UUID.");
   const alert = await alertsModel.acknowledgeAlert(id, user.id);
   if (!alert) throw new AlertTankNotFoundError("Active alert not found.");
-  await createAcknowledgementNotifications(alert);
+  // Acknowledgement is the safety-critical state transition.  Notification
+  // history is best-effort: a legacy notification constraint or a transient
+  // database issue must never turn a committed acknowledgement into a 500.
+  try {
+    await createAcknowledgementNotifications(alert);
+  } catch (error) {
+    console.error("Alert was acknowledged, but acknowledgement notification history failed:", error);
+  }
   return alert;
 };
 
