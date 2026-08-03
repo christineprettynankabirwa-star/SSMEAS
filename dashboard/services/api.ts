@@ -19,7 +19,17 @@ export const updateUserRole = async (id: string, role: UserProfile["role"]): Pro
 export const deleteUser = async (id: string): Promise<void> => { await api.delete(`/users/${encodeURIComponent(id)}`); };
 export interface HealthStatus { status: string; timestamp?: string; }
 export const getHealth = async (): Promise<HealthStatus> => (await api.get<HealthStatus>("/health")).data;
-export const getTanks = async (): Promise<Tank[]> => (await api.get<Tank[]>("/tanks")).data;
+export const deduplicateTanks = (tanks: Tank[]): Tank[] => {
+  const names = new Set<string>();
+  return tanks.filter((tank) => {
+    const name = tank.tank_name.trim().toLocaleLowerCase();
+    if (names.has(name)) return false;
+    names.add(name);
+    return true;
+  });
+};
+export const getTanks = async (): Promise<Tank[]> =>
+  deduplicateTanks((await api.get<Tank[]>("/tanks")).data);
 export const getTank = async (tankId: string): Promise<Tank> =>
   (await api.get<Tank>(`/tanks/${encodeURIComponent(tankId)}`)).data;
 export type TankConfigurationInput = Pick<Tank, "tank_name" | "owner_name" | "location" | "latitude" | "longitude" | "capacity_liters"> & Partial<Pick<Tank, "status" | "thingspeak_channel_id" | "hardware_id" | "warning_fill_threshold" | "critical_fill_threshold">>;

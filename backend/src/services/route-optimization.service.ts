@@ -8,6 +8,45 @@ import { predictiveAnalyticsConfig } from "../config/predictive-analytics";
 
 export { haversineDistanceKm };
 
+export class RouteOptimizationValidationError extends Error {}
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const validatePositiveNumber = (
+  value: unknown, field: string, maximum: number,
+): void => {
+  if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value) || value <= 0 || value > maximum)) {
+    throw new RouteOptimizationValidationError(`${field} must be a number between 0 and ${maximum}.`);
+  }
+};
+
+const validateTankIdList = (value: unknown, field: string): void => {
+  if (value === undefined) return;
+  if (!Array.isArray(value) || value.length > 100
+    || value.some((id) => typeof id !== "string" || !uuidPattern.test(id))) {
+    throw new RouteOptimizationValidationError(`${field} must contain at most 100 valid tank UUIDs.`);
+  }
+};
+
+export const validateRouteOptimizationRequest = (value: unknown): RouteOptimizationRequest => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new RouteOptimizationValidationError("Route request must be a JSON object.");
+  }
+  const request = value as RouteOptimizationRequest;
+  validatePositiveNumber(request.truckCapacityLiters, "truckCapacityLiters", 1_000_000);
+  validatePositiveNumber(request.shiftDurationMinutes, "shiftDurationMinutes", 1_440);
+  validatePositiveNumber(request.planningHorizonHours, "planningHorizonHours", 720);
+  validateTankIdList(request.excludedTankIds, "excludedTankIds");
+  validateTankIdList(request.preferredOrder, "preferredOrder");
+  validateTankIdList(request.lockedTankIds, "lockedTankIds");
+  if (request.truckId !== undefined && (typeof request.truckId !== "string" || request.truckId.trim().length > 100)) {
+    throw new RouteOptimizationValidationError("truckId must be a string of at most 100 characters.");
+  }
+  if (request.driverId !== undefined && (typeof request.driverId !== "string" || !uuidPattern.test(request.driverId))) {
+    throw new RouteOptimizationValidationError("driverId must be a valid UUID.");
+  }
+  return request;
+};
+
 const configuredNumber = (name: string, fallback: number): number => {
   const value = Number(process.env[name] ?? fallback);
   return Number.isFinite(value) && value > 0 ? value : fallback;
@@ -179,6 +218,7 @@ const buildRoute = (
 export const getOptimizedMaintenanceRoute = async (
   request: RouteOptimizationRequest = {},
 ): Promise<OptimizedRoute> => {
+  validateRouteOptimizationRequest(request);
   const start = depot();
   await predictAllOverflows();
   const planningHorizonHours = request.planningHorizonHours

@@ -90,7 +90,12 @@ export const storePrediction = async (prediction: StoredPrediction): Promise<voi
          tank_id, prediction_time, threshold_percent, forecast_at,
          regression_slope, regression_r_squared, interval_earliest_at, interval_latest_at,
          prediction_quality_status, sample_count, filling_cycle_started_at
-       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+       ) SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11
+         WHERE NOT EXISTS (
+           SELECT 1 FROM prediction_history history
+           WHERE history.tank_id=$1 AND history.threshold_percent=$3
+             AND history.prediction_time >= $2::timestamptz - INTERVAL '30 minutes'
+         )`,
       [
         prediction.tankId, prediction.calculatedAt, projection.thresholdPercent,
         projection.estimatedArrivalAt, prediction.fillVelocityPercentPerHour,

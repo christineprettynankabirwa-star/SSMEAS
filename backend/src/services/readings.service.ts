@@ -151,9 +151,19 @@ export const parseAnalyticsTankIds = (value: unknown): string[] => {
   return ids;
 };
 
-export const getAnalytics = async (tankIdsValue: unknown, rangeValue: unknown): Promise<AnalyticsResponse> => {
+export const getAnalytics = async (
+  tankIdsValue: unknown, rangeValue: unknown, user?: AuthenticatedUser,
+): Promise<AnalyticsResponse> => {
   const tankIds = parseAnalyticsTankIds(tankIdsValue);
   const range = parseAnalyticsRange(rangeValue ?? "24h");
+  if (user?.role === "MAINTENANCE_OFFICER") {
+    const assignedTankIds = new Set((await tankModel.getAssignedTanks(user.id)).map(({ id }) => id));
+    if (tankIds.some((tankId) => !assignedTankIds.has(tankId))) {
+      // Match the historical-reading endpoint: do not disclose whether an
+      // unassigned tank exists to a maintenance officer.
+      throw new ReadingNotFoundError("Tank not found.");
+    }
+  }
   const [readings, summary] = await Promise.all([
     readingsModel.getAnalyticsReadings(tankIds, range),
     readingsModel.getAnalyticsSummary(tankIds, range),

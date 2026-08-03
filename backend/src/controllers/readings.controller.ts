@@ -26,10 +26,16 @@ export const createDeviceReading = async (request: Request, response: Response):
 
 export const getReadingAnalytics = async (request: Request, response: Response): Promise<void> => {
   try {
-    response.status(200).json(await getAnalytics(request.query.tankIds, request.query.range));
+    response.status(200).json(await getAnalytics(
+      request.query.tankIds, request.query.range, request.user,
+    ));
   } catch (error) {
     if (error instanceof ReadingValidationError) {
       response.status(400).json({ message: error.message });
+      return;
+    }
+    if (error instanceof ReadingNotFoundError) {
+      response.status(404).json({ message: error.message });
       return;
     }
     console.error("Sensor analytics request failed:", error);

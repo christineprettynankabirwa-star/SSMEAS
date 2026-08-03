@@ -70,7 +70,10 @@ export const createNotification = async (
          AND recent_alert.alert_type = current_alert.alert_type
          AND recent.created_at >= NOW() - INTERVAL '30 minutes'
      )
-     ON CONFLICT(alert_id, user_id, channel, title) DO NOTHING RETURNING id`,
+     -- Older deployed schemas key deliveries by (alert, user, channel), while
+     -- newer schemas include title to retain lifecycle history.  Omitting a
+     -- conflict target is safe for both versions and must not block alerts.
+     ON CONFLICT DO NOTHING RETURNING id`,
     [alertId, tankId, userId, channel, recipient, subject, message],
   );
   return result.rows[0]?.id ?? null;
@@ -159,7 +162,7 @@ export const createResolutionNotifications = async (
      LEFT JOIN notification_preferences preference ON preference.user_id=user_account.id
      WHERE user_account.role='ADMINISTRATOR'
        AND COALESCE(preference.in_app_enabled,TRUE)
-     ON CONFLICT(alert_id,user_id,channel,title) DO NOTHING`,
+     ON CONFLICT DO NOTHING`,
     [
       alert.id, alert.tank_id, `Resolved - ${alert.tank_name}`,
       `${source} confirmed that ${alert.tank_name} returned to SAFE. Existing alert history was retained.`,
@@ -177,7 +180,7 @@ export const createAcknowledgementNotifications = async (alert: Alert): Promise<
      LEFT JOIN notification_preferences preference ON preference.user_id=user_account.id
      WHERE user_account.role='ADMINISTRATOR'
        AND COALESCE(preference.in_app_enabled,TRUE)
-     ON CONFLICT(alert_id,user_id,channel,title) DO NOTHING`,
+     ON CONFLICT DO NOTHING`,
     [
       alert.id, alert.tank_id, `Acknowledged - ${alert.tank_name}`,
       `${alert.tank_name} remains in DANGER. Monitoring continues until live readings return to SAFE.`,
