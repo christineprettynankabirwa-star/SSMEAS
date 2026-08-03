@@ -15,7 +15,11 @@ import { alertThresholdConfig } from "../config/alert-thresholds";
 
 export class AlertValidationError extends Error {}
 export class AlertTankNotFoundError extends Error {}
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// PostgreSQL's uuid type accepts all hexadecimal UUID values. Deterministic
+// seed IDs made with md5() can use a non-RFC version nibble while remaining
+// valid database UUIDs.
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const isAlertUuid = (value: string): boolean => uuidPattern.test(value);
 const severities = new Set<AlertSeverity>(["critical", "warning", "info"]);
 
 const validateText = (value: unknown, field: string, maxLength: number): void => {
@@ -27,7 +31,7 @@ const validateText = (value: unknown, field: string, maxLength: number): void =>
 export const listAlerts = async (user?: AuthenticatedUser): Promise<Alert[]> =>
   alertsModel.getAllAlerts(user?.role === "MAINTENANCE_OFFICER" ? user.id : undefined);
 export const acknowledge = async (id: string, user: AuthenticatedUser): Promise<Alert> => {
-  if (!uuidPattern.test(id)) throw new AlertValidationError("alert id must be a valid UUID.");
+  if (!isAlertUuid(id)) throw new AlertValidationError("alert id must be a valid UUID.");
   const alert = await alertsModel.acknowledgeAlert(id, user.id);
   if (!alert) throw new AlertTankNotFoundError("Active alert not found.");
   // Acknowledgement is the safety-critical state transition.  Notification
@@ -42,7 +46,7 @@ export const acknowledge = async (id: string, user: AuthenticatedUser): Promise<
 };
 
 export const resolve = async (id: string): Promise<Alert> => {
-  if (!uuidPattern.test(id)) throw new AlertValidationError("alert id must be a valid UUID.");
+  if (!isAlertUuid(id)) throw new AlertValidationError("alert id must be a valid UUID.");
   const current = await alertsModel.getAlertById(id);
   if (!current || current.status !== "ACKNOWLEDGED") {
     throw new AlertTankNotFoundError("Acknowledged alert not found.");

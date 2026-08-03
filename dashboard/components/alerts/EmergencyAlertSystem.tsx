@@ -12,6 +12,7 @@ import { announceDataRefresh } from "@/services/data-refresh";
 import { useAuth } from "@/auth/AuthContext";
 
 const alarmPath = "/audio/mixkit-facility-alarm-sound-999.wav";
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const acknowledgementError = (cause: unknown): string => {
   if (axios.isAxiosError<{ message?: string }>(cause)) {
@@ -98,6 +99,10 @@ export default function EmergencyAlertSystem() {
 
   const acknowledge = async () => {
     if (!alert || acknowledging) return;
+    if (!uuidPattern.test(alert.id)) {
+      setError("The alert remains active because it has no valid alert ID. Refresh the page and contact an administrator if this continues.");
+      return;
+    }
     setAcknowledging(true);
     setError("");
     try {

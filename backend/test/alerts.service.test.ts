@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  alertThresholds, generateAlertsForReading, isReadingSafe,
+  alertThresholds, generateAlertsForReading, isAlertUuid, isReadingSafe,
 } from "../src/services/alerts.service";
 import { classifySewageLevel } from "../src/config/alert-thresholds";
 import type { SensorReading } from "../src/types/readings.types";
@@ -36,4 +36,11 @@ test("sewage level is the primary alert trigger", () => {
   assert.deepEqual(generateAlertsForReading(reading(64, 9999), alertThresholds), []);
   assert.equal(generateAlertsForReading(reading(65, 0), alertThresholds)[0]?.severity, "warning");
   assert.equal(generateAlertsForReading(reading(85, 0), alertThresholds)[0]?.severity, "critical");
+});
+
+test("alert acknowledgement accepts every UUID value PostgreSQL can store", () => {
+  // md5(... )::uuid is used by the idempotent presentation seed and does not
+  // guarantee an RFC version nibble between 1 and 5.
+  assert.equal(isAlertUuid("c04b7667-b278-e547-517f-bb04a4a41e77"), true);
+  assert.equal(isAlertUuid("not-a-uuid"), false);
 });

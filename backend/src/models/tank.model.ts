@@ -31,17 +31,32 @@ export const createTank = async (tank: CreateTankRequest): Promise<Tank> => {
 };
 
 export const getAllTanks = async (): Promise<Tank[]> => {
-  const result = await pool.query<Tank>("SELECT * FROM tanks ORDER BY created_at DESC");
+  // Keep the newest configured asset when legacy/imported rows share a display
+  // name. The outer sort preserves the normal newest-first API ordering.
+  const result = await pool.query<Tank>(
+    `SELECT * FROM (
+       SELECT DISTINCT ON (LOWER(BTRIM(tank_name))) *
+       FROM tanks
+       ORDER BY LOWER(BTRIM(tank_name)), created_at DESC, id DESC
+     ) AS unique_tanks
+     ORDER BY created_at DESC, id DESC`,
+  );
   return result.rows;
 };
 
 export const getAssignedTanks = async (officerId: string): Promise<Tank[]> =>
   (await pool.query<Tank>(
-    `SELECT DISTINCT tank.* FROM tanks tank
-     JOIN maintenance ON maintenance.tank_id=tank.id
-     WHERE maintenance.assigned_to=$1
-       AND maintenance.status IN ('SCHEDULED','ASSIGNED','IN_PROGRESS')
-     ORDER BY tank.created_at DESC`,
+    `SELECT * FROM (
+       SELECT DISTINCT ON (LOWER(BTRIM(tank.tank_name))) tank.*
+       FROM tanks tank
+       WHERE EXISTS (
+         SELECT 1 FROM maintenance
+         WHERE maintenance.tank_id=tank.id AND maintenance.assigned_to=$1
+           AND maintenance.status IN ('SCHEDULED','ASSIGNED','IN_PROGRESS')
+       )
+       ORDER BY LOWER(BTRIM(tank.tank_name)), tank.created_at DESC, tank.id DESC
+     ) AS unique_tanks
+     ORDER BY created_at DESC, id DESC`,
     [officerId],
   )).rows;
 

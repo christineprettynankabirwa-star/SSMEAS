@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getAnalytics, getLatestReadings } from "@/services/api";
+import { deduplicateTanks, getAnalytics, getLatestReadings } from "@/services/api";
 import { classifyReading, type TankCondition } from "@/services/alert-thresholds";
 import AnalyticsSummaryCards from "./AnalyticsSummaryCards";
 import TelemetryChart from "./TelemetryChart";
@@ -22,9 +22,19 @@ export default function AnalyticsDashboard({ tanks, initialTankId, selectedTankI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The API already deduplicates names, but keep this local protection for
+  // cached, local, or independently supplied tank arrays.
+  const uniqueTanks = useMemo(() => deduplicateTanks(tanks), [tanks]);
+
   const selected = selectedTankIds ?? localSelected;
   const setSelected = onSelectedTankIdsChange ?? setLocalSelected;
-  const effectiveSelected = useMemo(() => selected.length > 0 ? selected : initialTankId ? [initialTankId] : tanks[0] ? [tanks[0].id] : [], [initialTankId, selected, tanks]);
+  const effectiveSelected = useMemo(() => {
+    const availableIds = new Set(uniqueTanks.map(({ id }) => id));
+    const retained = selected.filter((id) => availableIds.has(id));
+    if (retained.length) return retained;
+    if (initialTankId && availableIds.has(initialTankId)) return [initialTankId];
+    return uniqueTanks[0] ? [uniqueTanks[0].id] : [];
+  }, [initialTankId, selected, uniqueTanks]);
   const load = useCallback(async (force = false) => {
     if (effectiveSelected.length === 0) return;
     setLoading(true); setError(null);
@@ -52,7 +62,7 @@ export default function AnalyticsDashboard({ tanks, initialTankId, selectedTankI
     });
     return [...byTime.values()];
   }, [analytics.readings]);
-  const selectedTanks = effectiveSelected.map((id) => tanks.find((tank) => tank.id === id)).filter((tank): tank is Tank => Boolean(tank));
+  const selectedTanks = effectiveSelected.map((id) => uniqueTanks.find((tank) => tank.id === id)).filter((tank): tank is Tank => Boolean(tank));
   const latestByTank = useMemo(() => new Map(latestReadings.map((reading) => [reading.tank_id, reading])), [latestReadings]);
   const conditionForTank = (tankId: string): TankCondition => {
     const reading = latestByTank.get(tankId);
@@ -68,11 +78,11 @@ export default function AnalyticsDashboard({ tanks, initialTankId, selectedTankI
     for (const tankId of effectiveSelected) {
       const recent = analytics.readings.filter((reading) => reading.tank_id === tankId && reading.level !== null).slice(-5);
       if (recent.length === 5 && recent.every((reading) => reading.level === recent[0]!.level)) {
-        warnings.push(`${tanks.find((tank) => tank.id === tankId)?.tank_name ?? tankId} has five identical level readings; verify sensor calibration.`);
+        warnings.push(`${uniqueTanks.find((tank) => tank.id === tankId)?.tank_name ?? tankId} has five identical level readings; verify sensor calibration.`);
       }
     }
     return warnings;
-  }, [analytics.readings, effectiveSelected, tanks]);
+  }, [analytics.readings, effectiveSelected, uniqueTanks]);
 
   return <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white via-white to-blue-50/70 p-4 shadow-sm sm:p-6">
     <div className="flex flex-col gap-5 border-b border-blue-100 pb-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">Network intelligence</p><h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Historical analytics</h2><p className="mt-1 max-w-2xl text-sm text-slate-500">Explore sensor performance, compare tank trends, and drag the navigator beneath any chart to zoom or pan.</p></div><div className="flex flex-wrap gap-2" aria-label="Analytics time range">{ranges.map((item) => <button key={item.value} type="button" onClick={() => setRange(item.value)} className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${range === item.value ? "border-blue-600 bg-blue-600 text-white shadow-sm shadow-blue-200" : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50"}`}>{item.label}</button>)}</div></div>
@@ -80,12 +90,12 @@ export default function AnalyticsDashboard({ tanks, initialTankId, selectedTankI
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Compare tanks — up to 7</p>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setSelected(tanks.slice(0, 7).map(({ id }) => id))} className="text-xs font-bold text-cyan-700">Select first 7</button>
-          <button type="button" onClick={() => setSelected(tanks[0] ? [tanks[0].id] : [])} className="text-xs font-bold text-slate-600">Reset</button>
+          <button type="button" onClick={() => setSelected(uniqueTanks.slice(0, 7).map(({ id }) => id))} className="text-xs font-bold text-cyan-700">Select first 7</button>
+          <button type="button" onClick={() => setSelected(uniqueTanks[0] ? [uniqueTanks[0].id] : [])} className="text-xs font-bold text-slate-600">Reset</button>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        {tanks.map((tank) => {
+        {uniqueTanks.map((tank) => {
           const active = effectiveSelected.includes(tank.id);
           const disabled = !active && effectiveSelected.length >= 7;
           const condition = conditionForTank(tank.id);
