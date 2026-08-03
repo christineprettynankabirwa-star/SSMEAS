@@ -56,10 +56,13 @@ export class NodemailerEmailProvider extends TrackedProvider {
 
   constructor(transporter?: Transporter) {
     super();
+    const smtpDebug = process.env.SMTP_DEBUG === "true";
     this.transporter = transporter ?? nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT ?? 587),
       secure: process.env.SMTP_SECURE === "true",
+      logger: smtpDebug,
+      debug: smtpDebug,
       auth: process.env.SMTP_USER
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
         : undefined,
@@ -68,6 +71,9 @@ export class NodemailerEmailProvider extends TrackedProvider {
 
   protected async deliver(message: ProviderMessage): Promise<void> {
     if (!process.env.SMTP_HOST) throw new Error("SMTP_HOST is not configured.");
+    if (process.env.SMTP_USER && !process.env.SMTP_PASSWORD) {
+      throw new Error("SMTP_PASSWORD is required when SMTP_USER is configured.");
+    }
     await this.transporter.sendMail({
       from: process.env.EMAIL_FROM ?? "alerts@ssmeas.local",
       to: message.recipient,
@@ -76,3 +82,7 @@ export class NodemailerEmailProvider extends TrackedProvider {
     });
   }
 }
+
+/** Sends a one-off alert email without creating a notification database record. */
+export const sendAlertEmail = async (message: ProviderMessage): Promise<void> =>
+  new NodemailerEmailProvider().send(message);

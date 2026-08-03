@@ -7,6 +7,7 @@
     "dev": "nodemon --watch src --ext ts --exec ts-node --files src/server.ts",
     "build": "tsc",
     "test": "node --test --require ./test/register.cjs \"test/**/*.test.ts\"",
+    "test-email": "ts-node src/scripts/test-email.ts",
     "create-user": "ts-node src/scripts/create-user.ts",
     "seed": "ts-node src/scripts/database-task.ts seed",
     "reset-db": "ts-node src/scripts/database-task.ts reset",
